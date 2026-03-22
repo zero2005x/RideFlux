@@ -125,36 +125,44 @@ fun DeviceScanScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        if (uiState.isScanning) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                CircularProgressIndicator(modifier = Modifier.height(20.dp))
-                Text("Scanning…", style = MaterialTheme.typography.bodyMedium)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-        }
+        ScanStatusContent(
+            uiState = uiState,
+            onSelectDevice = { viewModel.onIntent(DeviceScanIntent.SelectDevice(it)) },
+        )
+    }
+}
 
-        if (uiState.isConnecting) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Connecting…", style = MaterialTheme.typography.bodyLarge)
-                }
+@Composable
+private fun ScanStatusContent(uiState: DeviceScanState, onSelectDevice: (String) -> Unit) {
+    if (uiState.isScanning) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CircularProgressIndicator(modifier = Modifier.height(20.dp))
+            Text("Scanning…", style = MaterialTheme.typography.bodyMedium)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+
+    if (uiState.isConnecting) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Connecting…", style = MaterialTheme.typography.bodyLarge)
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(uiState.devices, key = { it.address }) { device ->
-                    DeviceCard(
-                        device = device,
-                        onClick = { viewModel.onIntent(DeviceScanIntent.SelectDevice(device.address)) },
-                    )
-                }
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(uiState.devices, key = { it.address }) { device ->
+                DeviceCard(
+                    device = device,
+                    onClick = { onSelectDevice(device.address) },
+                )
             }
         }
     }

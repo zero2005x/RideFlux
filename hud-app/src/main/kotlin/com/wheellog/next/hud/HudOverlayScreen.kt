@@ -85,6 +85,12 @@ fun HudOverlayScreen(
     }
 }
 
+private fun batteryColor(percent: Int): Color = when {
+    percent < 10 -> HudRed
+    percent < 30 -> HudAmber
+    else -> HudGreen
+}
+
 @Composable
 private fun HudContent(data: HudData, glassBattery: Int) {
     Row(
@@ -93,11 +99,7 @@ private fun HudContent(data: HudData, glassBattery: Int) {
         verticalAlignment = Alignment.Bottom,
     ) {
         // Left: EUC icon + Wheel battery
-        val wheelColor = when {
-            data.batteryPercent < 10 -> HudRed
-            data.batteryPercent < 30 -> HudAmber
-            else -> HudGreen
-        }
+        val wheelColor = batteryColor(data.batteryPercent)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.weight(1f),
@@ -116,59 +118,10 @@ private fun HudContent(data: HudData, glassBattery: Int) {
         }
 
         // Center: large speed + unit + time
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.weight(1.5f),
-        ) {
-            val displaySpeed = if (data.useMetric) {
-                abs(data.speedKmh)
-            } else {
-                abs(data.speedKmh) * 0.621371f
-            }
-            Text(
-                text = "%.1f".format(displaySpeed),
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                color = if (data.hasOverspeed) HudRed else HudGreen,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                softWrap = false,
-            )
-            Text(
-                text = if (data.useMetric) "km/h" else "mph",
-                fontSize = 14.sp,
-                fontFamily = FontFamily.Monospace,
-                color = HudGreen.copy(alpha = 0.7f),
-                maxLines = 1,
-            )
-
-            // Current time — always below speed
-            val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-            var currentTime by remember { mutableStateOf(timeFormat.format(Date())) }
-            LaunchedEffect(Unit) {
-                while (true) {
-                    currentTime = timeFormat.format(Date())
-                    delay(1000L)
-                }
-            }
-            Text(
-                text = currentTime,
-                fontSize = 16.sp,
-                fontFamily = FontFamily.Monospace,
-                color = HudGreen.copy(alpha = 0.5f),
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
+        SpeedColumn(data = data, modifier = Modifier.weight(1.5f))
 
         // Right: Glasses icon + Glasses battery
-        val glassesColor = when {
-            glassBattery < 10 -> HudRed
-            glassBattery < 30 -> HudAmber
-            else -> HudGreen
-        }
+        val glassesColor = batteryColor(glassBattery)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.weight(1f),
@@ -185,6 +138,56 @@ private fun HudContent(data: HudData, glassBattery: Int) {
                 softWrap = false,
             )
         }
+    }
+}
+
+@Composable
+private fun SpeedColumn(data: HudData, modifier: Modifier = Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier,
+    ) {
+        val displaySpeed = if (data.useMetric) {
+            abs(data.speedKmh)
+        } else {
+            abs(data.speedKmh) * 0.621371f
+        }
+        Text(
+            text = "%.1f".format(displaySpeed),
+            fontSize = 48.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            color = if (data.hasOverspeed) HudRed else HudGreen,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false,
+        )
+        Text(
+            text = if (data.useMetric) "km/h" else "mph",
+            fontSize = 14.sp,
+            fontFamily = FontFamily.Monospace,
+            color = HudGreen.copy(alpha = 0.7f),
+            maxLines = 1,
+        )
+
+        // Current time — always below speed
+        val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+        var currentTime by remember { mutableStateOf(timeFormat.format(Date())) }
+        LaunchedEffect(Unit) {
+            while (true) {
+                currentTime = timeFormat.format(Date())
+                delay(1000L)
+            }
+        }
+        Text(
+            text = currentTime,
+            fontSize = 16.sp,
+            fontFamily = FontFamily.Monospace,
+            color = HudGreen.copy(alpha = 0.5f),
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 
