@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
-import androidx.compose.material.icons.filled.BluetoothSearching
+import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -93,7 +93,7 @@ fun HudGatewayScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(
-                        Icons.Default.BluetoothSearching,
+                        Icons.AutoMirrored.Filled.BluetoothSearching,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )
@@ -153,7 +153,7 @@ private fun ConnectionStatusCard(uiState: HudGatewayState) {
             Icon(
                 imageVector = when {
                     hasClients -> Icons.Default.BluetoothConnected
-                    uiState.isAdvertising -> Icons.Default.BluetoothSearching
+                    uiState.isAdvertising -> Icons.AutoMirrored.Filled.BluetoothSearching
                     else -> Icons.Default.Bluetooth
                 },
                 contentDescription = null,
