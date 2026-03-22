@@ -1,0 +1,30 @@
+# Built outputs
+/build/
+*/build/
+*/*/build/
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration (contains SDK path, secrets)
+local.properties
+
+# IDE
+.idea/
+*.iml
+.kotlin/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Signing keys
+*.jks
+*.keystore
+
+# Google Services (if added later)
+google-services.json

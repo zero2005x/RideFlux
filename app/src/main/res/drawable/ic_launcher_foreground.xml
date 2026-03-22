@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple wheel icon: outer circle + inner circle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,24C37.43,24 24,37.43 24,54C24,70.57 37.43,84 54,84C70.57,84 84,70.57 84,54C84,37.43 70.57,24 54,24ZM54,78C40.75,78 30,67.25 30,54C30,40.75 40.75,30 54,30C67.25,30 78,40.75 78,54C78,67.25 67.25,78 54,78Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,44C48.48,44 44,48.48 44,54C44,59.52 48.48,64 54,64C59.52,64 64,59.52 64,54C64,48.48 59.52,44 54,44ZM54,58C51.79,58 50,56.21 50,54C50,51.79 51.79,50 54,50C56.21,50 58,51.79 58,54C58,56.21 56.21,58 54,58Z" />
+</vector>

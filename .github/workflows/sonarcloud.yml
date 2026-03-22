@@ -1,0 +1,59 @@
+# ────────────────────────────────────────────────────────────────────
+# SonarCloud — SAST & Code Quality analysis
+# Runs on every push / PR to main.
+# ────────────────────────────────────────────────────────────────────
+name: SonarCloud
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: sonar-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read       # checkout only — least-privilege
+  pull-requests: read  # needed for PR decoration
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout (full history needed for SCM blame) ────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full clone for accurate blame / new-code detection
+
+      # ── 2. JDK 17 (matches project compileOptions) ────────────────
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # ── 3. Gradle caching ─────────────────────────────────────────
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      # ── 4. Build + unit tests (produces .class files & test reports)
+      - name: Build & test
+        run: ./gradlew assembleDebug testDebugUnitTest --no-daemon
+
+      # ── 5. SonarCloud scan ────────────────────────────────────────
+      - name: SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: "https://sonarcloud.io"
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          # GITHUB_TOKEN is auto-provided; needed for PR decoration
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          ./gradlew sonar --no-daemon
+          -Dsonar.token=$SONAR_TOKEN
+          -Dsonar.pullrequest.provider=GitHub
+          -Dsonar.pullrequest.github.repository=${{ github.repository }}
