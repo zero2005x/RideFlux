@@ -1,5 +1,7 @@
 package com.wheellog.next.feature.settings
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -7,7 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -20,6 +29,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -87,6 +98,39 @@ fun SettingsScreen(
                 steps = 13,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            // Support button
+            Spacer(modifier = Modifier.height(32.dp))
+            KofiButton(
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
+    }
+}
+
+@Composable
+fun KofiButton(
+    modifier: Modifier = Modifier,
+    kofiUrl: String = "https://ko-fi.com/liangtinglin",
+) {
+    val context = LocalContext.current
+    Button(
+        onClick = {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(kofiUrl))
+            context.startActivity(intent)
+        },
+        modifier = modifier,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFFFF5E5B),
+            contentColor = Color.White,
+        ),
+    ) {
+        Icon(
+            imageVector = Icons.Default.LocalCafe,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = "Support me on Ko-fi")
     }
 }
