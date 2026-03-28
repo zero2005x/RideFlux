@@ -4,6 +4,8 @@ An open-source Android companion app for **Electric Unicycles (EUC)** with real-
 
 RideFlux connects to your EUC via Bluetooth Low Energy, decodes telemetry data (speed, battery, temperature, alerts), and streams it live to a heads-up display on Rokid RV101 glasses — so you never have to look down while riding.
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/liangtinglin)
+
 ## Features
 
 - **Multi-brand EUC support** — Begode (Gotway), KingSong, Inmotion (v1 & v2), Ninebot, Ninebot Z-series, and Veteran wheels
