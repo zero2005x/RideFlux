@@ -17,16 +17,27 @@
         android:required="true" />
 
     <!--
-        The @HiltAndroidApp application class is wired up below so that
-        Hilt can bootstrap the SingletonComponent. The MainActivity
-        NavHost, launcher icon, and Theme.RideFlux will be added in the
-        next phase (Compose UI scaffolding); until then the manifest
-        deliberately stays free of an intent-filtered launcher so the
-        app compiles / installs but does not yet expose an entry point.
+        The @HiltAndroidApp application class lives in com.rideflux.app
+        (not the com.wheellog.next namespace), so it must be referenced
+        by its fully-qualified name. MainActivity is likewise in
+        com.rideflux.app and is declared as the launcher entry point.
     -->
     <application
-        android:name=".RideFluxApplication"
+        android:name="com.rideflux.app.RideFluxApplication"
         android:allowBackup="false"
-        android:supportsRtl="true" />
+        android:label="RideFlux"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+
+        <activity
+            android:name="com.rideflux.app.MainActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
 
 </manifest>
