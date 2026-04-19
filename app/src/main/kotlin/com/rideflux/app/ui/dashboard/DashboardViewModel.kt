@@ -13,6 +13,7 @@ import com.rideflux.domain.command.WheelCommand
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
 import com.rideflux.domain.repository.WheelRepository
+import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelIdentity
@@ -24,6 +25,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -56,6 +58,8 @@ data class DashboardUiState(
     val currentA: Float? = null,
     val mosTemperatureC: Float? = null,
     val totalDistanceMetres: Long? = null,
+    val rideMode: RideMode? = null,
+    val headlightOn: Boolean = false,
 )
 
 /**
@@ -96,13 +100,13 @@ class DashboardViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    /** MAC of the target device (e.g. `"AA:BB:CC:DD:EE:FF"`). */
-    private val address: String = requireNotNull(savedStateHandle[ARG_ADDRESS]) {
+    /** MAC of the target device (e.g. `"AA:BB:CC:DD:EE:FF"`). Exposed so nav callers can re-route to the HUD. */
+    val address: String = requireNotNull(savedStateHandle[ARG_ADDRESS]) {
         "DashboardViewModel requires SavedStateHandle[$ARG_ADDRESS]"
     }
 
     /** Optional family hint — `null` means "let the repository decide". */
-    private val expectedFamily: WheelFamily? =
+    val expectedFamily: WheelFamily? =
         (savedStateHandle.get<String>(ARG_FAMILY))?.let {
             runCatching { WheelFamily.valueOf(it) }.getOrNull()
         }
@@ -117,6 +121,14 @@ class DashboardViewModel @Inject constructor(
             wheelRepository.connect(address = address, expectedFamily = expectedFamily)
         }
     }
+
+    /**
+     * Locally-tracked headlight state. The wheel telemetry does not
+     * report headlight state back, so we drive this flag from the
+     * user's own toggle via [setHeadlight] and surface it on
+     * [DashboardUiState.headlightOn] for UI feedback.
+     */
+    private val headlightOnFlow = MutableStateFlow(false)
 
     /**
      * Unified UI state. We `flatMapLatest` off a flow that emits the
@@ -163,6 +175,40 @@ class DashboardViewModel @Inject constructor(
         return conn.dispatch(command)
     }
 
+    // ---- High-level command helpers -----------------------------------
+
+    /**
+     * Toggle the wheel's primary headlight. Optimistically updates
+     * [DashboardUiState.headlightOn] first so the UI feels immediate;
+     * on transport failure the flag stays on the last known value
+     * (the wheel will correct the rider by not lighting up).
+     */
+    fun setHeadlight(on: Boolean) {
+        headlightOnFlow.value = on
+        viewModelScope.launch {
+            dispatch(WheelCommand.SetHeadlight(on))
+        }
+    }
+
+    /**
+     * Select a pedals ride mode. Pass the family-specific integer
+     * code (e.g. `0 = Soft`, `1 = Medium`, `2 = Hard` for most
+     * families). The actual applied mode is confirmed by the next
+     * telemetry frame, which updates [DashboardUiState.rideMode].
+     */
+    fun setPedalsMode(modeCode: Int) {
+        viewModelScope.launch {
+            dispatch(WheelCommand.SetRideMode(modeCode))
+        }
+    }
+
+    /** Fire a single short beep on the wheel's speaker. */
+    fun beep() {
+        viewModelScope.launch {
+            dispatch(WheelCommand.Beep)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         // Fire-and-forget; the repository ref-count teardown must run
@@ -179,32 +225,48 @@ class DashboardViewModel @Inject constructor(
     // ---- Helpers -------------------------------------------------------
 
     private fun combineDashboardFlows(conn: WheelConnection) = with(conn) {
-        kotlinx.coroutines.flow.combine(
+        val baseFlow = kotlinx.coroutines.flow.combine(
             state,
             identity,
             speedKmh,
             voltageV,
             batteryPercent,
         ) { s, id, spd, v, bp -> Tuple5(s, id, spd, v, bp) }
-            .let { base ->
-                kotlinx.coroutines.flow.combine(
-                    base,
-                    currentA,
-                    mosTemperatureC,
-                    totalDistanceMetres,
-                ) { b, cur, mos, odo ->
-                    DashboardUiState(
-                        connectionState = b.state,
-                        identity = b.identity,
-                        speedKmh = b.speedKmh,
-                        voltageV = b.voltageV,
-                        batteryPercent = b.batteryPercent,
-                        currentA = cur,
-                        mosTemperatureC = mos,
-                        totalDistanceMetres = odo,
-                    )
-                }
-            }
+
+        val telemetryFlow = kotlinx.coroutines.flow.combine(
+            baseFlow,
+            currentA,
+            mosTemperatureC,
+            totalDistanceMetres,
+            telemetry.map { it.rideMode },
+        ) { b, cur, mos, odo, mode ->
+            DashboardUiState(
+                connectionState = b.state,
+                identity = b.identity,
+                // Speed can be reported as a signed scalar by some
+                // codecs (e.g. during reverse roll). Riders read the
+                // dashboard for magnitude, not direction, so we take
+                // the absolute value once, here, so every consumer
+                // (phone dashboard, HUD) stays in sync.
+                speedKmh = b.speedKmh?.let { kotlin.math.abs(it) },
+                voltageV = b.voltageV,
+                // If we're connected but have not yet seen a battery
+                // frame, show 0% instead of a silent `null` so the
+                // gauge has something to render. Pre-Ready we leave
+                // `null` so the UI can still show the loading state.
+                batteryPercent = b.batteryPercent
+                    ?: if (b.state == ConnectionState.Ready) 0f else null,
+                currentA = cur,
+                mosTemperatureC = mos,
+                totalDistanceMetres = odo,
+                rideMode = mode,
+            )
+        }
+
+        kotlinx.coroutines.flow.combine(
+            telemetryFlow,
+            headlightOnFlow,
+        ) { base, headlight -> base.copy(headlightOn = headlight) }
     }
 
     private data class Tuple5(

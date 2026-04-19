@@ -26,18 +26,27 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -58,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rideflux.domain.connection.ConnectionState
+import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelAlert
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,6 +82,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun DashboardRoute(
     onNavigateUp: () -> Unit,
+    onNavigateToHud: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,6 +92,10 @@ fun DashboardRoute(
         uiState = uiState,
         activeAlert = activeAlert,
         onNavigateUp = onNavigateUp,
+        onNavigateToHud = onNavigateToHud,
+        onSetHeadlight = viewModel::setHeadlight,
+        onSetPedalsMode = viewModel::setPedalsMode,
+        onBeep = viewModel::beep,
     )
 }
 
@@ -114,6 +129,10 @@ fun DashboardScreen(
     uiState: DashboardUiState,
     activeAlert: WheelAlert?,
     onNavigateUp: () -> Unit,
+    onNavigateToHud: () -> Unit = {},
+    onSetHeadlight: (Boolean) -> Unit = {},
+    onSetPedalsMode: (Int) -> Unit = {},
+    onBeep: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -125,6 +144,15 @@ fun DashboardScreen(
                             ?: "Dashboard",
                         maxLines = 1,
                     )
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToHud) {
+                        Icon(
+                            Icons.Filled.Tv,
+                            contentDescription = "Open AR HUD",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -149,6 +177,14 @@ fun DashboardScreen(
                 voltageV = uiState.voltageV,
             )
             SecondaryStatsRow(uiState)
+            ControlsCard(
+                headlightOn = uiState.headlightOn,
+                rideMode = uiState.rideMode,
+                enabled = uiState.connectionState == ConnectionState.Ready,
+                onSetHeadlight = onSetHeadlight,
+                onSetPedalsMode = onSetPedalsMode,
+                onBeep = onBeep,
+            )
         }
     }
 }
@@ -459,6 +495,127 @@ private fun StatTile(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
+        }
+    }
+}
+
+/**
+ * Presets shown in the pedals-mode selector. Most EUC families
+ * expose three firmness steps under different labels (Soft / Medium
+ * / Hard, or Comfort / Normal / Sport). We hard-code the common
+ * case and surface whatever the wheel echoes back via
+ * [DashboardUiState.rideMode] so the active chip reflects the real
+ * state even if the firmware reinterprets the code.
+ */
+private data class PedalsModePreset(val code: Int, val label: String)
+
+private val DEFAULT_PEDALS_PRESETS: List<PedalsModePreset> = listOf(
+    PedalsModePreset(0, "Soft"),
+    PedalsModePreset(1, "Medium"),
+    PedalsModePreset(2, "Hard"),
+)
+
+/**
+ * Card exposing the three in-scope wheel commands:
+ *
+ *  - **Headlight** toggled via a switch.
+ *  - **Pedals mode** selected from [DEFAULT_PEDALS_PRESETS].
+ *  - **Beep** triggered as a one-shot button.
+ *
+ * All controls are disabled until the connection reports
+ * [ConnectionState.Ready] so the rider doesn't queue writes that
+ * will fail at the transport layer.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ControlsCard(
+    headlightOn: Boolean,
+    rideMode: RideMode?,
+    enabled: Boolean,
+    onSetHeadlight: (Boolean) -> Unit,
+    onSetPedalsMode: (Int) -> Unit,
+    onBeep: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // ---- Headlight -----------------------------------------
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Headlight",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Switch(
+                    checked = headlightOn,
+                    onCheckedChange = onSetHeadlight,
+                    enabled = enabled,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.primary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                    ),
+                )
+            }
+
+            // ---- Pedals mode ---------------------------------------
+            Column {
+                Text(
+                    "Pedals mode",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DEFAULT_PEDALS_PRESETS.forEach { preset ->
+                        val selected = rideMode?.code == preset.code
+                        FilterChip(
+                            selected = selected,
+                            onClick = { onSetPedalsMode(preset.code) },
+                            enabled = enabled,
+                            label = { Text(preset.label) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        )
+                    }
+                }
+                val activeLabel = rideMode?.label
+                if (!activeLabel.isNullOrBlank() && DEFAULT_PEDALS_PRESETS.none { it.code == rideMode.code }) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Wheel reports: $activeLabel",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            // ---- Beep ----------------------------------------------
+            Button(
+                onClick = onBeep,
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            ) {
+                Icon(Icons.Filled.Campaign, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Beep", fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }
