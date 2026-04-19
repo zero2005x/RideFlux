@@ -1,0 +1,35 @@
+<!--
+  Hero vector shown on the dashboard's "Connecting…" splash.
+  A concentric ping — three pulses from a single wheel dot.
+  Animation is driven in Compose; the drawable itself is static.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+
+    <!-- Outer pulse -->
+    <path
+        android:pathData="M80,80 m-64,0 a64,64 0 1,0 128,0 a64,64 0 1,0 -128,0"
+        android:strokeColor="#1F00E5FF"
+        android:strokeWidth="2"
+        android:fillColor="#00000000" />
+    <!-- Mid pulse -->
+    <path
+        android:pathData="M80,80 m-42,0 a42,42 0 1,0 84,0 a42,42 0 1,0 -84,0"
+        android:strokeColor="#4D00E5FF"
+        android:strokeWidth="3"
+        android:fillColor="#00000000" />
+    <!-- Inner pulse -->
+    <path
+        android:pathData="M80,80 m-22,0 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0"
+        android:strokeColor="#99FFFFFF"
+        android:strokeWidth="3"
+        android:fillColor="#00000000" />
+    <!-- Core -->
+    <path
+        android:pathData="M80,80 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0"
+        android:fillColor="#00E5FF" />
+
+</vector>

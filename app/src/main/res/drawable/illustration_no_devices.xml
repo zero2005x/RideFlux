@@ -1,0 +1,35 @@
+<!--
+  Illustration used when scanning completes without finding any
+  advertising wheels. A "slashed" Bluetooth glyph inside a faint
+  chip outline — no specific device family, so it stays universal.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+
+    <!-- Faint circular backdrop -->
+    <path
+        android:pathData="M80,80 m-60,0 a60,60 0 1,0 120,0 a60,60 0 1,0 -120,0"
+        android:strokeColor="#22FFFFFF"
+        android:strokeWidth="2"
+        android:fillColor="#00000000" />
+
+    <!-- Bluetooth bowtie glyph -->
+    <path
+        android:pathData="M80,36 L80,124 L104,100 L56,60 M56,100 L104,60"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="6"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Diagonal slash -->
+    <path
+        android:pathData="M40,40 L120,120"
+        android:strokeColor="#FF3366"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+
+</vector>

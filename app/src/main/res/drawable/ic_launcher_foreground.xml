@@ -1,0 +1,50 @@
+<!--
+  RideFlux launcher icon — foreground.
+  108 x 108 dp adaptive-icon canvas; safe zone is the centred 72 x 72 dp.
+  Composition: electric cyan tire with spokes + a stark white lightning
+  bolt through the axle, echoing the dashboard's cyan/white palette.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer tire ring -->
+    <path
+        android:pathData="M54,20 A34,34 0 1 1 53.999,20 Z"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="7"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+
+    <!-- Inner rim -->
+    <path
+        android:pathData="M54,30 A24,24 0 1 1 53.999,30 Z"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="2"
+        android:strokeAlpha="0.6"
+        android:fillColor="#00000000" />
+
+    <!-- Spokes -->
+    <path
+        android:pathData="M54,32 L54,76 M32,54 L76,54 M38,38 L70,70 M70,38 L38,70"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="1.6"
+        android:strokeAlpha="0.35"
+        android:strokeLineCap="round" />
+
+    <!-- Lightning bolt -->
+    <path
+        android:pathData="M58,34 L44,58 L52,58 L50,74 L66,50 L58,50 Z"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1"
+        android:strokeLineJoin="round" />
+
+    <!-- Axle dot -->
+    <path
+        android:pathData="M54,54 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:fillColor="#00E5FF" />
+
+</vector>

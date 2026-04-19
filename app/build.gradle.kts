@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.wheellog.next"
+    namespace = "com.rideflux.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.wheellog.next"
+        applicationId = "com.rideflux.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

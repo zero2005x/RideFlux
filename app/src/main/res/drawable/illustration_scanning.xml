@@ -1,0 +1,70 @@
+<!--
+  Illustration used by ScannerScreen when no devices are visible.
+  Stylised EUC silhouette with radiating Bluetooth waves to hint
+  at an ongoing scan. Monochrome + cyan so it tints cleanly in
+  both light and dark states.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+
+    <!-- Ground line -->
+    <path
+        android:pathData="M16,132 L144,132"
+        android:strokeColor="#4D00E5FF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+
+    <!-- Wheel -->
+    <path
+        android:pathData="M80,80 m-30,0 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+
+    <!-- Tyre tread -->
+    <path
+        android:pathData="M56,80 a24,24 0 1,0 48,0 a24,24 0 1,0 -48,0"
+        android:strokeColor="#33FFFFFF"
+        android:strokeWidth="2"
+        android:fillColor="#00000000" />
+
+    <!-- Pedals -->
+    <path
+        android:pathData="M46,86 L62,88 M98,88 L114,86"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round" />
+
+    <!-- Axle -->
+    <path
+        android:pathData="M80,80 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
+        android:fillColor="#00E5FF" />
+
+    <!-- Bluetooth waves emanating from the top of the wheel -->
+    <path
+        android:pathData="M80,40 q14,-14 28,0"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeAlpha="0.9" />
+    <path
+        android:pathData="M80,32 q22,-22 44,0"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeAlpha="0.55" />
+    <path
+        android:pathData="M80,24 q30,-30 60,0"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeAlpha="0.25" />
+
+</vector>

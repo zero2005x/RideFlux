@@ -5,6 +5,7 @@
  */
 package com.rideflux.app.ui.scanner
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,11 +38,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rideflux.app.R
 import com.rideflux.domain.repository.DiscoveredWheel
 import com.rideflux.domain.wheel.WheelFamily
 
@@ -146,6 +149,12 @@ private fun ScannerContent(
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        painter = painterResource(R.drawable.illustration_scanning),
+                        contentDescription = null,
+                        modifier = Modifier.size(160.dp),
+                    )
+                    Spacer(Modifier.size(16.dp))
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.size(16.dp))
                     Text(
@@ -161,6 +170,7 @@ private fun ScannerContent(
                 title = "No devices yet",
                 subtitle = "Tap Scan to search for nearby wheels.",
                 padding = contentPadding,
+                illustrationRes = R.drawable.illustration_no_devices,
             )
 
         else ->
@@ -242,7 +252,12 @@ private fun FamilyAndRssiRow(device: DiscoveredWheel) {
 }
 
 @Composable
-private fun CenteredMessage(title: String, subtitle: String?, padding: PaddingValues) {
+private fun CenteredMessage(
+    title: String,
+    subtitle: String?,
+    padding: PaddingValues,
+    illustrationRes: Int? = null,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -251,6 +266,14 @@ private fun CenteredMessage(title: String, subtitle: String?, padding: PaddingVa
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (illustrationRes != null) {
+                Image(
+                    painter = painterResource(illustrationRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(160.dp),
+                )
+                Spacer(Modifier.size(16.dp))
+            }
             Text(
                 title,
                 style = MaterialTheme.typography.titleLarge,
