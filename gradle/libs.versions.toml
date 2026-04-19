@@ -44,6 +44,12 @@ espressoCore           = "3.6.1"
 turbine                = "1.1.0"
 coroutinesTest         = "1.8.1"
 
+# --- Code quality ---
+# Sonar Gradle plugin. Must be >= 6.0.1 for Gradle 9 (fix for
+# NoSuchMethodError on org.gradle.api.plugins.Convention.getConvention(),
+# which was removed in Gradle 9).
+sonarqube              = "6.2.0.5505"
+
 # ============================================================================
 [libraries]
 # --- AndroidX Core ---
@@ -106,4 +112,4 @@ kotlinJvm           = { id = "org.jetbrains.kotlin.jvm",               version.r
 composeCompiler     = { id = "org.jetbrains.kotlin.plugin.compose",    version.ref = "kotlin" }
 ksp                 = { id = "com.google.devtools.ksp",                version.ref = "ksp" }
 hiltAndroid         = { id = "com.google.dagger.hilt.android",         version.ref = "hilt" }
-sonarqube           = { id = "org.sonarqube",                          version = "6.0.1.5171" }
+sonarqube           = { id = "org.sonarqube",                          version.ref = "sonarqube" }
