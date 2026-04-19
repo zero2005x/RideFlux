@@ -16,29 +16,17 @@
         android:name="android.hardware.bluetooth_le"
         android:required="true" />
 
+    <!--
+        The @HiltAndroidApp application class is wired up below so that
+        Hilt can bootstrap the SingletonComponent. The MainActivity
+        NavHost, launcher icon, and Theme.RideFlux will be added in the
+        next phase (Compose UI scaffolding); until then the manifest
+        deliberately stays free of an intent-filtered launcher so the
+        app compiles / installs but does not yet expose an entry point.
+    -->
     <application
-        android:name=".RideFluxApp"
+        android:name=".RideFluxApplication"
         android:allowBackup="false"
-        android:enableOnBackInvokedCallback="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="RideFlux"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.RideFlux">
-
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:theme="@style/Theme.RideFlux">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <service
-            android:name=".service.BleConnectionService"
-            android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
-    </application>
+        android:supportsRtl="true" />
 
 </manifest>
