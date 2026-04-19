@@ -60,3 +60,7 @@ that passage is relied upon.
 
 Specification version: **1.0.0** (initial).
 Attestation version:   **1.0.0**.
+
+### Date: 2026-04-19
+
+#### Signature: Liang-Ting Lin (zero2005x)
