@@ -29,26 +29,9 @@ rootProject.name = "RideFlux"
 // -- App --
 include(":app")
 
-// -- Core --
-include(":core:ui")
-include(":core:common")
-include(":core:testing")
-
 // -- Domain --
 include(":domain")
 
 // -- Data --
 include(":data:ble")
 include(":data:protocol")
-include(":data:database")
-include(":data:preferences")
-
-// -- Feature --
-include(":feature:dashboard")
-include(":feature:trips")
-include(":feature:settings")
-include(":feature:device-scan")
-include(":feature:hud-gateway")
-
-// -- Rokid Glasses App --
-include(":hud-app")

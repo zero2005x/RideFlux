@@ -27,7 +27,6 @@ android {
 
 dependencies {
     implementation(project(":domain"))
-    implementation(project(":core:common"))
     implementation(project(":data:protocol"))
 
     // Kable BLE (currently unused — Android BluetoothGatt is driven directly)

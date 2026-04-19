@@ -59,26 +59,12 @@ android {
 }
 
 dependencies {
-    // -- Feature modules --
-    // Legacy feature modules (com.wheellog.next.*) are quarantined
-    // until they are ported to the new com.rideflux.* domain surface.
-    // Re-enable each dependency as the module is migrated.
-    // implementation(project(":feature:dashboard"))
-    // implementation(project(":feature:trips"))
-    // implementation(project(":feature:settings"))
-    // implementation(project(":feature:device-scan"))
-    // implementation(project(":feature:hud-gateway"))
-
-    // -- Domain & Core --
+    // -- Domain --
     implementation(project(":domain"))
-    implementation(project(":core:ui"))
-    implementation(project(":core:common"))
 
     // -- Data --
     implementation(project(":data:ble"))
     implementation(project(":data:protocol"))
-    // implementation(project(":data:database"))   // legacy, quarantined
-    // implementation(project(":data:preferences")) // legacy, quarantined
 
     // -- Compose (BOM-managed) --
     val composeBom = platform(libs.androidx.compose.bom)

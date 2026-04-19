@@ -3,6 +3,11 @@
 */build/
 */*/build/
 
+# Eclipse / Kotlin LS stale compile output mirrors
+bin/
+*/bin/
+*/*/bin/
+
 # Gradle
 .gradle/
 !gradle/wrapper/gradle-wrapper.jar

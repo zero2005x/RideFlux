@@ -1,5 +1,172 @@
 # RideFlux
 
+An open-source Android companion app for **Electric Unicycles (EUC)**, with a
+forthcoming real-time AR HUD experience for **Rokid** AR glasses.
+
+RideFlux connects to your EUC over Bluetooth Low Energy, decodes live telemetry
+(speed, battery, temperature, alerts), and presents it on a glanceable Jetpack
+Compose dashboard — so you never have to take your eyes off the road.
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/liangtinglin)
+
+---
+
+## ⚠️ Project Status — Clean-Room Rewrite in Progress
+
+This repository is undergoing a **clean-room rewrite** of its BLE / protocol
+decoding layer under the `com.rideflux.*` namespace. The legacy code in the
+previous `com.wheellog.next.*` namespace has been removed; what remains is the
+new, independently authored implementation.
+
+- Governance: see [CLEAN_ROOM_PROCESS.md](CLEAN_ROOM_PROCESS.md).
+- Provenance & scope: see [PROVENANCE.md](PROVENANCE.md).
+- Specification bundle authored by Team A:
+  [clean-room/spec/](clean-room/spec/).
+
+Feature coverage of the current build:
+
+| Feature | Status |
+| --- | --- |
+| BLE scan + connect | ✅ Working |
+| Live telemetry dashboard (Compose) | ✅ Working |
+| Protocol decoders (Begode / KingSong / Inmotion / Ninebot / Veteran) | ✅ Working, unit-tested |
+| Headlight / pedals-mode / beep control commands | 🛠 In progress |
+| Rokid AR glasses HUD overlay | 🛠 In progress |
+| Trip recording & history | ⏸ Pending re-implementation |
+| User-preferences screen | ⏸ Pending re-implementation |
+| HUD-gateway GATT server (phone → glasses) | ⏸ Pending re-implementation |
+
+---
+
+## Architecture
+
+RideFlux is organised as a **4-module** Gradle project following Clean
+Architecture principles:
+
+```
+app/              Phone app — MainActivity, NavHost, Hilt DI, Compose UI
+domain/           Pure Kotlin contracts — WheelRepository / WheelConnection /
+                  WheelCodec / telemetry / command types.
+data/
+  ├── protocol/   Clean-room codec implementations for every supported family.
+  └── ble/        Android BluetoothGatt transport + repository implementation.
+```
+
+All modules share a Kotlin 2.0.0 / Compose BOM 2024.06 / Hilt 2.51.1 stack
+via the `gradle/libs.versions.toml` version catalog.
+
+## Supported Wheel Families
+
+| Family | Codec |
+| --- | --- |
+| Begode (Gotway) | `BegodeWheelCodec` |
+| KingSong | `KingSongWheelCodec` |
+| Veteran | `VeteranWheelCodec` |
+| Ninebot N1 / N2 | `NinebotN1WheelCodec` / `NinebotN2WheelCodec` |
+| Inmotion I1 / I2 | `InmotionI1WheelCodec` / `InmotionI2WheelCodec` |
+
+Every codec is verified by unit tests that replay the test vectors in
+[clean-room/spec/TEST_VECTORS.md](clean-room/spec/TEST_VECTORS.md).
+
+## Tech Stack
+
+| Category | Technology |
+| --- | --- |
+| Language | Kotlin 2.0.0 |
+| UI | Jetpack Compose (BOM 2024.06.00), Material 3 |
+| Architecture | Clean Architecture + MVVM |
+| BLE | Native Android `BluetoothGatt` (no third-party BLE library) |
+| DI | Hilt 2.51.1 + KSP |
+| Navigation | `androidx.navigation:navigation-compose` 2.7.7 |
+| Async | Kotlin Coroutines 1.8.1 |
+| Build | AGP 8.5.2, Gradle 9.x, **JDK 17 or 21** |
+| Test | JUnit 4, Turbine 1.1.0, kotlinx-coroutines-test |
+| SAST | SonarCloud |
+
+## Getting Started
+
+### Prerequisites
+
+- **Android Studio** Jellyfish (2024.1) or newer.
+- **JDK 17 or JDK 21**. Kotlin 2.0.0 cannot parse version strings from JDK 25
+  or newer. If your system Java is too new, point Gradle at a compatible JDK
+  via a **user-level** `gradle.properties`:
+
+  ```properties
+  # Windows: %USERPROFILE%/.gradle/gradle.properties
+  # Unix:    ~/.gradle/gradle.properties
+  org.gradle.java.home=/path/to/jdk-21
+  ```
+
+- **Android SDK** — compileSdk 34, minSdk 26.
+
+### Build
+
+```bash
+# Clone the repository
+git clone git@github.com:zero2005x/RideFlux.git
+cd RideFlux
+
+# Build the debug APK
+./gradlew :app:assembleDebug
+
+# Run all unit tests
+./gradlew test
+
+# Install on a connected device
+./gradlew :app:installDebug
+```
+
+## How It Works
+
+1. `ScannerViewModel` drives a BLE scan via `WheelRepository.scan()`, which
+   filters advertisements against the service UUIDs recognised in
+   [`GattUuids`](data/ble/src/main/kotlin/com/rideflux/data/ble/).
+2. Tapping a discovered wheel routes to the dashboard with the MAC address
+   and inferred family passed as nav arguments.
+3. `DashboardViewModel` calls `WheelRepository.connect(address, family)`;
+   the repository ref-counts `WheelConnection`s so multiple observers share
+   a single GATT session.
+4. `WheelConnectionImpl` drives the handshake + keep-alive loop, feeds raw
+   bytes into the per-family `WheelCodec`, and publishes:
+   - `StateFlow<WheelTelemetry>` — latest snapshot.
+   - `SharedFlow<WheelAlert>` — discrete events (tilt-back, over-temperature …).
+5. The dashboard renders speed, battery %, voltage, current, MOS temperature,
+   and a banner for any active alert.
+
+## CI/CD
+
+Two GitHub Actions workflows run on every push / PR to `main` or `master`:
+
+- **CI** — Builds the debug APK, runs unit tests, runs Android Lint.
+- **SonarCloud** — Static analysis and code-quality gate.
+
+## Contributing
+
+Before opening a PR, please read [CLEAN_ROOM_PROCESS.md](CLEAN_ROOM_PROCESS.md)
+— it defines the Chinese-wall separation between the team that reads the
+external reference project ("Team A") and the team that writes new code
+("Team B"). Contributions to the BLE / protocol layer must follow the
+process or they cannot be merged.
+
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/my-feature`).
+3. Make your changes and add tests. Run `./gradlew test`.
+4. Submit a pull request.
+
+## License
+
+This project is released under **GPL-3.0-or-later**. See the [LICENSE](LICENSE)
+file for details.
+
+## Acknowledgments
+
+- Clean-room protocol specifications derived from public vendor documentation
+  and on-hardware observation only. See [PROVENANCE.md](PROVENANCE.md) for the
+  full provenance policy.
+- AR HUD integration targets [Rokid](https://www.rokid.com/) glasses.
+# RideFlux
+
 An open-source Android companion app for **Electric Unicycles (EUC)** with real-time AR HUD support for **Rokid AR glasses**.
 
 RideFlux connects to your EUC via Bluetooth Low Energy, decodes telemetry data (speed, battery, temperature, alerts), and streams it live to a heads-up display on Rokid RV101 glasses — so you never have to look down while riding.
