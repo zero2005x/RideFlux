@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.wheellog.next.data.ble"
+    namespace = "com.rideflux.data.ble"
     compileSdk = 34
 
     defaultConfig {
@@ -28,9 +28,10 @@ android {
 dependencies {
     implementation(project(":domain"))
     implementation(project(":core:common"))
+    implementation(project(":data:protocol"))
 
-    // Kable BLE
-    implementation(libs.kable.core)
+    // Kable BLE (currently unused — Android BluetoothGatt is driven directly)
+    // implementation(libs.kable.core)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
