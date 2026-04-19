@@ -44,7 +44,7 @@ Decoded:
 | Auto-off          | `1C 20` = 7200                        | 7200 s            |
 | Tiltback          | `00 2A` = 42                          | 42 km/h           |
 | LED mode          | `00`                                  | 0                 |
-| Alert bitmap      | `07` = `0000 0111`                    | bit 1, bit 2, bit 3 → Speed2, Speed1, LowVoltage |
+| Alert bitmap      | `07` = `0000 0111`                    | bits 0, 1, 2 set → WheelAlarm, SpeedAlarmL2, SpeedAlarmL1 (per §4.1) |
 | Light mode        | `08 & 0x03` = 0                       | off               |
 
 ## 3. Family K — Live page A (`0xA9`)

@@ -244,9 +244,13 @@ Type `0x02` → first BMS, `0x03` → second BMS.
 | 6      | 2    | Settings bitfield     | See below                            |
 | 8      | 2    | Auto-power-off delay  | seconds                              |
 | 10     | 2    | Tiltback speed        | km/h (0 = disabled; ≥100 = invalid)  |
-| 13     | 1    | LED mode (0x00..0x09) |                                      |
-| 14     | 1    | Alert bitmap          | See §4.1                             |
-| 15     | 1    | Light mode (0..2)     | off / on / strobe                    |
+| 14     | 1    | LED mode (0x00..0x09) |                                      |
+| 15     | 1    | Alert bitmap          | See §4.1                             |
+| 17     | 1    | Light mode            | Low 2 bits: 0 off / 1 on / 2 strobe  |
+
+> Bytes 12–13 and 16 are reserved for vendor-specific use and MUST be
+> ignored by conformant receivers. Only the low two bits of the light-mode
+> byte are significant (`value & 0x03`).
 
 Settings bitfield (U16 big-endian) layout:
 

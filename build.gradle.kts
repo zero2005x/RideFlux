@@ -11,6 +11,22 @@ plugins {
     alias(libs.plugins.sonarqube)
 }
 
+// Pin Java and Kotlin JVM targets across all subprojects so that
+// building with a newer JDK (e.g. 25) does not trigger the
+// "Inconsistent JVM-target compatibility" check when Kotlin 2.0's
+// supported target ceiling is lower than the JDK version.
+subprojects {
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17.toString()
+        targetCompatibility = JavaVersion.VERSION_17.toString()
+    }
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
+}
+
 sonar {
     properties {
         property("sonar.projectKey", "RideFlux")
