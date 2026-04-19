@@ -1,6 +1,6 @@
 # Electric Unicycle BLE Telemetry & Control Protocol Specification
 
-**Version:** 1.1.0  
+**Version:** 1.2.0  
 **Status:** Draft, clean-room specification  
 **Scope:** Low-energy Bluetooth protocols used by consumer electric-unicycle
 mainboards of the following vendor families:
@@ -324,8 +324,9 @@ AA AA │ ESCAPED( FLAGS │ LEN │ CMD │ DATA[LEN−1] ) │ CHECK
 | CHECK     | 1          | XOR of the **unstuffed** bytes `FLAGS, LEN, CMD, DATA[0..LEN−2]` (see §6.4.2); transmitted raw, not escape-encoded |
 
 There is **no** trailer byte pair in I2. A receiver finalises a frame
-when it has collected exactly `LEN + 4` escape-decoded bytes after the
-preamble (that is: FLAGS + LEN + CMD + DATA + CHECK).
+when it has collected exactly `LEN + 3` escape-decoded bytes after the
+preamble (that is: FLAGS + LEN + CMD + DATA + CHECK =
+`1 + 1 + 1 + (LEN − 1) + 1 = LEN + 3`).
 
 #### 2.7.2 FLAGS enumeration
 
@@ -946,6 +947,214 @@ in §10.4 cross-referenced from each setter command.
 
 Observed values: `0` = idle, `1` = charging, `2` = fully charged. Other
 values are reserved.
+
+### 4.3 Families I1 / I2 — status, work-mode and error maps
+
+This section defines the semantic content of the state word, the legacy
+and modern work-mode enumerations, the I1 alert record, and the I2
+error bitmap referenced from §3.5.2, §3.5.4.A and §3.5.4.B.
+
+#### 4.3.1 Family I1 state word (telemetry EX-DATA offset 60)
+
+The 32-bit little-endian state word at EX-DATA offset 60 of the
+CAN-ID `0x0F550113` record (§3.5.2) is interpreted in one of two
+ways, selected by model family:
+
+- **Legacy enumeration** — applied to R1 / R2 / R0 / V3 / V5 / V5F /
+  V5+ / V5D / L6 / Lively / V8 / Glide3 / V10 / V10S / V10SF. The
+  decoder takes the low nibble of the state word (`state & 0x0F`)
+  and maps it as:
+
+  | Code | Mode string         |
+  |:----:|---------------------|
+  | `0`  | `Idle`              |
+  | `1`  | `Drive`             |
+  | `2`  | `Zero`              |
+  | `3`  | `LargeAngle`        |
+  | `4`  | `Check`             |
+  | `5`  | `Lock`              |
+  | `6`  | `Error`             |
+  | `7`  | `Carry`             |
+  | `8`  | `RemoteControl`     |
+  | `9`  | `Shutdown`          |
+  | `10` | `pomStop`           |
+  | `12` | `Unlock`            |
+  | other| `Unknown`           |
+
+- **Modern enumeration** — applied to V8F / V8S / V10 / V10F / V10FT /
+  V10S / V10SF / V10T. Here the high nibble (`state >> 4`) gives the
+  primary state and the low bit of the low nibble qualifies it:
+
+  | High nibble | Primary string   |
+  |:-----------:|------------------|
+  | `1`         | `Shutdown`       |
+  | `2`         | `Drive`          |
+  | `3`         | `Charging`       |
+  | other       | `Unknown code N` |
+
+  If `(state & 0x0F) == 1` the suffix ` - Engine off` is appended to
+  the primary string.
+
+#### 4.3.2 Family I1 alert record (CAN-ID `0x0F780101`)
+
+When the device sends a standard (non-extended) frame whose CAN-ID is
+`0x0F780101`, the 8-byte DATA-8 field is an asynchronous alert record:
+
+| Offset | Size | Signedness | Name          | Derived values                                |
+|-------:|-----:|:----------:|---------------|-----------------------------------------------|
+| 0      | 1    | U          | `alertId`     | Alert code; table below                       |
+| 1      | 1    | —          | reserved      | Transmit `0x00`; receivers must ignore        |
+| 2..3   | 2    | S          | `aValue1`     | 16-bit **big-endian** quantity 1              |
+| 4..7   | 4    | S          | `aValue2`     | 32-bit **big-endian** quantity 2              |
+
+Derived human-readable fields:
+
+```
+a_speed_kmh = | aValue2 / 3812 | × 3.6
+```
+
+where the constant `3812` is the default I1 speed-calibration constant
+`F` from §3.5.2 (unrelated to the per-model `F` used in live
+telemetry — the alert path does not apply a model-specific scaler).
+
+Alert-code table:
+
+| `alertId` | Human-readable event                | Fields consumed                    |
+|:---------:|-------------------------------------|------------------------------------|
+| `0x05`    | Start from tilt angle               | tilt = `aValue1 / 100` °; speed = `a_speed_kmh` km/h |
+| `0x06`    | Tilt-back                            | speed = `a_speed_kmh` km/h; limit = `aValue1 / 1000` |
+| `0x19`    | Fall-down detected                   | —                                  |
+| `0x1D`    | Please repair: bad battery cell      | voltage = `aValue2 / 100` V        |
+| `0x20`    | Low battery                          | voltage = `aValue2 / 100` V        |
+| `0x21`    | Speed cut-off                        | speed = `a_speed_kmh` km/h; aux = `aValue1 / 10` |
+| `0x26`    | High load                            | speed = `a_speed_kmh` km/h; current = `aValue1 / 1000` A |
+| other     | Unknown / reserved                   | raw hex of the 8-byte DATA-8 field |
+
+Alert records are advisory; they do not replace the live-telemetry
+state word of §4.3.1.
+
+#### 4.3.3 Family I2 state bytes (telemetry CMD `0x04`)
+
+The two state bytes of §3.5.4.A / §3.5.4.B decode as follows.
+
+**State byte A** — bitfield:
+
+| Bits  | Width | Meaning                                      |
+|:-----:|:-----:|----------------------------------------------|
+| 0..2  | 3     | PC-mode: `0` Lock, `1` Drive, `2` Shutdown, `3` Idle, others reserved |
+| 3..5  | 3     | MC-mode (internal motor-controller sub-state; values reserved) |
+| 6     | 1     | `1` = motor active                           |
+| 7     | 1     | `1` = charging                               |
+
+**State byte B** — bitfield (differs slightly between the V11 early
+variant and newer telemetry; both are accepted):
+
+| Bits  | Width | Meaning (all variants)                       |
+|:-----:|:-----:|----------------------------------------------|
+| 0     | 1     | Headlight on (V11 ≥ 1.4 / V12-HS/HT/PRO: low-beam on)            |
+| 1     | 1     | Decorative light on (V11 ≥ 1.4 / V12-HS/HT/PRO: high-beam on)    |
+| 2     | 1     | Lifted (foot-off pedal) detection            |
+| 3..4  | 2     | Tail-light mode                              |
+| 5     | 1     | Cooling fan active *(V11 early)* / firmware-update in progress *(V11 ≥ 1.4 and newer)* |
+
+A convenience status string is produced by concatenating the tokens
+`"Active"` (bit 6 of state A), `" Charging"` (bit 7 of state A) and
+`" Lifted"` (bit 2 of state B) in that order.
+
+#### 4.3.4 Family I2 error bitmap
+
+Immediately following the state bytes, I2 telemetry frames carry at
+least seven consecutive 8-bit error fields (labelled `E0..E6`). The
+exact starting offset depends on the telemetry variant (see §8.8).
+All 56 defined bits are independent fault flags; multiple may be
+set simultaneously.
+
+**`E0`**
+
+| Bit | Symbolic name              | Meaning                                   |
+|:---:|----------------------------|-------------------------------------------|
+| 0   | `phase_current_sensor`     | Phase-current sensor fault                |
+| 1   | `bus_current_sensor`       | Bus-current sensor fault                  |
+| 2   | `motor_hall`               | Motor Hall-sensor fault                   |
+| 3   | `battery`                  | Battery fault                             |
+| 4   | `imu_sensor`               | IMU sensor fault                          |
+| 5   | `controller_com_1`         | Controller ↔ peer link 1 fault            |
+| 6   | `controller_com_2`         | Controller ↔ peer link 2 fault            |
+| 7   | `ble_com_1`                | Bluetooth link 1 fault                    |
+
+**`E1`**
+
+| Bit | Symbolic name              | Meaning                                   |
+|:---:|----------------------------|-------------------------------------------|
+| 0   | `ble_com_2`                | Bluetooth link 2 fault                    |
+| 1   | `mos_temp_sensor`          | MOS-FET temperature-sensor fault          |
+| 2   | `motor_temp_sensor`        | Motor temperature-sensor fault            |
+| 3   | `battery_temp_sensor`      | Battery temperature-sensor fault          |
+| 4   | `board_temp_sensor`        | PCB temperature-sensor fault              |
+| 5   | `fan`                      | Cooling-fan fault                         |
+| 6   | `rtc`                      | Real-time-clock fault                     |
+| 7   | `external_rom`             | External ROM fault                        |
+
+**`E2`**
+
+| Bit | Symbolic name              | Meaning                                   |
+|:---:|----------------------------|-------------------------------------------|
+| 0   | `vbus_sensor`              | Bus-voltage sensor fault                  |
+| 1   | `vbattery_sensor`          | Battery-voltage sensor fault              |
+| 2   | `cannot_power_off`         | Power-off controller refused              |
+| 3   | `reserved_e2_3`            | Reserved; observed in the wild; semantics unspecified |
+
+**`E3`**
+
+| Bits  | Width | Symbolic name          | Meaning                                 |
+|:-----:|:-----:|------------------------|-----------------------------------------|
+| 0     | 1     | `under_voltage`        | Pack under-voltage                      |
+| 1     | 1     | `over_voltage`         | Pack over-voltage                       |
+| 2..3  | 2     | `over_bus_current`     | Bus over-current severity (`0..3`; `0` = no fault) |
+| 4..5  | 2     | `low_battery`          | Low-battery severity (`0..3`)           |
+| 6     | 1     | `mos_temp`             | MOS-FET over-temperature                |
+| 7     | 1     | `motor_temp`           | Motor over-temperature                  |
+
+**`E4`**
+
+| Bit | Symbolic name              | Meaning                                   |
+|:---:|----------------------------|-------------------------------------------|
+| 0   | `battery_temp`             | Battery over-temperature                  |
+| 1   | `over_board_temp`          | PCB over-temperature                      |
+| 2   | `over_speed`               | Speed-limit exceeded                      |
+| 3   | `output_saturation`        | Output saturated (PWM ceiling)            |
+| 4   | `motor_spin`               | Motor abnormal spin                       |
+| 5   | `motor_block`              | Motor stalled / blocked                   |
+| 6   | `posture`                  | Chassis posture fault                     |
+| 7   | `risk_behaviour`           | Rider risk behaviour detected             |
+
+**`E5`**
+
+| Bit | Symbolic name              | Meaning                                   |
+|:---:|----------------------------|-------------------------------------------|
+| 0   | `motor_no_load`            | Motor running with no load                |
+| 1   | `no_self_test`             | Self-test not completed                   |
+| 2   | `compatibility`            | Firmware / hardware incompatibility       |
+| 3   | `power_key_long_press`     | Power key held (forced reset attempted)   |
+| 4   | `force_dfu`                | Forced DFU (firmware-update) mode         |
+| 5   | `device_lock`              | Device locked                             |
+| 6   | `cpu_over_temp`            | CPU over-temperature                      |
+| 7   | `imu_over_temp`            | IMU over-temperature                      |
+
+**`E6`**
+
+| Bit | Symbolic name              | Meaning                                   |
+|:---:|----------------------------|-------------------------------------------|
+| 0   | `reserved_e6_0`            | Reserved; transmit `0`                    |
+| 1   | `hw_compatibility`         | Hardware-variant incompatibility          |
+| 2   | `fan_low_speed`            | Fan running below expected speed          |
+| 3   | `reserved_e6_3`            | Reserved; observed in the wild            |
+| 4..7| reserved                   | Reserved; transmit `0`; receivers must ignore |
+
+Implementations MUST treat any reserved bit that reads as `1` as a
+warning-level "unknown error code `N`" event. Severity encodings in
+`E3.2..3` and `E3.4..5` are ordered: `0` no fault, `1` informational,
+`2` warning, `3` critical.
 
 ---
 

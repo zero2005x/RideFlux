@@ -65,3 +65,18 @@ level.
   model-disambiguated sub-commands.
 - **§12 compliance**: Added clauses requiring I1/I2 transport and
   checksum conformance.
+
+  ## 1.2.1 — Inmotion §4.3 body + Inmotion test vectors
+
+- **§4.3 — body added** (was announced in 1.2.0 changelog but missing
+  from the spec): Family I1 state-word legacy & modern enumerations,
+  I1 alert-record format (CAN-ID `0x0F780101`) with per-alertId
+  decode table, Family I2 state bytes A / B, and the 56-bit I2
+  error bitmap (`E0..E6`, including 2-bit severity fields for bus
+  over-current and low-battery).
+- **TEST_VECTORS.md**: added Inmotion block with 16 worked examples
+  covering I1 escape rule, I1 sum-mod-256 CHECK, real I1 command
+  frames (headlight, calibration, PIN, telemetry query), an I1 alert
+  decode, I2 XOR-CHECK worked examples (car-type request, real-time
+  request, max-speed setter, power-off stage 1, headlight), I2 state
+  byte and error-bitmap decodes, and the I2-specific escape rule.

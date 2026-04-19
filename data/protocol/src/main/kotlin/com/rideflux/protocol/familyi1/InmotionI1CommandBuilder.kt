@@ -32,6 +32,14 @@ object InmotionI1CommandBuilder {
     const val CAN_ID_VOLUME: Long = 0x0F55060AL
     const val CAN_ID_PLAY_SOUND: Long = 0x0F550609L
 
+    /**
+     * CAN-ID of asynchronous alert records emitted by the device
+     * (§3.5.1 / §4.3.2). Never produced by the host; listed here so
+     * that receivers can identify and dispatch the DATA-8 payload to
+     * [InmotionI1AlertRecord.parse].
+     */
+    const val CAN_ID_ALERT: Long = 0x0F780101L
+
     // ---- Framing constants ---------------------------------------------
 
     const val CHAN_HOST_TRAFFIC: Int = 0x05
