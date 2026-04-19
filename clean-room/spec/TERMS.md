@@ -1,39 +1,43 @@
-# Terms and Glossary
+# Terminology & Notation
 
-This glossary standardizes the vocabulary used in [PROTOCOL_SPEC.md](PROTOCOL_SPEC.md)
-and [TEST_VECTORS.md](TEST_VECTORS.md).
+| Term            | Meaning                                                       |
+|-----------------|---------------------------------------------------------------|
+| Mainboard       | On-wheel microcontroller running the motor-control firmware. |
+| Host            | The nearby mobile app / controller parsing telemetry.        |
+| Family          | A group of products sharing one wire-format protocol (see §1 of the spec). |
+| Frame           | One self-delimited application-layer message.                |
+| Notification    | One GATT notification (or indication) from device to host.   |
+| BLE             | Bluetooth Low Energy.                                         |
+| CCC             | Client Characteristic Configuration Descriptor (UUID `2902`).|
+| LE (endianness) | Little-endian byte order (least-significant byte first).      |
+| BE (endianness) | Big-endian byte order (most-significant byte first).          |
+| U16             | Unsigned 16-bit integer.                                      |
+| S16             | Signed 16-bit integer, two's complement.                      |
+| U32             | Unsigned 32-bit integer.                                      |
+| Keystream       | The 16-byte vector `γ` used for XOR obfuscation (§5).         |
+| BMS             | Battery Management System sub-device.                         |
+| Pack voltage    | Sum of all series cell voltages of the battery.               |
+| Phase current   | Three-phase motor-winding current (as opposed to DC battery current). |
+| PWM             | The motor-controller duty cycle, 0 % … 100 %.                 |
+| Pedals mode     | Balancing stiffness preset.                                   |
+| Tiltback        | Firmware-triggered pedal tilt used to indicate over-speed.    |
+| Activation date | Date the mainboard was first powered, used by Family N.       |
+| Refined curve   | Non-linear voltage-to-percent battery curve.                  |
 
-## Units
+### Symbol conventions
 
-| Symbol | Meaning | Notes |
-| --- | --- | --- |
-| V | volt | Battery and pack voltages. |
-| A | ampere | Signed when the protocol distinguishes charge/discharge direction. |
-| W | watt | Typically derived, not transmitted. |
-| km/h | kilometers per hour | Convert as specified per field. |
-| °C | degrees Celsius | |
-| mAh | milliampere-hour | |
-| % | percent | State-of-charge and similar. |
-| ms | milliseconds | |
+- Bytes are written as two-digit uppercase hex, e.g. `5A`.
+- Ranges are expressed as `a..b` (inclusive).
+- Bit ranges are expressed `[hi..lo]`.
+- `N(signed)` / `N(unsigned)` denotes two's-complement / unsigned
+  interpretation of an N-bit field.
+- `U16LE(buf, off)` means the unsigned 16-bit integer read at byte
+  offset `off` in `buf`, little-endian.
+- All offsets are zero-based.
 
-## Data Types
+### Informative vs. normative
 
-| Name | Width | Signed | Endianness | Notes |
-| --- | --- | --- | --- | --- |
-| `u8` | 1 byte | no | — | |
-| `i8` | 1 byte | yes (two's complement) | — | |
-| `u16` | 2 bytes | no | little-endian unless stated | |
-| `i16` | 2 bytes | yes (two's complement) | little-endian unless stated | |
-| `u32` | 4 bytes | no | little-endian unless stated | |
-| `i32` | 4 bytes | yes (two's complement) | little-endian unless stated | |
-| `bcd` | variable | n/a | — | Binary-coded decimal, MSB nibble first. |
-
-## Domain Terms
-
-- **Frame** — a complete, framed message on the BLE link.
-- **Telemetry frame** — a device-to-app frame reporting measured state.
-- **Command frame** — an app-to-device frame requesting an action or change.
-- **Scale** — the multiplier that converts a raw integer to its physical
-  value. Example: raw `1234` with scale `0.01 V` is `12.34 V`.
-- **Checksum scope** — the contiguous byte range a checksum covers. Defined
-  per frame in [PROTOCOL_SPEC.md](PROTOCOL_SPEC.md).
+Sections 1–7 are **normative**. Sections 8–10 mix normative
+requirements (unit scalings, handshake) with **informative**
+observations (ambiguity notes, known extensions). Sections 11–12 are
+normative.
