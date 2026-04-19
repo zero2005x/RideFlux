@@ -69,29 +69,39 @@ Decoded:
 | Mode enum       | `05`              | 5                          |
 | Command         | `A9`              | live page A                |
 
-## 4. Family V — Short frame without CRC32
+## 4. Family V — 100 V Sherman frame without CRC32
 
-Input (hex):
+Input (hex, 42 bytes — `L = 0x25 = 37` ⇒ frame size `5 + L = 42` and
+`L ≤ 38` ⇒ **no CRC32 trailer**):
 
 ```
 DC 5A 5C 20 25 CD 00 00  07 1F 00 00 C7 78 00 28
 00 00 11 0B 0E 10 00 01  0A F0 0A F0 04 22 00 03
-00 14 00 00
+00 14 00 00 00 00 00 00  00 00
 ```
 
-`L = 0x25 = 37` ⇒ no CRC32.
+The final six bytes (offsets 36..41) are reserved per §3.3 and are
+zeroed here.
 
-Decoded:
+Decoded (offsets are frame-absolute per §3.3; integers are big-endian
+unless noted):
 
-| Offset | Field            | Value                            |
-|-------:|------------------|----------------------------------|
-| 4      | Voltage          | `CD 00` = 52 480 / 100? …  Actually `CD 00` read as BE = 0xCD00 = 52 480 → 524.80 V? — see ambiguity below. |
-| 6      | Speed            | `00 00 07 1F` … — see §1.8.3 of spec for word-swap |
-| 28     | Firmware version | `00 3A` = 58                    → `"000.0.58"` |
+| Offset | Field            | Raw             | Value                         |
+|-------:|------------------|-----------------|-------------------------------|
+| 4      | Voltage          | `25 CD` = 9677  | 96.77 V                       |
+| 6      | Speed            | `00 00` = 0     | 0.0 km/h                      |
+| 8      | Trip distance    | `07 1F 00 00` (word-swapped) | 1823 m           |
+| 12     | Total distance   | `C7 78 00 28` (word-swapped) | 2 672 504 m      |
+| 16     | Phase current    | `00 00` = 0     | 0.00 A                        |
+| 18     | Temperature      | `11 0B` = 4363  | 43.63 °C                      |
+| 20     | Auto-off delay   | `0E 10` = 3600  | 3600 s                        |
+| 22     | Charge mode      | `00 01` = 1     | charging                      |
+| 28     | Firmware version | `04 22` = 1058  | `"001.0.58"` (major.minor.patch per §8.4) |
+| 30     | Pedals mode      | `00 03` = 3     | 3                             |
+| 32     | Pitch angle      | `00 14` = 20    | 0.20 °                        |
 
-> **Note.** This vector is also the "Sherman SV 58fw" vector attached
-> in §8.4 of the protocol spec; it depends on the word-swap convention
-> described in §8.3 of the protocol spec.
+> **Note.** This vector pins the word-swap convention described in
+> §8.3 and the firmware-version decoding in §8.4 of the protocol spec.
 
 ## 5. Family N1 — Checksum derivation
 
@@ -149,7 +159,13 @@ reflected in/out) over the 15-byte input:
 DC 5A 5C 20 0A 01 02 03  04 05 06 07 08 09 0A
 ```
 
-Expected CRC32 = `0xB4B1B1F8`. Wire trailer: `B4 B1 B1 F8`.
+Expected CRC32 = `0x08009D77`. Wire trailer: `08 00 9D 77`.
+
+> This value is the output of the standard CRC-32/ISO-HDLC algorithm
+> (polynomial `0xEDB88320`, init/xorout `0xFFFFFFFF`, reflected in/out)
+> as implemented by `java.util.zip.CRC32`. Revision 1.0 of this file
+> originally stated `0xB4B1B1F8`; that value has been corrected in the
+> 2026-04 errata.
 
 ---
 

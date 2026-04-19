@@ -1,6 +1,6 @@
 # Electric Unicycle BLE Telemetry & Control Protocol Specification
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Status:** Draft, clean-room specification  
 **Scope:** Low-energy Bluetooth protocols used by consumer electric-unicycle
 mainboards of the following vendor families:
@@ -112,19 +112,28 @@ Byte:   0   1   2 .. 15  16   17   18   19
 
 | Offset | Size | Name          | Definition                                |
 |-------:|-----:|---------------|-------------------------------------------|
-| 0      | 1    | Header high   | `0xAA` (device→host) / `0xAA` (host→dev: `0xAA 0x55`) |
+| 0      | 1    | Header high   | `0xAA`                                    |
 | 1      | 1    | Header low    | `0x55`                                    |
 | 2–15   | 14   | Payload       | Per-command                               |
 | 16     | 1    | Command code  | See §3.2                                  |
-| 17     | 1    | Sub-index     | Sub-packet index for multi-packet cmds    |
+| 17     | 1    | Sub-index / tail-1 | Meaning is direction- and command-specific; see below |
 | 18–19  | 2    | Tail          | `0x5A 0x5A`                               |
 
 > **Note on byte order.** The header bytes appear in memory order as
-> `AA 55`. Integer fields inside the payload are **little-endian**.
+> `AA 55`. Integer fields inside the payload are **little-endian**
+> unless otherwise stated.
 
-Host-to-device frames use the same 20-byte layout with the inverse
-header `AA 55` followed by zeroed payload, command code at offset 16,
-sub-index at offset 17, and tail `14 5A 5A` at offsets 17–19.
+**Device-to-host frames.** Byte 17 carries a **sub-index** (page number
+within multi-packet records, e.g. for smart-BMS pages `0xF1` / `0xF2`).
+
+**Host-to-device frames.** Byte 17 is a **command-specific tail
+constant**. Unless a particular command in §3.2 / §10.3 states
+otherwise, the default value for offset 17 is `0x14`. A small number
+of commands override this default (notably pedals-mode `0x87` → `0x15`).
+
+Commands that carry data populate the 14-byte payload region at offsets
+2..15 using little-endian integers where multi-byte fields apply.
+**Unused payload bytes MUST be transmitted as `0x00`.**
 
 ### 2.3 Family V — Length-prefixed with optional CRC32
 
@@ -193,7 +202,7 @@ See §5 for the key exchange and keystream algorithm.
 
 Families I1 and I2 use escape-byte framing and a length-prefixed
 CAN-like frame respectively. Their payload definitions are outside the
-scope of this 1.0 document and will be added in a later revision; the
+scope of this 1.x document and will be added in a later revision; the
 link-layer UUIDs are given in §1.1 / §1.2 for completeness.
 
 ---
@@ -294,28 +303,33 @@ compensation, current-loop Kp/Ki for d and q axes). See §3.1.7 table.
 
 ### 3.2 Family K message codes (byte 16)
 
+The command code at offset 16 is the primary dispatch key for Family K.
+Host-to-device payload details for every writable command are given in
+**§10.3**; receive-only formats (`0xA9`, `0xB9`, etc.) are given in
+§3.2.1 – §3.2.3.
+
 | Code   | Direction | Purpose                                     |
 |:------:|:---------:|---------------------------------------------|
 | `0xA9` | dev→host  | Live telemetry page A                       |
 | `0xB9` | dev→host  | Live telemetry page B (distance/fan/temp)   |
-| `0xBB` | dev→host  | Device name & firmware version             |
+| `0xBB` | dev→host  | Device name & firmware version              |
 | `0xB3` | dev→host  | Serial number                               |
 | `0xF5` | dev→host  | CPU load / output PWM                       |
 | `0xF6` | dev→host  | Active speed limit                          |
-| `0xA4`, `0xB5` | dev→host | Alarm speeds and max speed             |
+| `0xA4`, `0xB5` | dev→host | Alarm speeds and max speed (report) |
 | `0xF1`, `0xF2` | dev→host | Smart BMS #1 / #2 (paged, sub @ off 17) |
-| `0xE1`, `0xE2` | dev→host | BMS serial number                       |
-| `0xE5`, `0xE6` | dev→host | BMS firmware                            |
+| `0xE1`, `0xE2` | dev→host | BMS serial number                   |
+| `0xE5`, `0xE6` | dev→host | BMS firmware                        |
 | `0x63` | host→dev  | Request serial number                       |
 | `0x9B` | host→dev  | Request device name                         |
 | `0x98` | host→dev  | Request alarm settings & max speed          |
-| `0x85` | host→dev  | Set alarm speeds & max speed                |
-| `0x87` | host→dev  | Set pedals mode (payload @2; @3=`0xE0`;@17=`0x15`) |
+| `0x85` | host→dev  | Set alarm speeds & max speed (§10.3.2)      |
+| `0x87` | host→dev  | Set pedals mode (§10.3.1; byte 17 = `0x15`) |
 | `0x88` | host→dev  | Beep                                        |
 | `0x89` | host→dev  | Wheel calibration                           |
-| `0x73` | host→dev  | Light mode (`0x12` + mode @ offset 2)       |
-| `0x6C` | host→dev  | LED mode                                    |
-| `0x53` | host→dev  | Strobe mode                                 |
+| `0x73` | host→dev  | Light mode (§10.3.3)                        |
+| `0x6C` | host→dev  | LED mode (§10.3.4)                          |
+| `0x53` | host→dev  | Strobe mode (§10.3.5)                       |
 | `0x40` | host→dev  | Power off                                   |
 | `0x8A` | host→dev  | Charge-up-to / gyro adjust                  |
 | `0x3F` | host→dev  | Stand-by delay                              |
@@ -619,13 +633,14 @@ a second temperature sensor at offset 14 with identical scaling.
 
 The 4-byte distance words at offsets 8 and 12 are **word-swapped**: the
 upper 16 bits are transmitted *after* the lower 16. Concretely, if the
-four bytes are `b0 b1 b2 b3`, the integer is:
+four wire bytes are `b0 b1 b2 b3`, the integer is:
 
 ```
 value = (b2 << 24) | (b3 << 16) | (b0 << 8) | b1
 ```
 
-Stated test vector: bytes `00 00 07 1F` ⇒ `1823` metres.
+Stated test vector: wire bytes `07 1F 00 00` ⇒ `1823` metres (the lower
+word `0x071F` appears first, the upper word `0x0000` second).
 
 ### 8.4 Family V firmware-version encoding
 
@@ -645,6 +660,24 @@ Unlike all other multi-byte integers in Family K, the current at
 live-page-A offset 10 is stored **with little-endian low byte at +0 and
 signed high byte at +1**, i.e., the hi byte is sign-extended via arith-
 metic shift. Treat as S16LE.
+
+### 8.6 Family K alarm/max-speed: read vs. write offset mismatch
+
+The host-to-device write frame for command `0x85` and the device-to-host
+report frames `0xA4` / `0xB5` use **different** offset maps for the same
+four values (three alarm speeds + max speed). This is asymmetric and
+must not be conflated:
+
+| Field         | Write (`0x85`) offset | Report (`0xA4`/`0xB5`) offset |
+|---------------|:---------------------:|:----------------------------:|
+| Alarm 1 speed | 2                     | 4                            |
+| Alarm 2 speed | 4                     | 6                            |
+| Alarm 3 speed | 6                     | 8                            |
+| Max speed     | 8                     | 10                           |
+
+On write, the three bytes interleaved between the values (offsets 3, 5,
+7) are **reserved `0x00`** (they act as padding that aligns each value
+to an even address).
 
 ---
 
@@ -739,10 +772,124 @@ byte.
 | `b` (v < 3)        | Beep (legacy)               |
 | binary beep v ≥ 3  | `4C 6B 41 70 0E 00 80 80 80 01 CA 87 E6 6F` (14 B) |
 
-### 10.3 Family K settings
+### 10.3 Family K host-to-device command payloads
 
-See §3.2. All command frames follow the 20-byte layout with relevant
-bytes of the payload set and the rest zero.
+Every Family-K host-to-device command is carried in the 20-byte frame
+defined in §2.2. Bytes 0–1 are always `AA 55`; bytes 18–19 are always
+`5A 5A`; byte 16 is the command code; byte 17 is a command-specific
+tail constant with default `0x14` (overridden where noted). **Any
+payload byte not named below MUST be transmitted as `0x00`.**
+
+The following sub-sections give the payload filling for each writable
+command code.
+
+#### 10.3.1 `0x87` — Set pedals mode
+
+| Byte | Value                | Notes                                  |
+|-----:|----------------------|----------------------------------------|
+| 0    | `0xAA`               | Header                                 |
+| 1    | `0x55`               | Header                                 |
+| 2    | `pedalsMode`         | 0 = hard, 1 = medium, 2 = soft (semantics set by host) |
+| 3    | `0xE0`               | **Required magic constant**            |
+| 4–15 | `0x00`               | Reserved                               |
+| 16   | `0x87`               | Command code                           |
+| 17   | **`0x15`**           | **Overrides the default tail `0x14`**  |
+| 18   | `0x5A`               | Tail                                   |
+| 19   | `0x5A`               | Tail                                   |
+
+Two departures from the general template are mandatory for this
+command: **byte 3 must be `0xE0`** and **byte 17 must be `0x15`**.
+Conformant devices reject the command otherwise.
+
+#### 10.3.2 `0x85` — Set alarm speeds and maximum speed
+
+Writes the three alarm thresholds and the tiltback maximum speed in a
+single frame. All values are unsigned integers expressed in km/h (0..255).
+
+| Byte | Value          | Notes                              |
+|-----:|----------------|------------------------------------|
+| 0    | `0xAA`         | Header                             |
+| 1    | `0x55`         | Header                             |
+| 2    | `alarm1Speed`  | Alarm level 1 threshold, km/h      |
+| 3    | `0x00`         | Padding                            |
+| 4    | `alarm2Speed`  | Alarm level 2 threshold, km/h      |
+| 5    | `0x00`         | Padding                            |
+| 6    | `alarm3Speed`  | Alarm level 3 threshold, km/h      |
+| 7    | `0x00`         | Padding                            |
+| 8    | `maxSpeed`     | Tiltback / maximum speed, km/h     |
+| 9–15 | `0x00`         | Reserved                           |
+| 16   | `0x85`         | Command code                       |
+| 17   | `0x14`         | Tail constant                      |
+| 18   | `0x5A`         | Tail                               |
+| 19   | `0x5A`         | Tail                               |
+
+**Degenerate case — read-back.** If all four values
+(`alarm1Speed | alarm2Speed | alarm3Speed | maxSpeed`) are zero, the
+host MUST instead transmit the same frame with byte 16 changed to
+`0x98` — an explicit request to the device to report its current
+alarm and max-speed settings (the device answers with `0xA4` or
+`0xB5`; see §3.2 and §8.6 for the differing read/write offset maps).
+
+#### 10.3.3 `0x73` — Set headlight mode
+
+| Byte | Value              | Notes                                       |
+|-----:|--------------------|---------------------------------------------|
+| 0    | `0xAA`             | Header                                      |
+| 1    | `0x55`             | Header                                      |
+| 2    | `0x12 + lightMode` | `lightMode ∈ {0,1,2}` ⇒ byte 2 ∈ {`0x12`,`0x13`,`0x14`} |
+| 3    | `0x01`             | **Required magic constant**                 |
+| 4–15 | `0x00`             | Reserved                                    |
+| 16   | `0x73`             | Command code                                |
+| 17   | `0x14`             | Tail constant                               |
+| 18   | `0x5A`             | Tail                                        |
+| 19   | `0x5A`             | Tail                                        |
+
+`lightMode` semantics (firmware-defined): `0` = off, `1` = on, `2` =
+auxiliary/special. The value stored at byte 2 is always the mode value
+**plus the bias `0x12`**, never the raw mode number.
+
+#### 10.3.4 `0x6C` — Set LED mode
+
+| Byte | Value     | Notes                                      |
+|-----:|-----------|--------------------------------------------|
+| 0    | `0xAA`    | Header                                     |
+| 1    | `0x55`    | Header                                     |
+| 2    | `ledMode` | LED pattern index; valid range is wheel-dependent |
+| 3–15 | `0x00`    | Reserved                                   |
+| 16   | `0x6C`    | Command code                               |
+| 17   | `0x14`    | Tail constant                              |
+| 18   | `0x5A`    | Tail                                       |
+| 19   | `0x5A`    | Tail                                       |
+
+#### 10.3.5 `0x53` — Set strobe mode
+
+| Byte | Value        | Notes                                   |
+|-----:|--------------|-----------------------------------------|
+| 0    | `0xAA`       | Header                                  |
+| 1    | `0x55`       | Header                                  |
+| 2    | `strobeMode` | Strobe pattern index; wheel-dependent range |
+| 3–15 | `0x00`       | Reserved                                |
+| 16   | `0x53`       | Command code                            |
+| 17   | `0x14`       | Tail constant                           |
+| 18   | `0x5A`       | Tail                                    |
+| 19   | `0x5A`       | Tail                                    |
+
+#### 10.3.6 Integrity summary for §10.3
+
+Family-K host-to-device command integrity is defined entirely by:
+
+1. Fixed 20-byte length.
+2. Fixed header `AA 55` (bytes 0..1).
+3. Fixed tail `5A 5A` (bytes 18..19).
+4. The single command-specific tail byte 17 (default `0x14`; `0x15`
+   for command `0x87`).
+5. Any command-specific magic constants declared above
+   (`0xE0` at byte 3 for `0x87`, `0x01` at byte 3 for `0x73`,
+   the `+0x12` bias on byte 2 of `0x73`).
+
+There is no checksum or CRC; devices validate only the positional
+constants. For this reason, hosts MUST zero-fill any unused bytes to
+avoid triggering accidental matches of unrelated command payloads.
 
 ---
 
@@ -764,10 +911,4 @@ bytes of the payload set and the rest zero.
 An implementation is said to be **conformant** to this specification if:
 
 1. It honours the GATT topologies in §1.
-2. It correctly frames and defragments data as specified in §2.
-3. It interprets the numeric fields in §3 using the scalings declared.
-4. It validates checksums/CRCs where present (§6) and drops invalid
-   frames.
-5. For Family N2, it performs the §5 handshake before reading telemetry
-   and applies `γ` for both directions.
-6. It tolerates unknown message types (forward compatibility).
+2. It correctly frames and defragments data as spec
