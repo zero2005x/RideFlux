@@ -28,6 +28,7 @@ rootProject.name = "RideFlux"
 
 // -- App --
 include(":app")
+include(":hud-app")
 
 // -- Domain --
 include(":domain")
