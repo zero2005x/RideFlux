@@ -11,6 +11,38 @@ plugins {
     alias(libs.plugins.sonarqube)
 }
 
+// The Sonar / sonar-scanner plugin transitively pulls in an older
+// BouncyCastle (bcprov-jdk15on) that shadows the modern one AGP's
+// `validateSigningDebug` needs. Without this force we see:
+//   NoClassDefFoundError: org/bouncycastle/asn1/edec/EdECObjectIdentifiers
+// which was only added in BC 1.71+. Forcing bcprov-jdk18on on the
+// buildscript classpath resolves it minimally, without changing the
+// Sonar plugin version.
+buildscript {
+    dependencies {
+        classpath("org.bouncycastle:bcprov-jdk18on:1.78.1")
+        classpath("org.bouncycastle:bcpkix-jdk18on:1.78.1")
+    }
+    configurations.classpath {
+        resolutionStrategy {
+            force(
+                "org.bouncycastle:bcprov-jdk18on:1.78.1",
+                "org.bouncycastle:bcpkix-jdk18on:1.78.1",
+            )
+            eachDependency {
+                if (requested.group == "org.bouncycastle" &&
+                    requested.name.endsWith("-jdk15on")
+                ) {
+                    useTarget(
+                        "org.bouncycastle:${requested.name.replace("-jdk15on", "-jdk18on")}:1.78.1",
+                    )
+                    because("AGP signing needs BC >= 1.71 (EdECObjectIdentifiers)")
+                }
+            }
+        }
+    }
+}
+
 // Pin Java and Kotlin JVM targets across all subprojects so that
 // building with a newer JDK (e.g. 25) does not trigger the
 // "Inconsistent JVM-target compatibility" check when Kotlin 2.0's
