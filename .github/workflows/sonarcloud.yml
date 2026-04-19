@@ -52,8 +52,16 @@ jobs:
           SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
           # GITHUB_TOKEN is auto-provided; needed for PR decoration
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # The SonarQube Gradle plugin's :sonar task is not
+        # configuration-cache compatible on Gradle 9; disable the
+        # cache only for this invocation. --stacktrace + --info
+        # surface the real scanner error should anything else fail.
+        # `-Dsonar.organization` is passed explicitly because the
+        # build script only falls through to the env var when this
+        # system property is absent.
         run: >
-          ./gradlew sonar --no-daemon
+          ./gradlew sonar --no-daemon --no-configuration-cache --stacktrace --info
           -Dsonar.token=$SONAR_TOKEN
+          -Dsonar.organization=$SONAR_ORGANIZATION
           -Dsonar.pullrequest.provider=GitHub
           -Dsonar.pullrequest.github.repository=${{ github.repository }}
