@@ -209,15 +209,169 @@ Also, the 16-byte keystream *γ* is **not** zero: it is negotiated during
 a one-shot handshake executed immediately after link establishment.
 See §5 for the key exchange and keystream algorithm.
 
-### 2.6 Family I1 and I2
+### 2.6 Family I1 — Escape-byte framing with CAN-ID envelope
 
-Families I1 and I2 use escape-byte framing and a length-prefixed
-CAN-like frame respectively. Their payload definitions are outside the
-scope of this 1.x document and will be added in a later revision; the
-link-layer UUIDs are given in §1.1 / §1.2 for completeness.
+Family I1 is used by the legacy Inmotion V-series wheels (V5 / V5+ / V5F /
+V5D, V8 / V8F / V8S / Glide3, V10 / V10F / V10S / V10SF / V10T / V10FT,
+plus the R1/R2/L6/Lively/R0 family). It wraps a fixed-width CAN-bus
+envelope inside a byte-stuffed transport frame.
+
+#### 2.6.1 Transport frame
+
+A single logical frame on the wire is:
+
+```
+AA AA │ ESCAPED( BODY ) │ CHECK │ 55 55
+```
+
+| Field     | Size  | Notes                                                                |
+|-----------|:-----:|----------------------------------------------------------------------|
+| Preamble  | 2     | literal `AA AA`                                                      |
+| Body      | var.  | byte-stuffed (see §2.6.2); unstuffed length is 16 B, or 16 B + *N*   |
+| Check     | 1     | sum-mod-256 of the **unstuffed** body (see §6.4.1); transmitted raw, **not** escape-encoded |
+| Trailer   | 2     | literal `55 55`                                                      |
+
+The preamble (`AA AA`) and trailer (`55 55`) are always transmitted as
+literal bytes; they are **not** subject to the escape rule of §2.6.2.
+The CHECK byte is likewise transmitted in the clear; implementations
+MUST be prepared to accept a raw `0xAA`, `0x55` or `0xA5` byte in that
+position.
+
+#### 2.6.2 Escape (byte-stuffing) rule
+
+Let `x` be any byte of the unstuffed body. The escape function is:
+
+```
+x ∈ { 0xAA, 0x55, 0xA5 }   →   transmit( 0xA5, x )
+otherwise                  →   transmit( x )
+```
+
+On receive, a byte `0xA5` acts as an escape marker and is **consumed**;
+the byte that follows it is appended literally to the unstuffed buffer.
+A second consecutive `0xA5` is treated as a literal `0xA5` (one
+escape, one literal). This yields a fully transparent channel for
+arbitrary body content.
+
+The CHECK byte (see §6.4.1) is appended **after** escaping, so a
+received `A5` occurring as the byte just before the `55 55` trailer
+MUST be interpreted as CHECK (literal) and not as an escape marker.
+Parsers detect that position by counting backward from the trailer.
+
+#### 2.6.3 Unstuffed body (CAN envelope)
+
+After removing escape bytes, the body is always at least 16 bytes long,
+laid out as a CAN-bus-style record. All multi-byte integers inside
+the envelope are **little-endian**.
+
+| Offset | Size | Name    | Meaning                                                            |
+|-------:|-----:|---------|--------------------------------------------------------------------|
+| 0      | 4    | CAN-ID  | Message selector; see §3.5.1                                       |
+| 4      | 8    | DATA-8  | Standard-frame 8-byte payload (unused bytes are `0x00`)            |
+| 12     | 1    | LEN     | `0x08` for a standard 8-byte frame; `0xFE` means “extended frame”  |
+| 13     | 1    | CHAN    | Logical channel; observed value `0x05` for all host↔device traffic |
+| 14     | 1    | FMT     | `0x00` = standard CAN ID (11-bit), `0x01` = extended (29-bit)      |
+| 15     | 1    | TYPE    | `0x00` = data frame, `0x01` = remote frame (query)                 |
+| 16…    | var. | EX-DATA | Present only when `LEN == 0xFE`; length given by EX-LEN (see below)|
+
+#### 2.6.4 Extended frames (`LEN == 0xFE`)
+
+When LEN is `0xFE`, the body is lengthened by a variable-size
+EX-DATA block appended after offset 16. In this case the four bytes
+at offset 4..7 (the first four bytes of the DATA-8 field) carry a
+**little-endian U32** that is the byte-length of EX-DATA, hereafter
+called `EX-LEN`.
+
+| Offset      | Size  | Meaning                                                |
+|------------:|:-----:|--------------------------------------------------------|
+| 4..7        | 4     | EX-LEN (U32LE)                                         |
+| 8..15       | 8     | Standard 8-byte payload (typically all-ones in queries) |
+| 16..16+L−1  | L     | EX-DATA payload, with `L == EX-LEN`                    |
+
+Remote-frame queries (TYPE = `0x01`) are used to solicit specific
+extended records; the device responds with an extended (LEN = `0xFE`)
+data frame carrying the requested block in EX-DATA.
+
+#### 2.6.5 GATT binding
+
+Family I1 uses the split single-characteristic profile of §1.1: host
+writes commands to the write characteristic (`0000ffe9-…`) on the
+write service (`0000ffe5-…`), and receives notifications on the
+notify characteristic (`0000ffe4-…`) of the read service
+(`0000ffe0-…`). Transport fragmentation follows §1.3.
 
 ---
 
+### 2.7 Family I2 — XOR-checksum length-prefixed framing
+
+Family I2 is used by the current-generation Inmotion wheels (V9,
+V11 / V11Y, V12-HS / HT / PRO / S, V13 / V13 PRO, V14g / V14s). It is
+**not** compatible with I1: the envelope is different, the checksum
+algorithm is different, and there is no fixed trailer.
+
+#### 2.7.1 Transport frame
+
+```
+AA AA │ ESCAPED( FLAGS │ LEN │ CMD │ DATA[LEN−1] ) │ CHECK
+```
+
+| Field     | Size       | Notes                                                                                 |
+|-----------|:----------:|---------------------------------------------------------------------------------------|
+| Preamble  | 2          | literal `AA AA`                                                                       |
+| FLAGS     | 1          | Message class (see §2.7.2)                                                            |
+| LEN       | 1          | `DATA.length + 1` (the CMD byte itself is counted)                                    |
+| CMD       | 1          | Application command identifier (see §3.5.2 / §10.4). On received frames, the high bit (`0x80`) is reserved and MUST be masked before dispatch (`cmd &= 0x7F`). |
+| DATA      | LEN − 1    | Command-specific payload; little-endian multi-byte integers                            |
+| CHECK     | 1          | XOR of the **unstuffed** bytes `FLAGS, LEN, CMD, DATA[0..LEN−2]` (see §6.4.2); transmitted raw, not escape-encoded |
+
+There is **no** trailer byte pair in I2. A receiver finalises a frame
+when it has collected exactly `LEN + 4` escape-decoded bytes after the
+preamble (that is: FLAGS + LEN + CMD + DATA + CHECK).
+
+#### 2.7.2 FLAGS enumeration
+
+| Value | Name      | Use                                                                    |
+|:-----:|-----------|------------------------------------------------------------------------|
+| `0x11`| Init      | Bootstrap / identification exchanges (car-type, serial, version, power-off sequencing) |
+| `0x14`| Default   | Run-time traffic (settings, real-time telemetry, battery info, stats, control) |
+
+Other FLAGS values are reserved; conformant receivers MUST ignore
+frames whose FLAGS is neither `0x11` nor `0x14`.
+
+#### 2.7.3 Escape (byte-stuffing) rule — differs from I1
+
+I2 escapes **two** byte values, not three:
+
+```
+x ∈ { 0xAA, 0xA5 }   →   transmit( 0xA5, x )
+otherwise            →   transmit( x )
+```
+
+Unlike I1, the byte `0x55` is **not** escaped in I2 (there is no `55 55`
+trailer to disambiguate). The CHECK byte is transmitted in the clear
+without escaping, exactly as in I1.
+
+#### 2.7.4 GATT binding
+
+Family I2 uses the Nordic-UART-style profile of §1.2. Host writes to
+the TX characteristic (`6e400002-…`) and subscribes to the RX
+characteristic (`6e400003-…`). Multiple I2 frames MAY be packed into
+one GATT notification and a single frame MAY span several
+notifications; the receiver MUST buffer bytes and frame on the
+`AA AA` preamble + LEN semantics of §2.7.1.
+
+#### 2.7.5 Protocol-version detection (V11 sub-variants)
+
+On V11 only, the application-layer telemetry layout (see §3.5.4)
+depends on the main-board firmware version reported during the §9.5
+identification handshake:
+
+| Main-board version `M.m.p` | I2 telemetry variant |
+|----------------------------|----------------------|
+| `M < 2` and `m < 4`        | §3.5.4.A (“V11 early”) |
+| otherwise                  | §3.5.4.B (“V11 ≥ 1.4”) |
+
+Other I2 models select their telemetry variant directly from the
+car-type identification record (§3.5.2).
 ## 3. Message Types & Payload Maps
 
 ### 3.1 Family G payload maps
@@ -476,6 +630,303 @@ day   =  D       & 0x1F
 
 ---
 
+
+### 3.5 Family I1 / I2 — Inmotion payload maps
+
+#### 3.5.1 Family I1 CAN-ID registry
+
+CAN-ID is a 32-bit little-endian value at offset 0..3 of the unstuffed
+body (§2.6.3). Observed values:
+
+| CAN-ID         | Purpose                              | Direction    | Notes             |
+|----------------|--------------------------------------|--------------|-------------------|
+| `0x0F550113`   | Live telemetry (extended)            | device→host  | LEN = `0xFE`; solicited by remote-frame query with the same ID |
+| `0x0F550114`   | Static info / settings (extended)    | device→host  | LEN = `0xFE`     |
+| `0x0F550115`   | Ride-mode / max-speed / pedal params | both         | §10.4.1           |
+| `0x0F550116`   | Remote-control cluster (LED, beep, power-off, misc) | host→dev | §10.4.2 |
+| `0x0F550119`   | Wheel calibration                    | host→dev     | §10.4.3           |
+| `0x0F55010D`   | Headlight on/off                     | host→dev     | §10.4.4           |
+| `0x0F55012E`   | Handle-button enable                 | host→dev     | §10.4.5           |
+| `0x0F550307`   | PIN-code exchange                    | host→dev     | §9.5.1            |
+| `0x0F55060A`   | Speaker-volume set                   | host→dev     | §10.4.6           |
+| `0x0F550609`   | Play sound index                     | host→dev     | §10.4.7           |
+| `0x0F780101`   | Alert / event notification           | device→host  | §4.3              |
+
+A standard-format query (FMT = `0x00`, TYPE = `0x01`, DATA-8 =
+`FF FF FF FF FF FF FF FF`) on CAN-ID `0x0F550113` or `0x0F550114`
+elicits the respective extended record. During the keep-alive loop the
+host issues a query on `0x0F550113` every 25 ms (see §9.5.1).
+
+#### 3.5.2 Family I1 extended-telemetry EX-DATA layout (CAN-ID `0x0F550113`)
+
+All integers **little-endian**, signed where noted.
+
+| EX-DATA offset | Size | Signed | Name                     | Unit / scaling                            |
+|---------------:|-----:|:------:|--------------------------|-------------------------------------------|
+| 0              | 4    | U      | Pitch angle (raw)        | raw / 65536 → degrees                     |
+| 12             | 4    | U      | Speed-A                  | see below                                 |
+| 16             | 4    | U      | Speed-B                  | see below                                 |
+| 20             | 4    | S      | Phase current            | 1/100 A                                   |
+| 24             | 4    | U      | Voltage                  | 1/100 V                                   |
+| 32             | 1    | S      | Temperature 1            | 1 °C (sensor-native)                      |
+| 34             | 1    | S      | Temperature 2 (IMU)      | 1 °C                                      |
+| 44             | 4/8  | U      | Total distance           | model-dependent, see §8.7                 |
+| 48             | 4    | U      | Trip distance            | metres                                    |
+| 60             | 4    | U      | Work-mode / state word   | §4.3                                      |
+| 72             | 4    | U      | Roll (raw)               | raw / 90 → degrees (some models: force 0) |
+
+**Speed computation.** Let `S = SpeedA + SpeedB`. The reported
+ground speed is `|S| / (2 · F)` m/s, where `F` is a per-model
+calibration constant:
+
+| Model group                         | `F`        |
+|-------------------------------------|-----------:|
+| R1S / R1Sample / R0                 | 1 000      |
+| R1T                                 | 3 810      |
+| all others                          | 3 812      |
+
+**Total-distance decoding.** Depending on the model family, the four
+or eight bytes beginning at offset 44 carry different encodings; see
+§8.7.
+
+**State word.** The 32-bit little-endian state word at offset 60 is
+masked to its low nibble for the legacy work-mode enumeration
+(V5 / R1 / L6 / Lively families) or shifted right 4 bits for the
+modern enumeration (V8F / V8S / V10 / V10F / V10S / V10SF / V10T /
+V10FT). See §4.3 for both enumerations.
+
+#### 3.5.3 Family I1 static-info / settings EX-DATA layout (CAN-ID `0x0F550114`)
+
+| EX-DATA offset | Size | Signed | Name                   | Unit / encoding                                |
+|---------------:|-----:|:------:|------------------------|-------------------------------------------------|
+| 0..7           | 8    | —      | Serial-number bytes    | 8 bytes; textual form printed in reverse order, each as two hex digits |
+| 24             | 2    | U      | Version patch          | 1                                               |
+| 26             | 1    | U      | Version minor          | 1                                               |
+| 27             | 1    | U      | Version major          | 1; printed as `"major.minor.patch"`             |
+| 56             | 4    | U      | Pedal-horizon zero     | raw / 6 553.6 → display units                   |
+| 60             | 2    | U      | Maximum speed          | raw / 1000 → km/h                               |
+| 80             | 1    | —      | Headlight state        | 1 = on                                          |
+| 104            | 1    | —      | Model-ID low digit     | see §3.5.3.1                                    |
+| 107            | 1    | —      | Model-ID high digit    | see §3.5.3.1                                    |
+| 124            | 1    | U      | Pedal hardness         | reported value `− 28`; `0x20..0x80` → 4..100 %  |
+| 125            | 2    | U      | Speaker volume         | raw / 100                                       |
+| 129            | 1    | —      | Handle-button enable   | reported value `!= 1` = enabled                 |
+| 130            | 1    | —      | LED strip enable       | 1 = on                                          |
+| 132            | 1    | —      | Ride-mode              | 1 = classic, 0 = comfort                        |
+
+##### 3.5.3.1 Model ID decoding
+
+The textual model-id is formed by:
+
+```
+if  byte[107] > 0   →   concatenate( decimal(byte[107]), decimal(byte[104]) )
+else                →   decimal(byte[104])
+```
+
+The resulting 1- or 2-digit string maps to a marketing name:
+
+| ID   | Model                | ID   | Model           |
+|:----:|----------------------|:----:|-----------------|
+| `0`  | R1N                  | `50` | V5              |
+| `1`  | R1S                  | `51` | V5+             |
+| `2`  | R1CF                 | `52` | V5F             |
+| `3`  | R1AP                 | `53` | V5D             |
+| `4`  | R1EX                 | `60` | L6              |
+| `5`  | R1Sample             | `61` | Lively          |
+| `6`  | R1T                  | `80` | V8              |
+| `7`  | R10                  | `85` | Glide 3         |
+| `10` | V3                   | `86` | V8F             |
+| `11` | V3C                  | `87` | V8S             |
+| `12` | V3Pro                | `100`| V10S            |
+| `13` | V3S                  | `101`| V10SF           |
+| `20`…`24`| R2 family        | `140`| V10             |
+| `30` | R0                   | `141`| V10F            |
+|      |                      | `142`| V10T            |
+|      |                      | `143`| V10FT           |
+
+Unknown IDs are treated as generic **V8** for telemetry decoding.
+
+#### 3.5.4 Family I2 application-layer CMD registry (FLAGS = `0x14` unless noted)
+
+| CMD    | Name                  | Direction   | Notes                                  |
+|:------:|-----------------------|:-----------:|----------------------------------------|
+| `0x02` | MainInfo              | both        | FLAGS = `0x11`; identification bootstrap (§9.5.2) |
+| `0x03` | Diagnostic / power-off| both        | FLAGS = `0x11`; two-stage power-off (§10.4.8) |
+| `0x04` | RealTimeInfo          | both        | Live telemetry (§3.5.4)                |
+| `0x05` | BatteryRealTimeInfo   | both        | Per-BMS snapshot (§3.5.5)              |
+| `0x10` | Reserved / ping       | both        | Host DATA `00 01`; reply content undocumented |
+| `0x11` | TotalStats            | both        | Lifetime counters (§3.5.6)             |
+| `0x20` | Settings              | both        | Per-model settings blob (§3.5.7)       |
+| `0x60` | Control               | host→device | All write-setters and commands (§10.4) |
+
+Host requests for informational CMDs carry an empty DATA region
+(LEN = 1, payload is just the CMD byte). The device replies using the
+same CMD value with a populated DATA region.
+
+#### 3.5.4.A Family I2 real-time telemetry, V11 early variant (CMD `0x04`)
+
+DATA layout when the device is a V11 whose main-board version is
+< 1.4 (see §2.7.5). All multi-byte integers are **little-endian**.
+
+| DATA off | Size | Signed | Name                     | Unit / scaling              |
+|---------:|-----:|:------:|--------------------------|-----------------------------|
+| 0        | 2    | U      | Voltage                  | 1/100 V                     |
+| 2        | 2    | S      | Phase current            | 1/100 A                     |
+| 4        | 2    | S      | Speed                    | 1/100 km/h                  |
+| 6        | 2    | S      | Torque                   | 1/100 N·m                   |
+| 8        | 2    | S      | Battery power            | 1 W                         |
+| 10       | 2    | S      | Motor power              | 1 W                         |
+| 12       | 2    | U      | Trip distance            | ×10 m                       |
+| 14       | 2    | U      | Remaining range          | ×10 m                       |
+| 16       | 1    | —      | Battery byte             | bits 0..6 = level %, bit 7 = mode |
+| 17       | 1    | U      | MOS-FET temperature      | `raw + 80 − 256` → °C       |
+| 18       | 1    | U      | Motor temperature        | same transform              |
+| 19       | 1    | U      | Battery temperature      | same transform              |
+| 20       | 1    | U      | Board temperature        | same transform              |
+| 21       | 1    | U      | Lamp temperature         | same transform              |
+| 22       | 2    | S      | Pitch                    | 1/100 °                     |
+| 24       | 2    | S      | Pitch setpoint           | 1/100 °                     |
+| 26       | 2    | S      | Roll                     | 1/100 °                     |
+| 28       | 2    | U      | Dynamic speed limit      | 1/100 km/h                  |
+| 30       | 2    | U      | Dynamic current limit    | 1/100 A                     |
+| 32       | 1    | U      | Ambient brightness       | 0..255                      |
+| 33       | 1    | U      | Headlight brightness     | 0..255                      |
+| 34       | 1    | U      | CPU temperature          | `raw + 80 − 256` → °C       |
+| 35       | 1    | U      | IMU temperature          | same transform              |
+| 36       | 2    | U      | Output PWM               | 1/100 %                     |
+| 36 or 38 | 1    | —      | State byte A             | see below                   |
+| +1       | 1    | —      | State byte B             | see below                   |
+| +5       | ≥7   | —      | Error bitmap             | §4.3.2                      |
+
+The “State” region starts at byte 36 when the frame is short
+(DATA length < 49) and at byte 38 otherwise. State byte A:
+
+| Bits | Meaning                                       |
+|-----:|-----------------------------------------------|
+| 0..2 | PC mode (0 = lock, 1 = drive, 2 = shutdown, 3 = idle) |
+| 3..5 | MC mode                                       |
+| 6    | Motor-active flag                             |
+| 7    | Charging flag                                 |
+
+State byte B:
+
+| Bits | Meaning                                       |
+|-----:|-----------------------------------------------|
+| 0    | Headlight on                                  |
+| 1    | Decorative-light on                           |
+| 2    | Lifted flag                                   |
+| 3..4 | Tail-light mode                               |
+| 5    | Cooling-fan active                            |
+
+#### 3.5.4.B Family I2 real-time telemetry, V11 ≥ 1.4 / V12-HS/HT/PRO / V13 / V14 / V11Y / V12S / V9
+
+These newer variants expand the frame to ≥ 78 bytes. The core
+electrical channels sit at the same offsets; temperatures, trip and
+state move to later offsets:
+
+| DATA off | Size | Signed | Name                     | Unit / scaling                   |
+|---------:|-----:|:------:|--------------------------|----------------------------------|
+| 0        | 2    | U      | Voltage                  | 1/100 V                          |
+| 2        | 2    | S      | Current                  | 1/100 A                          |
+| 4        | 2    | S      | Reserved-A               | — (in some models: speed1)       |
+| 8        | 2    | S      | Speed                    | 1/100 km/h (all 1.4+ variants)   |
+| 10       | 2    | S      | Reserved-B               | — (in most models: `18000`)      |
+| 12       | 2    | S      | Torque                   | 1/100 N·m                        |
+| 14       | 2    | S      | Output PWM               | 1/100 %                          |
+| 16       | 2    | S      | Battery power            | 1 W                              |
+| 18       | 2    | S      | Motor power              | 1 W                              |
+| 20       | 2    | S      | Pitch                    | 1/100 °                          |
+| 22       | 2    | S      | Roll                     | 1/100 ° (V11 1.4 uses off 20/26) |
+| 24       | 2    | S      | Pitch setpoint           | 1/100 °                          |
+| 28       | 2    | U      | Trip distance            | ×10 m                            |
+| 34       | 2    | U      | Battery level A          | raw / 100 → %                    |
+| 36       | 2    | U      | Battery level B          | raw / 100 → % (average of A+B)   |
+| 40       | 2    | U      | Dynamic speed limit      | 1/100 km/h                       |
+| 50       | 2    | U      | Dynamic current limit    | 1/100 A                          |
+| 58       | 1    | U      | MOS-FET temp             | `raw + 80 − 256` → °C            |
+| 59       | 1    | U      | Motor temp               | same                             |
+| 60       | 1    | U      | Battery temp             | same                             |
+| 61       | 1    | U      | Board temp               | same                             |
+| 62       | 1    | U      | CPU temp                 | same                             |
+| 63       | 1    | U      | IMU temp                 | same                             |
+| 64       | 1    | U      | Lamp temp                | same                             |
+| 74       | 1    | —      | State byte A             | §3.5.4.A layout                  |
+| 75 or 76 | 1    | —      | State byte B             | per-model; see variants          |
+| 77       | ≥7   | —      | Error bitmap             | §4.3.2                           |
+
+**Open ambiguity.** On V11 1.4+ the trip-distance field is
+documented at DATA offset 26 (not 28); on V12-HS/HT/PRO the trip
+field is at offset 22; on V13 the mileage word lies at offset 10 and
+is reconstructed by reversing the byte order inside a 32-bit
+little-endian load. These per-model offset tables are summarised in
+§8.8 and marked as *observed constraints, pending authoritative
+confirmation*.
+
+**Battery-level rule.** For the 1.4+ variants the reported battery
+percentage is the arithmetic mean of the two 16-bit U values at
+offsets 34 and 36, divided by 100 and rounded to nearest integer.
+
+#### 3.5.5 Family I2 battery real-time record (CMD `0x05`)
+
+| DATA off | Size | Name                   | Notes                                      |
+|---------:|-----:|------------------------|--------------------------------------------|
+| 0        | 2    | BMS-1 pack voltage     | 1/100 V, U16LE                             |
+| 4        | 1    | BMS-1 temperature      | 1 °C, signed                               |
+| 5        | 1    | BMS-1 status byte      | bit 0 = valid, bit 1 = enabled             |
+| 6        | 1    | BMS-1 work status      | bit 0 / bit 1                              |
+| 8        | 2    | BMS-2 pack voltage     | 1/100 V, U16LE                             |
+| 12       | 1    | BMS-2 temperature      | 1 °C, signed                               |
+| 13       | 1    | BMS-2 status byte      | bit 0 = valid, bit 1 = enabled             |
+| 14       | 1    | BMS-2 work status      | bit 0 / bit 1                              |
+| 16       | 2    | Charger voltage        | 1/100 V                                    |
+| 18       | 2    | Charger current        | 1/100 A                                    |
+
+#### 3.5.6 Family I2 total-stats record (CMD `0x11`)
+
+All four 32-bit fields are **little-endian**.
+
+| DATA off | Size | Name                  | Unit                   |
+|---------:|-----:|-----------------------|------------------------|
+| 0        | 4    | Lifetime distance     | ×10 m                  |
+| 4        | 4    | Energy dissipated     | 1 Wh                   |
+| 8        | 4    | Energy recovered      | 1 Wh                   |
+| 12       | 4    | Cumulative ride time  | 1 s                    |
+| 16       | 4    | Cumulative power-on time | 1 s                 |
+
+#### 3.5.7 Family I2 settings record (CMD `0x20`)
+
+Settings DATA blobs are model-specific; the first DATA byte is an
+echo of the sub-selector (`0x20`). The most important shared fields,
+valid for V11 / V11Y / V12-HS/HT/PRO / V13 / V14 / V9 / V12S, are:
+
+| DATA off | Size | Signed | Name                   | Unit / scaling                     |
+|---------:|-----:|:------:|------------------------|-------------------------------------|
+| 1        | 2    | U      | Speed limit            | 1/100 km/h                          |
+| 3        | 2    | S      | Alarm-1 speed          | 1/100 km/h (V11Y/V13/V14/V9/V12S)   |
+| 3        | 2    | S      | Pitch zero-point       | 1/10 ° (V11 variant only; differs per model) |
+| 9        | 2    | U      | (V12) Speed limit      | 1/100 km/h                          |
+| 11       | 2    | S      | (V12) Alarm-1 speed    | 1/100 km/h                          |
+| 13       | 2    | S      | (V12) Alarm-2 speed    | 1/100 km/h                          |
+| 15       | 2    | S      | (V12) Pitch zero-point | 1/10 °                              |
+| 17       | 2    | U      | (V12) Stand-by delay   | 1 s (display as minutes = raw/60)   |
+| 19       | 1    | —      | (V12) Mode bits        | bit 0 = Classic, bit 4 = Fancier    |
+| 20       | 1    | U      | (V12) Pedal sens. Comfort | 0..255 (scale set by host)        |
+| 21       | 1    | U      | (V12) Pedal sens. Classic | 0..255                            |
+| 22       | 1    | U      | (V12) Volume           | 0..100                              |
+| 26       | 1    | U      | (V12) Low-beam brightness  | 0..255                         |
+| 27       | 1    | U      | (V12) High-beam brightness | 0..255                         |
+| 31       | 1    | U      | (V12) Split-mode accel.| 0..255                              |
+| 32       | 1    | U      | (V12) Split-mode brake | 0..255                              |
+| 39       | 1    | —      | (V12) Flag byte 1      | b0 mute, b2 handle-button, b3 auto-light, b6 transport |
+| 40       | 1    | —      | (V12) Flag byte 2      | b2 sound-wave                       |
+| 41       | 1    | —      | (V12) Flag byte 3      | b0 split-mode                       |
+
+For the V13 / V14 / V11Y / V9 / V12S families the settings blob uses
+a second-generation layout starting at DATA offset 1, differing only
+in which flag bits are present and their positions; all speed/angle
+scalings are unchanged. The full per-model flag-bit table is given
+in §10.4 cross-referenced from each setter command.
+
 ## 4. Alerts & Status Bitmaps
 
 ### 4.1 Family G alert byte (type `0x04`, offset 14)
@@ -580,6 +1031,38 @@ the 20-byte fixed length plus `0x5A 0x5A` tail (K). Receivers are
 expected to tolerate out-of-order or occasionally dropped frames.
 
 ---
+
+### 6.4 Family I1 / I2 checksums
+
+These checksums are **different algorithms** despite both families
+coming from the same vendor. Implementations MUST NOT share code
+paths.
+
+#### 6.4.1 Family I1 — 8-bit additive checksum
+
+Let `B` be the **unstuffed** body sequence (preamble `AA AA` and
+trailer `55 55` are not included). Then:
+
+```
+CHECK = ( Σ B[i] ) mod 256
+```
+
+The CHECK byte is transmitted unescaped between the last body byte
+and the `55 55` trailer (§2.6.1). Frames whose recomputed CHECK does
+not match the transmitted byte MUST be discarded.
+
+#### 6.4.2 Family I2 — 8-bit XOR checksum
+
+Let `B = FLAGS, LEN, CMD, DATA[0..LEN−2]` be the **unstuffed**
+pre-check sequence. Then:
+
+```
+CHECK = B[0] XOR B[1] XOR … XOR B[n−1]    (all 8-bit)
+```
+
+The CHECK byte is transmitted unescaped immediately after DATA
+(there is no trailer in I2; see §2.7.1). Frames whose recomputed
+CHECK does not match MUST be discarded.
 
 ## 7. Voltage Scaling (Family G)
 
@@ -692,6 +1175,42 @@ to an even address).
 
 ---
 
+### 8.7 Family I1 total-distance encoding
+
+The 4- or 8-byte total-distance field at EX-DATA offset 44 (§3.5.2) is
+decoded differently per model family:
+
+| Model family                                               | Load | Scaling                     |
+|------------------------------------------------------------|:----:|-----------------------------|
+| R1 / R2 family, V5 / V5F / V5+ / V5D, V8 / V8F / V8S / Glide3, V10 / V10F / V10S / V10SF / V10T / V10FT | U32LE | 1 m (raw value = metres) |
+| R0                                                         | U64LE| 1 m                         |
+| L6                                                         | U64LE| ×100 (raw × 100 = metres)   |
+| legacy R1-era and all others                               | U64LE| `raw / 5.711 016 379 455 429 × 10⁷` → kilometres, then ×1000 → metres (rounded) |
+
+> The last scaling constant reproduces a first-generation Inmotion
+> odometer that used fixed-point rotational-tick units rather than
+> metres.
+
+### 8.8 Family I2 per-model telemetry offsets
+
+Three I2 telemetry variants share offsets 0..18 (voltage, current,
+pwm, powers) but diverge afterwards:
+
+| Field                    | V11 early (§3.5.4.A) | V11 ≥1.4 (§3.5.4.B) | V12-HS/HT/PRO | V13 / V13 PRO | V14 / V11Y / V9 / V12S |
+|--------------------------|:--------------------:|:-------------------:|:-------------:|:-------------:|:----------------------:|
+| Trip distance offset     | 12                   | 26                  | 22            | 10 (rev-U32)  | 28                     |
+| Battery level offset(s)  | 16 (byte)            | 28 (word)           | 24 (word)     | 34 & 36 (avg) | 34 & 36 (avg)          |
+| Dynamic speed limit      | 28                   | 34                  | 30            | 40            | 40                     |
+| Dynamic current limit    | 30                   | 36                  | 32            | 50            | 50                     |
+| Temp block start (MOS)   | 17                   | 42                  | 40            | 58            | 58                     |
+| State byte A             | 36 or 38             | 56                  | 54            | 74            | 74                     |
+| Error bitmap start       | State A + 5          | 61                  | 59            | 76            | 77                     |
+
+These offsets are *observed constraints* derived from field telemetry
+captures. Fields marked in §3.5.4.B as `Reserved-A` / `Reserved-B`
+consistently read `0`, `18000`, or nearby constants; their semantics
+are presently undocumented and marked as open ambiguities.
+
 ## 9. Bootstrap / Identification
 
 ### 9.1 Family G
@@ -744,6 +1263,71 @@ No identification handshake is required; the firmware-version word at
 payload offset 28 (§3.3) is used to select the model and battery curve.
 
 ---
+
+### 9.5 Families I1 / I2 identification and keep-alive
+
+#### 9.5.1 Family I1
+
+A 6-character ASCII **PIN** (default: `"000000"`) is sent up to 6 times
+in CAN-ID `0x0F550307` data frames. DATA-8 layout:
+
+| Offset | Size | Meaning       |
+|-------:|:----:|---------------|
+| 0..5   | 6    | ASCII digits  |
+| 6..7   | 2    | `0x00 0x00`   |
+
+The wheel silently accepts any of the attempts whose PIN matches.
+After the PIN is accepted, the host begins issuing remote-frame
+queries on CAN-ID `0x0F550114` (static/slow record) until a valid
+extended reply is received, then polls `0x0F550113` (fast telemetry)
+at the keep-alive cadence (25 ms ticks; same scheduling shape as §9.3).
+
+#### 9.5.2 Family I2
+
+I2 does not use a PIN. The host issues three FLAGS = `0x11` requests
+on CMD `0x02` (MainInfo) to retrieve:
+
+1. Car-type record (DATA sub-selector `0x01`). Reply DATA is:
+
+   | off | size | meaning                               |
+   |----:|:----:|---------------------------------------|
+   | 0   | 1    | sub-selector echo `0x01`              |
+   | 1   | 1    | group (`0x02` for all supported I2 wheels) |
+   | 2   | 1    | series (61 = V11, 62 = V11Y, 71 = V12 HS, 72 = V12 HT, 73 = V12 PRO, 81 = V13, 82 = V13 PRO, 91 = V14 50GB, 92 = V14 50S, 111 = V12S, 121 = V9) |
+   | 3   | 1    | sub-type                              |
+   | 4   | 1    | batch                                 |
+   | 5   | 1    | feature                               |
+   | 6   | 1    | reserved                              |
+
+   The model key is `(series × 10 + sub-type)`.
+
+2. Serial-number record (DATA sub-selector `0x02`). Reply DATA is 16
+   ASCII characters starting at DATA offset 1.
+
+3. Version record (DATA sub-selector `0x06`). Reply DATA carries five
+   three-field version triplets encoded as
+   `[ U16LE patch, U8 minor, U8 major ]`:
+
+   | off | triplet name          |
+   |----:|-----------------------|
+   | 2   | Driver-board firmware |
+   | 7   | Reserved A            |
+   | 12  | Main-board firmware   |
+   | 17  | Reserved B            |
+   | 21  | BLE firmware          |
+
+After identification the keep-alive loop drives the link at 25 ms
+intervals, cycling in priority order:
+
+1. Get current settings (FLAGS `0x14`, CMD `0x20`, DATA `0x20`)
+2. Any pending host-initiated setting write (FLAGS `0x14`, CMD `0x60`)
+3. Reserved ping (FLAGS `0x14`, CMD `0x10`, DATA `0x00 0x01`)
+4. Total-stats (FLAGS `0x14`, CMD `0x11`)
+5. Real-time telemetry (FLAGS `0x14`, CMD `0x04`)
+
+Steady-state polling is real-time telemetry only; settings/stats are
+retrieved once and re-requested whenever a setting-write has been
+acknowledged.
 
 ## 10. Command Reference (non-exhaustive)
 
@@ -903,6 +1487,121 @@ constants. For this reason, hosts MUST zero-fill any unused bytes to
 avoid triggering accidental matches of unrelated command payloads.
 
 ---
+
+### 10.4 Family I1 / I2 control commands
+
+#### 10.4.1 Family I1 — CAN-ID `0x0F550115` (ride-mode cluster)
+
+All commands use standard-format data frames (LEN = `0x08`, CHAN = `0x05`,
+FMT = `0x00`, TYPE = `0x00`). The DATA-8 byte layout is selected by
+DATA-8[0]:
+
+| DATA-8[0] | Purpose                          | DATA-8[1..7]                                                      |
+|:---------:|----------------------------------|-------------------------------------------------------------------|
+| `0x01`    | Set maximum speed                | `00 00 00 hi lo 00 00`, where `hi:lo` = (max_km/h × 1000) big-endian |
+| `0x06`    | Set pedal sensitivity            | `00 00 00 hi lo 00 00`, where `hi:lo` = `(sens + 28) << 5` big-endian |
+| `0x0A`    | Set ride-mode (Classic/Comfort)  | `00 00 00 flag 00 00 00` (flag = 0 Comfort, 1 Classic)            |
+| `0x00`    | Set horizontal tilt              | `00 00 00 b3 b2 b1 b0`, where `b3..b0` = BE bytes of `(angle × 6553.6)` |
+
+#### 10.4.2 Family I1 — CAN-ID `0x0F550116` (remote-control cluster)
+
+All frames start with DATA-8[0] = `0xB2`; DATA-8[1..3] = `0x00`; the
+action byte is DATA-8[4]:
+
+| DATA-8[4] | Action             |
+|:---------:|--------------------|
+| `0x05`    | Power off          |
+| `0x0F`    | LED strip on       |
+| `0x10`    | LED strip off      |
+| `0x11`    | Beep               |
+
+Any other value at DATA-8[4] is reserved.
+
+#### 10.4.3 Family I1 — CAN-ID `0x0F550119` (calibration)
+
+DATA-8 = `32 54 76 98 00 00 00 00`. The first four bytes are a magic
+constant; the wheel enters calibration mode only on an exact match.
+
+#### 10.4.4 Family I1 — CAN-ID `0x0F55010D` (headlight)
+
+DATA-8[0] = `0x01` turns the headlight on, `0x00` off; DATA-8[1..7] = 0.
+
+#### 10.4.5 Family I1 — CAN-ID `0x0F55012E` (handle-button)
+
+DATA-8[0] = `0x00` enables handle-button detection, `0x01` disables;
+DATA-8[1..7] = 0. Note the **inverted** convention.
+
+#### 10.4.6 Family I1 — CAN-ID `0x0F55060A` (speaker volume)
+
+DATA-8[0..1] = U16LE of `(volume × 100)` (i.e., lo byte at +0, hi byte
+at +1); DATA-8[2..7] = 0. Valid input range 0..100.
+
+#### 10.4.7 Family I1 — CAN-ID `0x0F550609` (play sound)
+
+DATA-8[0] = sound index (0..255); DATA-8[1..7] = 0.
+
+#### 10.4.8 Family I2 — power-off (CMD `0x03`, FLAGS `0x11`)
+
+Power-off is a two-frame sequence:
+
+1. Host sends FLAGS `0x11`, CMD `0x03`, DATA `0x81 0x00`.
+2. Wheel replies with FLAGS `0x11`, CMD `0x03` (any DATA).
+3. Host responds within the same flow with FLAGS `0x11`, CMD `0x03`,
+   DATA `0x82`. Wheel then powers off.
+
+Issuing only stage 1 is a NO-OP; stage 2 must not be sent before
+the reply is observed.
+
+#### 10.4.9 Family I2 — settings writes (CMD `0x60`, FLAGS `0x14`)
+
+Every write is a Control frame whose DATA begins with a sub-command
+byte. Multi-byte numeric payloads are **big-endian** as sent on the
+wire (high byte at +1, low byte at +2, etc.):
+
+| Sub-cmd | Purpose                                   | Following DATA bytes                          |
+|:-------:|-------------------------------------------|-----------------------------------------------|
+| `0x21`  | Max speed (all)                           | U16BE of `maxKmh × 100`                       |
+| `0x21`  | Max + alarm-1 (V13 / V14 / V11Y / V9 / V12S) | 2 × U16BE: `maxKmh × 100` then `alarmKmh × 100` |
+| `0x22`  | Pedal horizon tilt                        | U16BE of `angle × 10`                         |
+| `0x23`  | Classic / Comfort mode                    | 1 byte (1 = Classic, 0 = Comfort)             |
+| `0x24`  | Fancier mode                              | 1 byte (0/1)                                  |
+| `0x25`  | Pedal sensitivity                         | **two identical bytes**: `sens, sens`         |
+| `0x26`  | Speaker volume                            | 1 byte (0..100)                               |
+| `0x28`  | Stand-by delay                            | U16BE of `delayMin × 60` (seconds)            |
+| `0x2B`  | Light brightness (V11 / V13 / V14 / V11Y / V9 / V12S) | 1 byte (0..255)                    |
+| `0x2B`  | Low+high-beam brightness (V12-HS/HT/PRO)  | 2 bytes: `lowBeam, highBeam`                  |
+| `0x2C`  | Mute (inverted sense)                     | 1 byte (0 = muted, 1 = sound)                 |
+| `0x2D`  | DRL                                       | 1 byte (0/1)                                  |
+| `0x2E`  | Handle-button (inverted sense)            | 1 byte (1 = disabled, 0 = enabled)            |
+| `0x2F`  | Auto-light                                | 1 byte (0/1)                                  |
+| `0x31`  | Lock mode                                 | 1 byte (0/1)                                  |
+| `0x32`  | Transport mode                            | 1 byte (0/1)                                  |
+| `0x37`  | Go-home mode                              | 1 byte (0/1)                                  |
+| `0x38`  | Fan quiet mode                            | 1 byte (0/1)                                  |
+| `0x39`  | Sound-wave effect                         | 1 byte (0/1)                                  |
+| `0x3E`  | Alarm-speeds 1 & 2 (V11/V12)              | 2 × U16BE: `alarm1 × 100`, `alarm2 × 100`     |
+| `0x3E`  | Split-mode toggle (non-V12-H)             | 1 byte (0/1) — **same sub-cmd; disambiguated by model**  |
+| `0x3F`  | Split-mode accel+brake (V11/V13/V14/etc.) | 2 bytes: `accel, brake`                        |
+| `0x40`  | Headlight on/off (V11 < 1.4 only)         | 1 byte (0/1)                                  |
+| `0x40`  | Split-mode accel+brake (V12-HS/HT/PRO)    | 2 bytes: `accel, brake`                       |
+| `0x41`  | Play sound (V11 < 1.4 only)               | 2 bytes: `soundIdx, 0x01`                     |
+| `0x42`  | Wheel calibration                         | 3 bytes: `0x01 0x00 0x01`                     |
+| `0x42`  | Split-mode toggle (V12-HS/HT/PRO)         | 1 byte (0/1)                                  |
+| `0x43`  | Cooling-fan override                      | 1 byte (0/1)                                  |
+| `0x45`  | Berm-angle mode                           | 1 byte (0/1)                                  |
+| `0x50`  | Headlight on/off (V11 ≥ 1.4 and newer)    | 1 byte (0/1)                                  |
+| `0x50`  | Low/high-beam on/off (V12-HS/HT/PRO)      | 2 bytes: `lowBeamOn, highBeamOn`              |
+| `0x51`  | Play sound (V11 ≥ 1.4 and newer)          | 2 bytes: `soundIdx, 0x01`                     |
+| `0x51`  | Play beep (V13 / V13 PRO / V14 / V11Y)    | 2 bytes: `beepIdx, 0x64`                      |
+| `0x52`  | Wheel calibration (turn variant)          | 3 bytes: `0x01 0x00 0x01`                     |
+| `0x52`  | Wheel calibration (balance variant)       | 3 bytes: `0x01 0x01 0x00`                     |
+
+**Note on sub-commands with two meanings.** Sub-commands `0x3E`,
+`0x40`, `0x42`, `0x50`, `0x51` and `0x52` are **model-disambiguated**:
+the same first DATA byte means different things on V11 < 1.4,
+V11 ≥ 1.4, V12-HS/HT/PRO, V13/V13 PRO, V14, V11Y, V9 and V12S.
+Implementations MUST dispatch on the car-type identifier from §9.5.2
+before selecting the sub-command.
 
 ## 11. Units & Conventions
 
