@@ -174,13 +174,18 @@ but the frame structure is preserved for forward compatibility.
 
 | Field   | Size | Meaning                                             |
 |---------|-----:|-----------------------------------------------------|
-| LEN     | 1    | Length of `DATA` plus 2 (the PARAM and CMD if any)  |
+| LEN     | 1    | `DATA.size + 2` (see below)                         |
 | SRC     | 1    | Source endpoint address                             |
 | DST     | 1    | Destination endpoint address                        |
 | PARAM   | 1    | Command / parameter identifier (see §3.4)           |
 | DATA    | var. | Parameter-dependent payload, **little-endian**      |
 | CHK_LO  | 1    | Checksum low byte (see §6.1)                        |
 | CHK_HI  | 1    | Checksum high byte                                  |
+
+The `+2` constant in `LEN = DATA.size + 2` is a fixed framing
+convention that is identical between N1 and N2; it is **not** a
+per-byte accounting of PARAM / CMD. The §5 test vector pins this: a
+frame with `LEN = 0x03` carries exactly 1 byte of `DATA`.
 
 Endpoint addresses are named `Controller`, `KeyGenerator`, `Host-App`.
 Numeric values vary by hardware generation (see §3.4 table).
@@ -191,8 +196,14 @@ Identical framing to N1 except that an additional 1-byte **COMMAND**
 field precedes PARAM:
 
 ```
-LEN  SRC  DST  CMD  PARAM  DATA[LEN]  CHK_LO  CHK_HI
+LEN  SRC  DST  CMD  PARAM  DATA[LEN-3]  CHK_LO  CHK_HI
 ```
+
+N2 adds one byte (CMD) between DST and PARAM. The LEN byte counts
+that extra CMD byte, so the N2 formula is `LEN = DATA.size + 3`
+(vs. `+2` for N1). Equivalently, for both families,
+`LEN = PARAM(1) + CMD(0 or 1) + DATA.size + 1` where the final
+`+1` is a fixed framing constant.
 
 Also, the 16-byte keystream *γ* is **not** zero: it is negotiated during
 a one-shot handshake executed immediately after link establishment.
