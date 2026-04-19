@@ -13,17 +13,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.BatteryStd
+import androidx.compose.material.icons.filled.DirectionsBike
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,19 +41,27 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.telemetry.RideMode
+import kotlinx.coroutines.delay
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 /**
  * High-contrast, glance-friendly HUD surface for the standalone
  * Rokid-AR-glasses APK.
  *
- * Design principles match :app's HUD variant:
+ * Design principles:
  *  - Pure black background — AR optics subtract pixels; black is
  *    fully transparent to the rider's real view.
- *  - Massive absolute-value speed readout centred on the optical
- *    axis — electric cyan, the chromaticity the waveguides render
- *    most crisply.
- *  - Only essentials: speed, battery %, voltage, ride mode.
+ *  - All content is anchored to the bottom half of the phone screen
+ *    so, when reflected into the glasses, it appears low in the
+ *    rider's field of vision rather than blocking the road ahead.
+ *  - Layout mirrors the Xiaomi M365 HUD-glasses convention: wall
+ *    clock + wheel battery in the left column, huge absolute-value
+ *    speed readout dead-centre, ride mode + trip metrics in the
+ *    right column.
+ *  - Electric green — high luminance on waveguide optics and the
+ *    same chromaticity enthusiast HUD apps converge on.
  *  - Tap anywhere to exit.
  */
 @Composable
@@ -99,26 +112,30 @@ fun HudScreen(
 
 @Composable
 private fun NoTargetMessage() {
+    // Anchored to the bottom half so it reflects low in the rider's
+    // field of view, matching the telemetry HUD's vertical position.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(horizontal = 32.dp, vertical = 48.dp),
+        verticalArrangement = Arrangement.Bottom,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
         Text(
             "RideFlux HUD",
-            color = HudCyan,
-            fontSize = 64.sp,
+            color = HudGreen,
+            fontSize = 56.sp,
             fontWeight = FontWeight.Black,
+            textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.size(16.dp))
+        Spacer(Modifier.height(16.dp))
         Text(
             "Launch with --es mac <BLE-ADDRESS>",
             color = HudWhite,
-            fontSize = 22.sp,
+            fontSize = 20.sp,
             textAlign = TextAlign.Center,
         )
+        Spacer(Modifier.height(32.dp))
     }
 }
 
@@ -127,145 +144,181 @@ private fun ConnectingMessage(targetMac: String?, state: ConnectionState) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(horizontal = 32.dp, vertical = 48.dp),
+        verticalArrangement = Arrangement.Bottom,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = state::class.simpleName.orEmpty().uppercase(),
-            color = HudCyan,
+            color = HudGreen,
             fontSize = 48.sp,
             fontWeight = FontWeight.Black,
         )
-        Spacer(Modifier.size(8.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
             text = targetMac ?: "",
             color = HudWhite,
-            fontSize = 22.sp,
+            fontSize = 20.sp,
         )
+        Spacer(Modifier.height(32.dp))
     }
 }
 
+/**
+ * Three-column telemetry grid concentrated in the lower half of the
+ * screen. The top half is intentionally left pure black so that,
+ * when the phone is mounted face-up under a transparent visor, the
+ * user's real-world view is not occluded.
+ */
 @Composable
 private fun ReadyHud(uiState: HudUiState) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.Bottom,
     ) {
-        SpeedBlock(speedKmh = uiState.speedKmh)
-        BatteryBlock(percent = uiState.batteryPercent, voltageV = uiState.voltageV)
-        StatusIconsRow(rideMode = uiState.rideMode)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 48.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            LeftColumn(
+                batteryPercent = uiState.batteryPercent,
+                voltageV = uiState.voltageV,
+            )
+            CenterSpeed(speedKmh = uiState.speedKmh)
+            RightColumn(rideMode = uiState.rideMode)
+        }
     }
 }
 
-// ---------- Building blocks --------------------------------------------
-
-/** Electric cyan — crisp on Rokid waveguide optics. */
-private val HudCyan: Color = Color(0xFF00E5FF)
-
-/** Bright green — healthy readouts. */
-private val HudGreen: Color = Color(0xFF00FF88)
-
-/** Stark white — neutral labels. */
-private val HudWhite: Color = Color.White
-
-/** Magenta-red — battery / critical alerts. */
-private val HudRed: Color = Color(0xFFFF3366)
-
-private const val LOW_BATTERY_THRESHOLD: Float = 20f
+// ---------- Columns -----------------------------------------------------
 
 @Composable
-private fun SpeedBlock(speedKmh: Float?) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val display = speedKmh
-            ?.let { kotlin.math.abs(it).roundToInt().toString() }
-            ?: "--"
-        Text(
-            text = display,
-            fontSize = 220.sp,
-            fontWeight = FontWeight.Black,
-            color = HudCyan,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = "km/h",
-            fontSize = 36.sp,
-            fontWeight = FontWeight.Medium,
-            color = HudWhite,
-        )
-    }
-}
-
-@Composable
-private fun BatteryBlock(percent: Float?, voltageV: Float?) {
-    val clamped = percent?.coerceIn(0f, 100f)
+private fun LeftColumn(batteryPercent: Float?, voltageV: Float?) {
+    val clock by rememberWallClock()
+    val clamped = batteryPercent?.coerceIn(0f, 100f)
     val isLow = clamped != null && clamped <= LOW_BATTERY_THRESHOLD
-    val tint = when {
+    val batteryTint = when {
         clamped == null -> HudWhite
         isLow -> HudRed
         else -> HudGreen
     }
 
-    val pctText = clamped?.let { "${it.roundToInt()}%" } ?: "--%"
-    val voltText = voltageV?.let { "%.1f V".format(it) } ?: "-- V"
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.Start,
     ) {
-        Icon(
-            Icons.Filled.Bolt,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(48.dp),
+        IconLabelRow(
+            icon = { Icon(Icons.Filled.Schedule, null, tint = HudGreen, modifier = Modifier.size(22.dp)) },
+            text = clock,
+            textColor = HudGreen,
+            fontSize = 28.sp,
         )
-        Spacer(Modifier.width(16.dp))
-        Text(
-            text = pctText,
-            fontSize = 72.sp,
-            fontWeight = FontWeight.Black,
-            color = tint,
+        IconLabelRow(
+            icon = { Icon(Icons.Filled.BatteryStd, null, tint = batteryTint, modifier = Modifier.size(22.dp)) },
+            text = clamped?.let { "${it.roundToInt()}%" } ?: "--%",
+            textColor = batteryTint,
+            fontSize = 28.sp,
         )
-        Spacer(Modifier.width(24.dp))
-        Text(
-            text = voltText,
-            fontSize = 48.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = HudWhite,
+        IconLabelRow(
+            icon = { Icon(Icons.Filled.Speed, null, tint = HudGreen, modifier = Modifier.size(22.dp)) },
+            text = voltageV?.let { "%.1fV".format(it) } ?: "-- V",
+            textColor = HudGreen,
+            fontSize = 24.sp,
         )
     }
 }
 
 @Composable
-private fun StatusIconsRow(rideMode: RideMode?) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 12.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+private fun CenterSpeed(speedKmh: Float?) {
+    val display = speedKmh
+        ?.let { "%.1f".format(kotlin.math.abs(it)) }
+        ?: "--"
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Filled.Speed,
-                contentDescription = "Pedals mode",
-                tint = HudCyan,
-                modifier = Modifier.size(56.dp),
-            )
-            Spacer(Modifier.size(6.dp))
-            Text(
-                text = rideMode?.label?.ifBlank { null } ?: "—",
-                color = HudWhite,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
+        Text(
+            text = display,
+            fontSize = 96.sp,
+            fontWeight = FontWeight.Black,
+            color = HudGreen,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = "km/h",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Medium,
+            color = HudGreen,
+        )
     }
 }
+
+@Composable
+private fun RightColumn(rideMode: RideMode?) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.End,
+    ) {
+        IconLabelRow(
+            icon = { Icon(Icons.Filled.DirectionsBike, null, tint = HudGreen, modifier = Modifier.size(22.dp)) },
+            text = rideMode?.label?.ifBlank { null } ?: "—",
+            textColor = HudGreen,
+            fontSize = 28.sp,
+        )
+    }
+}
+
+// ---------- Building blocks --------------------------------------------
+
+@Composable
+private fun IconLabelRow(
+    icon: @Composable () -> Unit,
+    text: String,
+    textColor: Color,
+    fontSize: androidx.compose.ui.unit.TextUnit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        icon()
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = text,
+            color = textColor,
+            fontSize = fontSize,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+/**
+ * Local HH:mm wall clock ticking every 15 seconds. Avoids pulling
+ * in `java.time`-Gradle-desugaring surprises by using [LocalTime]
+ * directly — we already enable core-library desugaring for minSdk 26.
+ */
+@Composable
+private fun rememberWallClock(): androidx.compose.runtime.State<String> =
+    produceState(initialValue = formatNow()) {
+        while (true) {
+            value = formatNow()
+            delay(15_000L)
+        }
+    }
+
+private fun formatNow(): String =
+    LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+
+// ---------- Palette ----------------------------------------------------
+
+/** Electric green — crisp on waveguide optics, matches reference HUDs. */
+private val HudGreen: Color = Color(0xFF00FF88)
+
+/** Stark white — neutral secondary labels. */
+private val HudWhite: Color = Color.White
+
+/** Magenta-red — low-battery alert only. */
+private val HudRed: Color = Color(0xFFFF3366)
+
+private const val LOW_BATTERY_THRESHOLD: Float = 20f
