@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.rideflux.app.navigation.RideFluxNavHost
+import com.rideflux.app.ui.permission.BlePermissionGate
 import com.rideflux.app.ui.theme.RideFluxTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -34,7 +35,9 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    RideFluxNavHost()
+                    BlePermissionGate {
+                        RideFluxNavHost()
+                    }
                 }
             }
         }

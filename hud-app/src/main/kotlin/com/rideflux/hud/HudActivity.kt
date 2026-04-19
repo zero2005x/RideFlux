@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.rideflux.hud.permission.BlePermissionGate
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -40,7 +41,9 @@ class HudActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black,
                 ) {
-                    HudRoute(targetMac = mac, onExit = { finish() })
+                    BlePermissionGate {
+                        HudRoute(targetMac = mac, onExit = { finish() })
+                    }
                 }
             }
         }
