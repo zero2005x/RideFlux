@@ -1,0 +1,129 @@
+name: Android CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-sonar:
+    name: Build, test, and SonarCloud
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # Fork and Dependabot workflows never receive repository secrets.
+      SONAR_TRUSTED_EVENT: >-
+        ${{ github.actor != 'dependabot[bot]' &&
+            (github.event_name != 'pull_request' ||
+             github.event.pull_request.head.repo.full_name == github.repository) }}
+
+    steps:
+      # Sonar needs full history for blame data and pull-request merge-base detection.
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The project emits Java 17 bytecode but supports running Gradle on JDK 21.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK 36
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-36"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          # Use the MIT/GitHub cache implementation rather than enhanced caching.
+          cache-provider: basic
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      # A repository first created on Windows may not preserve the executable bit.
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      # jacocoTestReport depends on every Android debug unit-test task and JVM test task.
+      - name: Lint, build, test, and generate coverage
+        run: >-
+          ./gradlew
+          --no-daemon
+          --stacktrace
+          lintDebug
+          assembleDebug
+          jacocoTestReport
+
+      - name: Cache SonarCloud packages
+        if: ${{ env.SONAR_TRUSTED_EVENT == 'true' }}
+        uses: actions/cache@v6
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+
+      - name: Require SonarCloud token
+        if: ${{ env.SONAR_TRUSTED_EVENT == 'true' }}
+        shell: bash
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [[ -z "$SONAR_TOKEN" ]]; then
+            echo "::error title=Missing SONAR_TOKEN::Create the SONAR_TOKEN repository secret before running trusted CI."
+            exit 1
+          fi
+
+      # Plugin 6.2 predates configuration-cache support; the build/test step can still use it.
+      - name: Analyze with SonarCloud
+        if: ${{ env.SONAR_TRUSTED_EVENT == 'true' }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: >-
+          ./gradlew
+          --no-daemon
+          --no-configuration-cache
+          --stacktrace
+          --info
+          sonar
+
+      - name: Explain skipped SonarCloud analysis
+        if: ${{ env.SONAR_TRUSTED_EVENT != 'true' }}
+        run: |
+          echo "::notice title=SonarCloud skipped::Fork and Dependabot workflows do not receive SONAR_TOKEN; build and tests still ran."
+
+      - name: Upload test, lint, and coverage reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-reports-${{ github.run_attempt }}
+          path: |
+            **/build/test-results/**
+            **/build/reports/tests/**
+            **/build/reports/lint-results-*.html
+            **/build/reports/lint-results-*.xml
+            build/reports/jacoco/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload debug APKs for manual runs
+        if: ${{ success() && github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: debug-apks-${{ github.sha }}
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            hud-app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7

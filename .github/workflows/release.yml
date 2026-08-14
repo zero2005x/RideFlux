@@ -1,0 +1,159 @@
+name: Android Release
+
+# Signed release builds. Triggered by pushing a version tag (v0.1.4, v1.0.0, ...)
+# or manually from the Actions tab.
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   RELEASE_KEYSTORE_BASE64  base64 of release.jks, single line, no headers:
+#                            PowerShell:
+#                            [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\path\to\release.jks")) | Set-Clipboard
+#   RELEASE_KEY_ALIAS        keystore key alias
+#   RELEASE_STORE_PASSWORD   keystore (store) password
+#   RELEASE_KEY_PASSWORD     key password (often identical to the store password)
+#
+# Optional secrets, forwarded when present:
+#   ROKID_CLIENT_SECRET, ROKID_SN_AUTH_BASE64
+#
+# The Gradle build reads KEYSTORE_PATH / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD
+# from the environment, so the RELEASE_* secrets are mapped onto those names below.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  signed-build:
+    name: Build signed APK and AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # The project emits Java 17 bytecode but supports running Gradle on JDK 21.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK 36
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-36"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+          # Release builds consume the cache written by CI; they never seed it.
+          cache-read-only: true
+
+      # A repository first created on Windows may not preserve the executable bit.
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      # Fail with a readable message before Gradle spends 20 minutes reaching
+      # the task-graph guard in app/build.gradle.kts.
+      - name: Require signing secrets
+        shell: bash
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          missing=()
+          for name in RELEASE_KEYSTORE_BASE64 RELEASE_KEY_ALIAS \
+                      RELEASE_STORE_PASSWORD RELEASE_KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error title=Missing signing secrets::Create these repository secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      # Written to RUNNER_TEMP, which is outside the workspace, so the keystore
+      # can never be picked up by a build task or an artifact glob.
+      - name: Decode release keystore
+        shell: bash
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          # tr strips any line wrapping introduced when the secret was pasted.
+          printf '%s' "$RELEASE_KEYSTORE_BASE64" \
+            | tr -d '[:space:]' \
+            | base64 -d > "$RUNNER_TEMP/release.jks"
+          if [[ ! -s "$RUNNER_TEMP/release.jks" ]]; then
+            echo "::error title=Invalid keystore secret::RELEASE_KEYSTORE_BASE64 did not decode to a non-empty file. Re-encode release.jks without headers or line breaks (certutil -encode output will not work)."
+            exit 1
+          fi
+          chmod 600 "$RUNNER_TEMP/release.jks"
+
+      - name: Build signed release artifacts
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          # Optional CXR credentials; blank values fall through to empty
+          # BuildConfig fields exactly as they do in a local build.
+          ROKID_CLIENT_SECRET: ${{ secrets.ROKID_CLIENT_SECRET }}
+          ROKID_SN_AUTH_BASE64: ${{ secrets.ROKID_SN_AUTH_BASE64 }}
+        run: >-
+          ./gradlew
+          --no-daemon
+          --stacktrace
+          :app:assembleRelease
+          :app:bundleRelease
+          :hud-app:assembleRelease
+          :hud-app:bundleRelease
+
+      # Proves the APKs really carry the expected certificate rather than a
+      # debug key, and prints the SHA-256 for cross-checking against Play.
+      - name: Verify APK signatures
+        shell: bash
+        run: |
+          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f 2>/dev/null | sort -V | tail -n 1)"
+          if [[ -z "$apksigner" ]]; then
+            echo "::warning title=apksigner unavailable::Skipped signature verification."
+            exit 0
+          fi
+          for apk in app/build/outputs/apk/release/*.apk \
+                     hud-app/build/outputs/apk/release/*.apk; do
+            echo "== $apk"
+            "$apksigner" verify --print-certs "$apk"
+          done
+
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ github.ref_name }}-${{ github.run_attempt }}
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+            app/build/outputs/mapping/release/mapping.txt
+            hud-app/build/outputs/apk/release/*.apk
+            hud-app/build/outputs/bundle/release/*.aab
+            hud-app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove decoded keystore
+        if: ${{ always() }}
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/release.jks"

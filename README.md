@@ -251,6 +251,15 @@ the `.exec` files into a single XML at
 coverage gate consumes. Generated code (Hilt, Room `_Impl`, `R`, `BuildConfig`, KSP output)
 is excluded from both coverage and analysis.
 
+The GitHub Actions workflow runs `lintDebug`, builds both debug apps, executes the JVM unit
+tests, generates the aggregate coverage report, and then runs SonarCloud on trusted events.
+Import and bind the repository as SonarCloud project `zero2005x_RideFlux`, then create a
+repository Actions secret named `SONAR_TOKEN` with **Execute Analysis** permission before the
+first `main` push. Fork and Dependabot pull requests still run lint/build/tests but skip
+Sonar, because GitHub does not expose repository secrets to those workflows. In SonarCloud,
+use CI-based analysis and disable Automatic Analysis so the JaCoCo report is accepted without
+duplicate analysis.
+
 Instrumented tests live in `data/database/src/androidTest` (`TripDaoTest`) and run with
 `./gradlew :data:database:connectedAndroidTest` against a connected device or emulator.
 
@@ -539,6 +548,14 @@ keystore 副檔名——因為 `.lc` 的檔名本身就是 Client ID，連檔名
 `build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml`，正是 SonarCloud 覆蓋率
 關卡所讀取的檔案。產生式程式碼（Hilt、Room `_Impl`、`R`、`BuildConfig`、KSP 產出）已從
 覆蓋率與靜態分析中排除。
+
+GitHub Actions 會執行 `lintDebug`、建置兩個 debug app、跑完 JVM 單元測試、產生彙整
+覆蓋率，再於可信任的事件上執行 SonarCloud。請先將 repository 匯入並綁定為 SonarCloud
+專案 `zero2005x_RideFlux`；第一次推送 `main` 前，再建立名稱為 `SONAR_TOKEN`、具有
+**Execute Analysis** 權限的 repository Actions secret。fork 與 Dependabot PR 仍會跑
+lint／build／tests，但 GitHub 不會把 repository secret 暴露給這些 workflow，因此會跳過
+Sonar。SonarCloud 端請採 CI-based analysis 並停用 Automatic Analysis，才能接收 JaCoCo
+報告且不會重複分析。
 
 儀器化測試位於 `data/database/src/androidTest`（`TripDaoTest`），需連接實機或模擬器後以
 `./gradlew :data:database:connectedAndroidTest` 執行。

@@ -250,12 +250,12 @@ sonar {
         )
 
         // ── Security hardening ──────────────────────────────────────────
-        // Direct scans wait for the Quality Gate by default. The GitHub
-        // Actions workflow temporarily overrides this while the clean-room
-        // rewrite's historical coverage baseline is remediated.
+        // Direct scans and trusted GitHub Actions runs wait for the Quality
+        // Gate so a red gate fails the invoking Gradle task.
         property("sonar.qualitygate.wait", "true")
 
-        // Limit analysis SCM depth to the merge-base for faster PR scans
+        // Select Git explicitly. Checkout depth is controlled by CI, which
+        // fetches full history for blame and pull-request merge-base data.
         property("sonar.scm.provider", "git")
     }
 }
