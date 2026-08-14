@@ -1,0 +1,156 @@
+name: Regenerate dependency verification metadata
+
+# Manual only. Run this whenever a build fails with "Dependency verification
+# failed", or after bumping a dependency, AGP, or Kotlin.
+#
+# Why this exists instead of just running Gradle locally: a few artifacts are
+# host-specific. AGP resolves aapt2 with an OS classifier, so a Windows
+# workstation records `aapt2-<ver>-windows.jar` and never `-linux.jar`, and the
+# resulting file can not satisfy an ubuntu runner no matter how many times it is
+# regenerated on Windows. This job resolves on the same OS as CI.
+#
+# Usage:
+#   Actions -> this workflow -> Run workflow
+#   -> read the job summary to see which components were added
+#   -> download the "verification-metadata" artifact
+#   -> replace gradle/verification-metadata.xml, re-check `git diff`, commit.
+#
+# Generation is incremental: Gradle preserves existing entries, so the Windows
+# checksums already in the file survive and the committed result stays valid on
+# both machines.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verification-metadata
+  cancel-in-progress: false
+
+jobs:
+  write-metadata:
+    name: Resolve on ubuntu and write checksums
+    runs-on: ubuntu-latest
+    # Deliberately generous: this job runs with no dependency cache at all.
+    timeout-minutes: 90
+
+    steps:
+      # Needed for the `git diff` summary below, so keep the checkout shallow
+      # but real rather than a bare source export.
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK 36
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-36"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+          # A warm cache is exactly how metadata ends up incomplete: Gradle only
+          # records what it actually resolves, and a cached artifact is not
+          # re-resolved. Start cold so every artifact is downloaded and hashed.
+          cache-disabled: true
+
+      # A repository first created on Windows may not preserve the executable bit.
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      # app/build.gradle.kts refuses to build release artifacts without signing
+      # credentials, and the release task graph is where R8 gets resolved — the
+      # debug task graph alone never records `com.android.tools:r8`. A throwaway
+      # key satisfies that guard without handing the real keystore to a
+      # maintenance workflow. Nothing signed here is uploaded or kept.
+      - name: Generate a throwaway signing key
+        shell: bash
+        run: |
+          keytool -genkeypair \
+            -keystore "$RUNNER_TEMP/throwaway.jks" \
+            -storepass throwaway -keypass throwaway -alias throwaway \
+            -keyalg RSA -keysize 2048 -validity 1 \
+            -dname "CN=verification-metadata, OU=CI, O=RideFlux, C=TW"
+
+      # The task list is the union of ci.yml and release.yml, so one run covers
+      # both workflows. Notes on the flags:
+      #   --refresh-dependencies    ignore cached metadata (see cache-disabled)
+      #   --no-configuration-cache  a configuration-cache hit skips the
+      #                             configuration phase, and with it some of the
+      #                             resolution this job is trying to observe
+      # Verification is disabled while writing, so this run succeeds even though
+      # the committed file is currently incomplete.
+      - name: Resolve every configuration and write checksums
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/throwaway.jks
+          KEYSTORE_PASSWORD: throwaway
+          KEY_ALIAS: throwaway
+          KEY_PASSWORD: throwaway
+        run: >-
+          ./gradlew
+          --no-daemon
+          --stacktrace
+          --refresh-dependencies
+          --no-configuration-cache
+          --write-verification-metadata sha256
+          lintDebug
+          assembleDebug
+          jacocoTestReport
+          test
+          :app:assembleRelease
+          :app:bundleRelease
+          :hud-app:assembleRelease
+          :hud-app:bundleRelease
+
+      # `.gitattributes` marks this file `-diff`, so plain `git diff` reports it
+      # as binary. `--text` forces a real patch. The trailing `|| true` on each
+      # pipeline is for grep exiting 1 on zero matches under `set -eo pipefail`.
+      - name: Summarize what changed
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          components="$(git diff --text -U0 -- gradle/verification-metadata.xml \
+            | grep '^+ *<component ' | sed 's/^+ *//' || true)"
+          artifacts="$(git diff --text -U0 -- gradle/verification-metadata.xml \
+            | grep -c '^+ *<artifact ' || true)"
+          {
+            echo "## gradle/verification-metadata.xml"
+            echo
+            if [[ "$artifacts" == "0" ]]; then
+              echo "No new entries — the committed file already covers this task graph."
+            else
+              echo "**$artifacts** new artifact checksum(s), under these components:"
+              echo
+              echo '```xml'
+              echo "${components:-(existing components only)}"
+              echo '```'
+            fi
+            echo
+            echo "Reviewing locally: \`git diff --text -- gradle/verification-metadata.xml\`."
+            echo "Without \`--text\` git prints \"Binary files differ\", because"
+            echo "\`.gitattributes\` marks this file \`-diff\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload regenerated metadata
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: verification-metadata
+          path: gradle/verification-metadata.xml
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove throwaway signing key
+        if: ${{ always() }}
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/throwaway.jks"
