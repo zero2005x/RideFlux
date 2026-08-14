@@ -66,10 +66,19 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice|location" />
 
+        <!--
+            BOOT_COMPLETED is delivered by the system, so the receiver must
+            stay exported. `android:permission` narrows that door: only a
+            sender holding RECEIVE_BOOT_COMPLETED (i.e. the system) can
+            deliver here, so another installed app cannot forge the boot
+            broadcast to start the bridge. The receiver additionally
+            re-checks intent.action, which stays as defence in depth.
+        -->
         <receiver
             android:name="com.rideflux.app.bridge.BridgeBootReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>

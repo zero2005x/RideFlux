@@ -62,108 +62,8 @@ class BegodeWheelCodec(
 
             val now = System.currentTimeMillis()
             when (frame) {
-                is BegodeFrame.LiveTelemetry -> {
-                    if (!s.identified) {
-                        s.identified = true
-                        events.add(identifiedEvent())
-                    }
-                    // Family G frames carry a single current field (phase
-                    // current) and a single temperature field (IMU/board);
-                    // there is no separate battery current or MOS sensor in
-                    // the §3.1.1 layout. Map them to the headline UI fields
-                    // (`currentA`, `mosTemperatureC`) as well so the
-                    // dashboard renders something useful, and derive
-                    // battery percent from voltage via §7's refined curve.
-                    val phaseA = frame.phaseCurrentAmps.toFloat()
-                    val tempC = BegodeTemperature
-                        .celsiusMpu6500(frame.imuTempRaw).toFloat()
-                    val battery = BegodeBatteryCurve
-                        .refinedPercent(frame.voltageHundredthsV)
-                        .toFloat()
-                    val merged = s.last.copy(
-                        timestampMillis = now,
-                        speedKmh = frame.speedKmh.toFloat(),
-                        tripDistanceMetres = frame.tripMeters.toInt(),
-                        voltageV = frame.voltageVolts.toFloat(),
-                        currentA = phaseA,
-                        phaseCurrentA = phaseA,
-                        pwmPercent = frame.pwmPercent.toFloat(),
-                        mosTemperatureC = tempC,
-                        imuTemperatureC = tempC,
-                        batteryPercent = battery,
-                    )
-                    s.last = merged
-                    s.hasLiveFrame = true
-                    events.add(DecodeEvent.TelemetryUpdate(merged))
-                }
-                is BegodeFrame.SettingsAndOdometer -> {
-                    if (!s.identified) {
-                        s.identified = true
-                        events.add(identifiedEvent())
-                    }
-                    val faults = buildFaults(frame)
-                    val merged = s.last.copy(
-                        timestampMillis = now,
-                        totalDistanceMetres = frame.totalDistanceMeters,
-                        faults = faults,
-                    )
-                    s.last = merged
-                    events.add(DecodeEvent.TelemetryUpdate(merged))
-
-                    // Fault-set change alert.
-                    val added = faults - s.previousFaults
-                    val removed = s.previousFaults - faults
-                    if (added.isNotEmpty() || removed.isNotEmpty()) {
-                        events.add(
-                            DecodeEvent.Alert(
-                                WheelAlert.FaultSetChanged(now, added, removed),
-                            ),
-                        )
-                    }
-                    // Specific one-shot alerts. Guarded on having seen at
-                    // least one LiveTelemetry frame so the reported
-                    // voltage/speed come from real readings rather than
-                    // placeholder zeros.
-                    if (s.hasLiveFrame) {
-                        if (frame.alertOverTemperature && !previousBit(s, WheelFault.MosOverTemperature)) {
-                            events.add(
-                                DecodeEvent.Alert(
-                                    WheelAlert.OverTemperature(
-                                        timestampMillis = now,
-                                        source = WheelAlert.OverTemperature.Source.MOS,
-                                        temperatureC = null,
-                                    ),
-                                ),
-                            )
-                        }
-                        if (frame.alertLowVoltage && !previousBit(s, WheelFault.LowBattery)) {
-                            events.add(
-                                DecodeEvent.Alert(
-                                    WheelAlert.LowBattery(
-                                        timestampMillis = now,
-                                        voltageV = s.last.voltageV ?: 0f,
-                                    ),
-                                ),
-                            )
-                        }
-                        if ((frame.alertSpeedLevel1 || frame.alertSpeedLevel2) &&
-                            !previousBit(s, WheelFault.OverSpeed)
-                        ) {
-                            events.add(
-                                DecodeEvent.Alert(
-                                    WheelAlert.TiltBack(
-                                        timestampMillis = now,
-                                        speedKmh = s.last.speedKmh ?: 0f,
-                                        limit = frame.tiltbackSpeedKmh.toFloat(),
-                                    ),
-                                ),
-                            )
-                        }
-                    }
-                    if (s.hasLiveFrame) {
-                        s.previousFaults = faults
-                    }
-                }
+                is BegodeFrame.LiveTelemetry -> onLiveTelemetry(s, frame, now, events)
+                is BegodeFrame.SettingsAndOdometer -> onSettingsAndOdometer(s, frame, now, events)
                 is BegodeFrame.Unknown -> {
                     // Nothing to emit; forward-compatible per §12.
                     // Identification is intentionally NOT emitted here:
@@ -174,6 +74,127 @@ class BegodeWheelCodec(
             }
         }
         return events
+    }
+
+    private fun onLiveTelemetry(
+        s: BegodeState,
+        frame: BegodeFrame.LiveTelemetry,
+        now: Long,
+        events: MutableList<DecodeEvent>,
+    ) {
+        emitIdentifiedOnce(s, events)
+        // Family G frames carry a single current field (phase current) and
+        // a single temperature field (IMU/board); there is no separate
+        // battery current or MOS sensor in the §3.1.1 layout. Map them to
+        // the headline UI fields (`currentA`, `mosTemperatureC`) as well so
+        // the dashboard renders something useful, and derive battery
+        // percent from voltage via §7's refined curve.
+        val phaseA = frame.phaseCurrentAmps.toFloat()
+        val tempC = BegodeTemperature
+            .celsiusMpu6500(frame.imuTempRaw).toFloat()
+        val battery = BegodeBatteryCurve
+            .refinedPercent(frame.voltageHundredthsV)
+            .toFloat()
+        val merged = s.last.copy(
+            timestampMillis = now,
+            speedKmh = frame.speedKmh.toFloat(),
+            tripDistanceMetres = frame.tripMeters.toInt(),
+            voltageV = frame.voltageVolts.toFloat(),
+            currentA = phaseA,
+            phaseCurrentA = phaseA,
+            pwmPercent = frame.pwmPercent.toFloat(),
+            mosTemperatureC = tempC,
+            imuTemperatureC = tempC,
+            batteryPercent = battery,
+        )
+        s.last = merged
+        s.hasLiveFrame = true
+        events.add(DecodeEvent.TelemetryUpdate(merged))
+    }
+
+    private fun onSettingsAndOdometer(
+        s: BegodeState,
+        frame: BegodeFrame.SettingsAndOdometer,
+        now: Long,
+        events: MutableList<DecodeEvent>,
+    ) {
+        emitIdentifiedOnce(s, events)
+        val faults = buildFaults(frame)
+        val merged = s.last.copy(
+            timestampMillis = now,
+            totalDistanceMetres = frame.totalDistanceMeters,
+            faults = faults,
+        )
+        s.last = merged
+        events.add(DecodeEvent.TelemetryUpdate(merged))
+
+        // Fault-set change alert.
+        val added = faults - s.previousFaults
+        val removed = s.previousFaults - faults
+        if (added.isNotEmpty() || removed.isNotEmpty()) {
+            events.add(
+                DecodeEvent.Alert(
+                    WheelAlert.FaultSetChanged(now, added, removed),
+                ),
+            )
+        }
+        // Specific one-shot alerts. Guarded on having seen at least one
+        // LiveTelemetry frame so the reported voltage/speed come from real
+        // readings rather than placeholder zeros. `previousFaults` is
+        // updated only after the alerts have been emitted, because
+        // emitOneShotAlerts compares against the *previous* fault set.
+        if (s.hasLiveFrame) {
+            emitOneShotAlerts(s, frame, now, events)
+            s.previousFaults = faults
+        }
+    }
+
+    private fun emitOneShotAlerts(
+        s: BegodeState,
+        frame: BegodeFrame.SettingsAndOdometer,
+        now: Long,
+        events: MutableList<DecodeEvent>,
+    ) {
+        if (frame.alertOverTemperature && !previousBit(s, WheelFault.MosOverTemperature)) {
+            events.add(
+                DecodeEvent.Alert(
+                    WheelAlert.OverTemperature(
+                        timestampMillis = now,
+                        source = WheelAlert.OverTemperature.Source.MOS,
+                        temperatureC = null,
+                    ),
+                ),
+            )
+        }
+        if (frame.alertLowVoltage && !previousBit(s, WheelFault.LowBattery)) {
+            events.add(
+                DecodeEvent.Alert(
+                    WheelAlert.LowBattery(
+                        timestampMillis = now,
+                        voltageV = s.last.voltageV ?: 0f,
+                    ),
+                ),
+            )
+        }
+        if ((frame.alertSpeedLevel1 || frame.alertSpeedLevel2) &&
+            !previousBit(s, WheelFault.OverSpeed)
+        ) {
+            events.add(
+                DecodeEvent.Alert(
+                    WheelAlert.TiltBack(
+                        timestampMillis = now,
+                        speedKmh = s.last.speedKmh ?: 0f,
+                        limit = frame.tiltbackSpeedKmh.toFloat(),
+                    ),
+                ),
+            )
+        }
+    }
+
+    private fun emitIdentifiedOnce(s: BegodeState, events: MutableList<DecodeEvent>) {
+        if (s.identified) return
+        s.identified = true
+        events.add(identifiedEvent())
     }
 
     private fun identifiedEvent(): DecodeEvent.Identified =

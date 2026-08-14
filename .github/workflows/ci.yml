@@ -88,6 +88,12 @@ jobs:
       # Plugin 6.2 predates configuration-cache support; the build/test step can still use it.
       - name: Analyze with SonarCloud
         if: ${{ env.SONAR_TRUSTED_EVENT == 'true' }}
+        # TEMPORARY — remove this line once the SonarCloud project is imported
+        # and SONAR_TOKEN is authorized for it. Until then a SonarCloud-side
+        # misconfiguration would mark the whole run red and hide the fact that
+        # lint, build, tests and coverage all passed. The step still reports its
+        # own failure in the Actions UI; it just no longer fails the job.
+        continue-on-error: true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: >-

@@ -70,106 +70,127 @@ class InmotionI1WheelCodec(
 
         val events = ArrayList<DecodeEvent>()
         var progress = true
-        while (progress && s.buffer.size >= 21) {
-            progress = false
+        while (progress && s.buffer.size >= MIN_FRAME_BYTES) {
             val wire = ByteArray(s.buffer.size) { s.buffer[it] }
-            when (val r = InmotionI1Decoder.decode(wire, offset = 0)) {
-                is InmotionI1DecodeResult.Ok -> {
-                    if (r.consumedBytes <= 0) {
-                        // A zero-consumption Ok would otherwise spin the
-                        // loop forever without draining any input.
-                        s.buffer.removeAt(0)
-                        events.add(
-                            DecodeEvent.Malformed(
-                                reason = "I1: decoder Ok with 0 consumed bytes",
-                                offendingBytes = null,
-                            ),
-                        )
-                        progress = true
-                        continue
-                    } else {
-                        repeat(r.consumedBytes) { s.buffer.removeAt(0) }
-                    }
-                    progress = true
-
-                    if (!s.identified) {
-                        s.identified = true
-                        events.add(
-                            DecodeEvent.Identified(
-                                identity = WheelIdentity(
-                                    address = deviceAddress,
-                                    family = WheelFamily.I1,
-                                    modelName = "Inmotion I1",
-                                ),
-                                capabilities = DEFAULT_CAPABILITIES,
-                            ),
-                        )
-                    }
-
-                    val now = System.currentTimeMillis()
-                    val frame = r.frame
-                    when (frame.canId) {
-                        InmotionI1CommandBuilder.CAN_ID_LIVE_TELEMETRY -> {
-                            if (frame.isExtended &&
-                                frame.exData.size >= InmotionI1ExtendedTelemetry.MIN_EX_DATA_SIZE
-                            ) {
-                                val t = InmotionI1ExtendedTelemetry.parse(frame.exData)
-                                val stateDecoded = InmotionI1StateWord.decode(t.stateWordRaw, s.convention)
-                                val merged = s.last.copy(
-                                    timestampMillis = now,
-                                    voltageV = t.voltageV.toFloat(),
-                                    phaseCurrentA = t.phaseCurrentA.toFloat(),
-                                    speedKmh = t.speedKmh(s.speedCalibrationF).toFloat(),
-                                    tripDistanceMetres = t.tripDistanceMetres.toInt(),
-                                    pitchAngleDegrees = (t.pitchRaw.toDouble() / 65536.0).toFloat(),
-                                    rollAngleDegrees = (t.rollRaw.toDouble() / 90.0).toFloat(),
-                                    mosTemperatureC = t.temperature1Celsius.toFloat(),
-                                    motorTemperatureC = t.temperature2Celsius.toFloat(),
-                                    workMode = stateDecoded.displayString,
-                                )
-                                s.last = merged
-                                events.add(DecodeEvent.TelemetryUpdate(merged))
-                            }
-                        }
-                        InmotionI1CommandBuilder.CAN_ID_ALERT -> {
-                            val record = InmotionI1AlertRecord.parse(frame.data8)
-                            events.add(DecodeEvent.Alert(mapAlert(record, now)))
-                        }
-                    }
-                }
-                is InmotionI1DecodeResult.Fail -> {
-                    when (r.error) {
-                        is InmotionI1DecodeError.TooShort -> {
-                            // Wait for more bytes. Cap growth so a stale/
-                            // hostile stream declaring a huge EX-LEN cannot
-                            // balloon the buffer (frames can declare up to
-                            // ~1 MiB) and force O(n²) resyncs.
-                            if (s.buffer.size > MAX_RESYNC_BUFFER) {
-                                s.buffer.clear()
-                                events.add(
-                                    DecodeEvent.Malformed(
-                                        reason = "I1: resync buffer exceeded",
-                                        offendingBytes = null,
-                                    ),
-                                )
-                                progress = true
-                            }
-                        }
-                        else -> {
-                            s.buffer.removeAt(0)
-                            events.add(
-                                DecodeEvent.Malformed(
-                                    reason = "I1: ${r.error}",
-                                    offendingBytes = null,
-                                ),
-                            )
-                            progress = true
-                        }
-                    }
-                }
+            // Each handler returns whether it drained or reset the buffer.
+            // Returning false stops the loop exactly like the previous
+            // `progress = false` fall-through did.
+            progress = when (val r = InmotionI1Decoder.decode(wire, offset = 0)) {
+                is InmotionI1DecodeResult.Ok -> onDecoded(s, r, events)
+                is InmotionI1DecodeResult.Fail -> onDecodeFailed(s, r, events)
             }
         }
         return events
+    }
+
+    /** Consumes one decoded frame. Always makes progress. */
+    private fun onDecoded(
+        s: InmotionI1State,
+        r: InmotionI1DecodeResult.Ok,
+        events: MutableList<DecodeEvent>,
+    ): Boolean {
+        if (r.consumedBytes <= 0) {
+            // A zero-consumption Ok would otherwise spin the loop forever
+            // without draining any input.
+            s.buffer.removeAt(0)
+            events.add(
+                DecodeEvent.Malformed(
+                    reason = "I1: decoder Ok with 0 consumed bytes",
+                    offendingBytes = null,
+                ),
+            )
+            return true
+        }
+        repeat(r.consumedBytes) { s.buffer.removeAt(0) }
+
+        emitIdentifiedOnce(s, events)
+
+        val now = System.currentTimeMillis()
+        val frame = r.frame
+        when (frame.canId) {
+            InmotionI1CommandBuilder.CAN_ID_LIVE_TELEMETRY ->
+                onLiveTelemetry(s, frame, now, events)
+            InmotionI1CommandBuilder.CAN_ID_ALERT -> {
+                val record = InmotionI1AlertRecord.parse(frame.data8)
+                events.add(DecodeEvent.Alert(mapAlert(record, now)))
+            }
+        }
+        return true
+    }
+
+    private fun onLiveTelemetry(
+        s: InmotionI1State,
+        frame: InmotionI1Frame,
+        now: Long,
+        events: MutableList<DecodeEvent>,
+    ) {
+        if (!frame.isExtended ||
+            frame.exData.size < InmotionI1ExtendedTelemetry.MIN_EX_DATA_SIZE
+        ) return
+        val t = InmotionI1ExtendedTelemetry.parse(frame.exData)
+        val stateDecoded = InmotionI1StateWord.decode(t.stateWordRaw, s.convention)
+        val merged = s.last.copy(
+            timestampMillis = now,
+            voltageV = t.voltageV.toFloat(),
+            phaseCurrentA = t.phaseCurrentA.toFloat(),
+            speedKmh = t.speedKmh(s.speedCalibrationF).toFloat(),
+            tripDistanceMetres = t.tripDistanceMetres.toInt(),
+            pitchAngleDegrees = (t.pitchRaw.toDouble() / 65536.0).toFloat(),
+            rollAngleDegrees = (t.rollRaw.toDouble() / 90.0).toFloat(),
+            mosTemperatureC = t.temperature1Celsius.toFloat(),
+            motorTemperatureC = t.temperature2Celsius.toFloat(),
+            workMode = stateDecoded.displayString,
+        )
+        s.last = merged
+        events.add(DecodeEvent.TelemetryUpdate(merged))
+    }
+
+    /**
+     * Handles a decode failure. Returns false for "wait for more bytes",
+     * which ends the loop until the next notification arrives.
+     */
+    private fun onDecodeFailed(
+        s: InmotionI1State,
+        r: InmotionI1DecodeResult.Fail,
+        events: MutableList<DecodeEvent>,
+    ): Boolean {
+        if (r.error !is InmotionI1DecodeError.TooShort) {
+            s.buffer.removeAt(0)
+            events.add(
+                DecodeEvent.Malformed(
+                    reason = "I1: ${r.error}",
+                    offendingBytes = null,
+                ),
+            )
+            return true
+        }
+        // Wait for more bytes. Cap growth so a stale/hostile stream
+        // declaring a huge EX-LEN cannot balloon the buffer (frames can
+        // declare up to ~1 MiB) and force O(n²) resyncs.
+        if (s.buffer.size <= MAX_RESYNC_BUFFER) return false
+        s.buffer.clear()
+        events.add(
+            DecodeEvent.Malformed(
+                reason = "I1: resync buffer exceeded",
+                offendingBytes = null,
+            ),
+        )
+        return true
+    }
+
+    private fun emitIdentifiedOnce(s: InmotionI1State, events: MutableList<DecodeEvent>) {
+        if (s.identified) return
+        s.identified = true
+        events.add(
+            DecodeEvent.Identified(
+                identity = WheelIdentity(
+                    address = deviceAddress,
+                    family = WheelFamily.I1,
+                    modelName = "Inmotion I1",
+                ),
+                capabilities = DEFAULT_CAPABILITIES,
+            ),
+        )
     }
 
     override fun encode(state: WheelCodec.State, command: WheelCommand): List<ByteArray> =
@@ -227,6 +248,13 @@ class InmotionI1WheelCodec(
         }
 
     companion object {
+        /**
+         * Shortest possible I1 frame: preamble (2) + 16-byte unstuffed
+         * body + CHECK (1) + trailer (2). Below this the decoder can only
+         * answer TooShort, so there is nothing to gain from calling it.
+         */
+        private const val MIN_FRAME_BYTES: Int = 21
+
         /** Hard cap on the reassembly/resync buffer to bound CPU on garbage input. */
         private const val MAX_RESYNC_BUFFER: Int = 1_048_576
 

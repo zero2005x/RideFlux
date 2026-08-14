@@ -27,6 +27,29 @@ object InmotionI1Decoder {
     /** Hard cap on EX-DATA length to short-circuit garbage frames. */
     private const val MAX_EX_LEN: Long = 1L shl 20 // 1 MiB
 
+    /** preamble (2) + 16-byte unstuffed body + CHECK (1) + trailer (2). */
+    private const val MIN_FRAME_LEN: Int = 21
+
+    /** Unstuffed bytes needed before LEN (body offset 12) can be read. */
+    private const val HEADER_BODY_LEN: Int = 13
+    private const val LEN_OFFSET: Int = 12
+    private const val EX_LEN_OFFSET: Int = 4
+    private const val BASE_BODY_LEN: Int = 16
+    private const val LEN_STANDARD: Int = 0x08
+    private const val LEN_EXTENDED: Int = 0xFE
+
+    /** Wire cursor just past a successfully unstuffed region, or a failure. */
+    private sealed interface Scan {
+        class Ok(val cursor: Int) : Scan
+        class Fail(val error: InmotionI1DecodeError) : Scan
+    }
+
+    /** Resolved total body length, or the LEN/EX-LEN failure that stopped it. */
+    private sealed interface BodyLen {
+        class Ok(val length: Int) : BodyLen
+        class Fail(val error: InmotionI1DecodeError) : BodyLen
+    }
+
     fun decode(wire: ByteArray, offset: Int = 0): InmotionI1DecodeResult {
         // Minimum possible frame: preamble (2) + 16-byte body unstuffed
         // (best case 16 escaped bytes) + CHECK (1) + trailer (2) = 21.
@@ -34,45 +57,18 @@ object InmotionI1Decoder {
         // alone passes for offset < 0 (subtracting a negative grows the
         // size) and the subsequent wire[offset] then throws
         // ArrayIndexOutOfBoundsException instead of a decode Fail.
-        if (offset < 0 || wire.size - offset < 21) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.TooShort)
+        if (offset < 0 || wire.size - offset < MIN_FRAME_LEN) {
+            return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.TooShort)
+        }
         if (wire[offset] != InmotionI1Codec.PREAMBLE_BYTE ||
             wire[offset + 1] != InmotionI1Codec.PREAMBLE_BYTE
         ) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.BadPreamble)
 
-        val body = ArrayList<Byte>(16)
-        var cursor = offset + 2
+        val body = ArrayList<Byte>(BASE_BODY_LEN)
         val end = wire.size
-
-        // Step through wire, building the unstuffed body up to the
-        // expected length (resolved after body reaches 13 bytes).
-        var expectedBodyLen = -1
-        while (expectedBodyLen == -1 || body.size < expectedBodyLen) {
-            if (cursor >= end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.TooShort)
-            val b = wire[cursor]
-            if (b == InmotionI1Codec.ESCAPE_BYTE) {
-                if (cursor + 1 >= end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.BadEscape)
-                body.add(wire[cursor + 1])
-                cursor += 2
-            } else {
-                body.add(b)
-                cursor += 1
-            }
-            if (expectedBodyLen == -1 && body.size == 13) {
-                val lenByte = body[12].toInt() and 0xFF
-                expectedBodyLen = when (lenByte) {
-                    0x08 -> 16
-                    0xFE -> {
-                        // EX-LEN is U32LE at body offsets 4..7.
-                        val raw = ByteArray(4) { body[4 + it] }
-                        val exLen = ByteReader.u32LE(raw, 0)
-                        if (exLen > MAX_EX_LEN) {
-                            return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.BadExLen(exLen))
-                        }
-                        16 + exLen.toInt()
-                    }
-                    else -> return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.BadLen(lenByte))
-                }
-            }
+        var cursor = when (val scan = scanBody(wire, offset + 2, body)) {
+            is Scan.Fail -> return InmotionI1DecodeResult.Fail(scan.error)
+            is Scan.Ok -> scan.cursor
         }
 
         if (cursor >= end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.TooShort)
@@ -111,6 +107,61 @@ object InmotionI1Decoder {
             exData = exData,
         )
         return InmotionI1DecodeResult.Ok(frame, consumedBytes = cursor - offset)
+    }
+
+    /**
+     * Escape-decodes one frame body into [body], in two passes: the
+     * 13-byte header that carries LEN, then the remainder once the total
+     * length is known. Returns the wire cursor just past the body.
+     */
+    private fun scanBody(wire: ByteArray, start: Int, body: ArrayList<Byte>): Scan {
+        val afterHeader = when (val header = unstuff(wire, start, body, HEADER_BODY_LEN)) {
+            is Scan.Fail -> return header
+            is Scan.Ok -> header.cursor
+        }
+        val expected = when (val len = resolveBodyLength(body)) {
+            is BodyLen.Fail -> return Scan.Fail(len.error)
+            is BodyLen.Ok -> len.length
+        }
+        return unstuff(wire, afterHeader, body, expected)
+    }
+
+    /**
+     * Appends escape-decoded wire bytes to [body] until it holds [target]
+     * bytes. A body already at or past [target] is left untouched.
+     */
+    private fun unstuff(wire: ByteArray, start: Int, body: ArrayList<Byte>, target: Int): Scan {
+        var cursor = start
+        val end = wire.size
+        while (body.size < target) {
+            if (cursor >= end) return Scan.Fail(InmotionI1DecodeError.TooShort)
+            val b = wire[cursor]
+            if (b == InmotionI1Codec.ESCAPE_BYTE) {
+                if (cursor + 1 >= end) return Scan.Fail(InmotionI1DecodeError.BadEscape)
+                body.add(wire[cursor + 1])
+                cursor += 2
+            } else {
+                body.add(b)
+                cursor += 1
+            }
+        }
+        return Scan.Ok(cursor)
+    }
+
+    /** Reads LEN at body offset 12 and resolves the total body length. */
+    private fun resolveBodyLength(body: List<Byte>): BodyLen {
+        val lenByte = body[LEN_OFFSET].toInt() and 0xFF
+        return when (lenByte) {
+            LEN_STANDARD -> BodyLen.Ok(BASE_BODY_LEN)
+            LEN_EXTENDED -> {
+                // EX-LEN is U32LE at body offsets 4..7.
+                val raw = ByteArray(4) { body[EX_LEN_OFFSET + it] }
+                val exLen = ByteReader.u32LE(raw, 0)
+                if (exLen > MAX_EX_LEN) BodyLen.Fail(InmotionI1DecodeError.BadExLen(exLen))
+                else BodyLen.Ok(BASE_BODY_LEN + exLen.toInt())
+            }
+            else -> BodyLen.Fail(InmotionI1DecodeError.BadLen(lenByte))
+        }
     }
 }
 

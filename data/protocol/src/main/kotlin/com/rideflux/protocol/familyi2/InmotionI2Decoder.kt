@@ -27,38 +27,39 @@ import com.rideflux.protocol.bytes.ByteReader
  */
 object InmotionI2Decoder {
 
+    /** preamble (2) + FLAGS + LEN + CHECK, the shortest decodable shape. */
+    private const val MIN_FRAME_LEN: Int = 5
+
+    /** Unstuffed bytes needed before LEN (body offset 1) can be read. */
+    private const val HEADER_BODY_LEN: Int = 2
+    private const val LEN_OFFSET: Int = 1
+
+    /** FLAGS + LEN + CMD + DATA[LEN-1] = LEN + 2 bytes. */
+    private const val BODY_LEN_OVERHEAD: Int = 2
+
+    /** Wire cursor just past a successfully unstuffed region, or a failure. */
+    private sealed interface Scan {
+        class Ok(val cursor: Int) : Scan
+        class Fail(val error: InmotionI2DecodeError) : Scan
+    }
+
     fun decode(wire: ByteArray, offset: Int = 0): InmotionI2DecodeResult {
         // Reject negative offsets: without this, `wire.size - offset`
         // passes the bounds check for offset < 0 and wire[offset]
         // throws ArrayIndexOutOfBoundsException instead of returning a
         // Fail result like every other malformed input.
-        if (offset < 0 || wire.size - offset < 5) return InmotionI2DecodeResult.Fail(InmotionI2DecodeError.TooShort)
+        if (offset < 0 || wire.size - offset < MIN_FRAME_LEN) {
+            return InmotionI2DecodeResult.Fail(InmotionI2DecodeError.TooShort)
+        }
         if (wire[offset] != InmotionI2Codec.PREAMBLE_BYTE ||
             wire[offset + 1] != InmotionI2Codec.PREAMBLE_BYTE
         ) return InmotionI2DecodeResult.Fail(InmotionI2DecodeError.BadPreamble)
 
         val body = ArrayList<Byte>(16)
-        var cursor = offset + 2
         val end = wire.size
-
-        var expectedBodyLen = -1
-        while (expectedBodyLen == -1 || body.size < expectedBodyLen) {
-            if (cursor >= end) return InmotionI2DecodeResult.Fail(InmotionI2DecodeError.TooShort)
-            val b = wire[cursor]
-            if (b == InmotionI2Codec.ESCAPE_BYTE) {
-                if (cursor + 1 >= end) return InmotionI2DecodeResult.Fail(InmotionI2DecodeError.BadEscape)
-                body.add(wire[cursor + 1])
-                cursor += 2
-            } else {
-                body.add(b)
-                cursor += 1
-            }
-            if (expectedBodyLen == -1 && body.size == 2) {
-                val len = body[1].toInt() and 0xFF
-                if (len == 0) return InmotionI2DecodeResult.Fail(InmotionI2DecodeError.BadLen(len))
-                // FLAGS + LEN + CMD + DATA[LEN-1] = LEN + 2 bytes.
-                expectedBodyLen = len + 2
-            }
+        var cursor = when (val scan = scanBody(wire, offset + 2, body)) {
+            is Scan.Fail -> return InmotionI2DecodeResult.Fail(scan.error)
+            is Scan.Ok -> scan.cursor
         }
 
         if (cursor >= end) return InmotionI2DecodeResult.Fail(InmotionI2DecodeError.TooShort)
@@ -94,6 +95,43 @@ object InmotionI2Decoder {
             cmdRawHighBitSet = (cmdRaw and 0x80) != 0,
         )
         return InmotionI2DecodeResult.Ok(frame, consumedBytes = cursor - offset)
+    }
+
+    /**
+     * Escape-decodes one frame body into [body], in two passes: the
+     * 2-byte header that carries LEN, then the remainder once the total
+     * length is known. Returns the wire cursor just past the body.
+     */
+    private fun scanBody(wire: ByteArray, start: Int, body: ArrayList<Byte>): Scan {
+        val afterHeader = when (val header = unstuff(wire, start, body, HEADER_BODY_LEN)) {
+            is Scan.Fail -> return header
+            is Scan.Ok -> header.cursor
+        }
+        val len = body[LEN_OFFSET].toInt() and 0xFF
+        if (len == 0) return Scan.Fail(InmotionI2DecodeError.BadLen(len))
+        return unstuff(wire, afterHeader, body, len + BODY_LEN_OVERHEAD)
+    }
+
+    /**
+     * Appends escape-decoded wire bytes to [body] until it holds [target]
+     * bytes. A body already at or past [target] is left untouched.
+     */
+    private fun unstuff(wire: ByteArray, start: Int, body: ArrayList<Byte>, target: Int): Scan {
+        var cursor = start
+        val end = wire.size
+        while (body.size < target) {
+            if (cursor >= end) return Scan.Fail(InmotionI2DecodeError.TooShort)
+            val b = wire[cursor]
+            if (b == InmotionI2Codec.ESCAPE_BYTE) {
+                if (cursor + 1 >= end) return Scan.Fail(InmotionI2DecodeError.BadEscape)
+                body.add(wire[cursor + 1])
+                cursor += 2
+            } else {
+                body.add(b)
+                cursor += 1
+            }
+        }
+        return Scan.Ok(cursor)
     }
 }
 
