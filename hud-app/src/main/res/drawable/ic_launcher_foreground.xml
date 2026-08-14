@@ -1,0 +1,54 @@
+<!--
+  RideFlux launcher icon — foreground.
+  108 x 108 dp adaptive-icon canvas; safe zone is the centred 72 x 72 dp.
+  Composition: electric cyan tire with spokes + a stark white lightning
+  bolt through the axle, echoing the dashboard's cyan/white palette.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer tire ring (split into two 180° arcs for deterministic
+         rendering — a single near-full arc with a 0.001dp endpoint
+         offset is dropped by some renderers when the endpoints are
+         treated as coincident). -->
+    <path
+        android:pathData="M54,20 A34,34 0 1 1 54,88 A34,34 0 1 1 54,20 Z"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="7"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+
+    <!-- Inner rim (same two-arc split). -->
+    <path
+        android:pathData="M54,30 A24,24 0 1 1 54,78 A24,24 0 1 1 54,30 Z"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="2"
+        android:strokeAlpha="0.6"
+        android:fillColor="#00000000" />
+
+    <!-- Spokes -->
+    <path
+        android:pathData="M54,32 L54,76 M32,54 L76,54 M38,38 L70,70 M70,38 L38,70"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="1.6"
+        android:strokeAlpha="0.35"
+        android:strokeLineCap="round" />
+
+    <!-- Lightning bolt (centred on the axle: subtract 1 from every x
+         vertex so the bounding box centre matches x = 54). -->
+    <path
+        android:pathData="M57,34 L43,58 L51,58 L49,74 L65,50 L57,50 Z"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1"
+        android:strokeLineJoin="round" />
+
+    <!-- Axle dot -->
+    <path
+        android:pathData="M54,54 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:fillColor="#00E5FF" />
+
+</vector>

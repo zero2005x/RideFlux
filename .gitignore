@@ -1,0 +1,122 @@
+# Android / Gradle generated output
+build/
+.gradle/
+.kotlin/
+.tmp/
+out/
+captures/
+.navigation/
+.externalNativeBuild/
+.cxx/
+
+# Eclipse / Kotlin language-server output and metadata
+bin/
+.classpath
+.project
+.settings/
+
+# Packaged or compiled Android artifacts copied outside build/
+*.apk
+*.aab
+*.ap_
+*.idsig
+*.dex
+*.class
+
+# Local machine configuration (SDK paths and optional credentials)
+**/local.properties
+**/local.properties.*
+!**/local.properties.example
+!**/local.properties.sample
+!**/local.properties.template
+*.local.properties
+
+# IDE and editor state
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.fleet/
+**/.claude/settings.local.json
+
+# Editor leftovers
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+*.orig
+*.rej
+
+# OS metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Logs, coverage data, JVM crash reports, and heap dumps
+*.log
+logs/
+*.exec
+*.profraw
+*.gcda
+*.gcno
+*.hprof
+hs_err_pid*
+replay_pid*
+
+# Signing keys and private-key containers
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+*.p8
+*.pk8
+*.ppk
+*.bks
+*.jceks
+
+# Service credentials and machine-local secret configuration
+google-services.json
+*firebase-adminsdk-*.json
+serviceAccountKey.json
+service-account-key.json
+key.properties
+keystore.properties
+secrets.properties
+signing.properties
+credentials.properties
+**/app_secrets.xml
+
+# Environment files are private; sanitized templates remain committable.
+.env
+.env.*
+*.env
+*.env.*
+.envrc
+.direnv/
+!.env.example
+!.env.sample
+!.env.template
+!*.env.example
+!*.env.sample
+!*.env.template
+!example.env
+!sample.env
+!template.env
+
+# Rokid CXR credentials. NEVER commit these. Only the repository-root
+# secrets/ tree is excluded so a legitimate source package named "secrets"
+# is not hidden. The .lc filename is itself a Client ID.
+/secrets/
+*.lc
+*_key.txt
+客戶端_key.txt
+
+# Intentionally tracked (do not add broad *.jar or *.json rules):
+# - gradle/wrapper/gradle-wrapper.jar
+# - gradle/verification-metadata.xml
+# - data/database/schemas/**/*.json (Room migration history)

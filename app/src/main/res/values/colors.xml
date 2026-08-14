@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Midnight-navy used as the launch window background to avoid a
+         light flash before Compose draws (see themes.xml). -->
+    <color name="rideflux_window_bg">#FF0F1A2E</color>
+</resources>

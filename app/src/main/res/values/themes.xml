@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Framework-level theme used by the manifest BEFORE Compose draws.
+        RideFluxTheme (Compose) fully controls the in-app look; this
+        only sets the window background so the launch doesn't flash
+        Theme.Material's default. DayNight variants keep the launch
+        background aligned with the Compose dark/light palette.
+    -->
+    <style name="Theme.RideFlux" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/rideflux_window_bg</item>
+        <item name="android:statusBarColor">@color/rideflux_window_bg</item>
+        <item name="android:navigationBarColor">@color/rideflux_window_bg</item>
+    </style>
+</resources>

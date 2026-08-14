@@ -1,0 +1,132 @@
+# ============================================================================
+# RideFlux — Gradle Version Catalog
+# ============================================================================
+# Single source of truth for all versions, libraries, and plugins.
+# Submodule build.gradle.kts files MUST NOT hardcode version numbers.
+# ============================================================================
+
+[versions]
+# --- Build tools ---
+agp                    = "8.13.2"
+kotlin                 = "2.0.21"
+ksp                    = "2.0.21-1.0.28"
+
+# --- AndroidX Core ---
+coreKtx                = "1.13.1"
+lifecycleRuntimeKtx    = "2.8.4"
+activityCompose        = "1.9.1"
+
+# --- Compose ---
+composeBom             = "2024.09.03"
+navigationCompose      = "2.7.7"
+
+# --- DI (Hilt) ---
+# >= 2.52 required for official KSP2 support (Kotlin 2.0 / KSP 2.0).
+hilt                   = "2.52"
+hiltNavigationCompose  = "1.2.0"
+
+# --- Persistence ---
+room                   = "2.6.1"
+datastore              = "1.1.1"
+playServicesLocation   = "21.3.0"
+
+# --- Async ---
+coroutines             = "1.8.1"
+
+# --- BLE ---
+kable                  = "0.31.1"
+
+# --- Rokid consumer CXR (RV101) ---
+rokidCxrClient         = "1.0.4"
+rokidCxrServiceBridge  = "1.0-20250519.061355-45"
+
+# --- Misc ---
+desugar                = "2.0.4"
+
+# --- Testing ---
+junit                  = "4.13.2"
+androidxJunit          = "1.2.1"
+espressoCore           = "3.6.1"
+turbine                = "1.1.0"
+
+# --- Code quality ---
+# Sonar Gradle plugin. Must be >= 6.0.1 for Gradle 9 (fix for
+# NoSuchMethodError on org.gradle.api.plugins.Convention.getConvention(),
+# which was removed in Gradle 9).
+sonarqube              = "6.2.0.5505"
+
+# ============================================================================
+[libraries]
+# --- AndroidX Core ---
+androidx-core-ktx                = { group = "androidx.core",       name = "core-ktx",              version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx   = { group = "androidx.lifecycle",   name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
+androidx-activity-compose        = { group = "androidx.activity",    name = "activity-compose",      version.ref = "activityCompose" }
+
+# --- Compose (managed by BOM) ---
+# NOTE: these aliases intentionally omit version.ref — resolution
+# depends on each module applying androidx-compose-bom first. Any
+# module referencing these aliases MUST import the BOM.
+androidx-compose-bom             = { group = "androidx.compose",             name = "compose-bom",    version.ref = "composeBom" }
+androidx-ui                      = { group = "androidx.compose.ui",          name = "ui" }
+androidx-ui-graphics             = { group = "androidx.compose.ui",          name = "ui-graphics" }
+androidx-ui-tooling              = { group = "androidx.compose.ui",          name = "ui-tooling" }
+androidx-ui-tooling-preview      = { group = "androidx.compose.ui",          name = "ui-tooling-preview" }
+androidx-ui-test-manifest        = { group = "androidx.compose.ui",          name = "ui-test-manifest" }
+androidx-ui-test-junit4          = { group = "androidx.compose.ui",          name = "ui-test-junit4" }
+androidx-material3               = { group = "androidx.compose.material3",   name = "material3" }
+androidx-material-icons-extended = { group = "androidx.compose.material",    name = "material-icons-extended" }
+
+# --- Navigation ---
+androidx-navigation-compose      = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+
+# --- Kable (BLE) ---
+kable-core = { group = "com.juul.kable", name = "core", version.ref = "kable" }
+
+# --- Rokid CXR ---
+rokid-cxr-client         = { group = "com.rokid.cxr", name = "client-m", version.ref = "rokidCxrClient" }
+rokid-cxr-service-bridge = { group = "com.rokid.cxr", name = "cxr-service-bridge", version.ref = "rokidCxrServiceBridge" }
+
+# --- Coroutines ---
+kotlinx-coroutines-core    = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core",    version.ref = "coroutines" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+# --- Hilt DI ---
+hilt-android                     = { group = "com.google.dagger", name = "hilt-android",          version.ref = "hilt" }
+hilt-compiler                    = { group = "com.google.dagger", name = "hilt-compiler",          version.ref = "hilt" }
+androidx-hilt-navigation-compose = { group = "androidx.hilt",      name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+
+# --- Room ---
+room-runtime  = { group = "androidx.room", name = "room-runtime",  version.ref = "room" }
+room-ktx      = { group = "androidx.room", name = "room-ktx",      version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler",  version.ref = "room" }
+room-testing  = { group = "androidx.room", name = "room-testing",   version.ref = "room" }
+
+# --- DataStore ---
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# --- Location ---
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+
+# --- Desugar ---
+desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar" }
+
+# --- Testing ---
+junit                       = { group = "junit",               name = "junit",            version.ref = "junit" }
+kotlin-test                 = { group = "org.jetbrains.kotlin", name = "kotlin-test",       version.ref = "kotlin" }
+androidx-junit              = { group = "androidx.test.ext",    name = "junit",            version.ref = "androidxJunit" }
+androidx-espresso-core      = { group = "androidx.test.espresso", name = "espresso-core",  version.ref = "espressoCore" }
+kotlinx-coroutines-test    = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+turbine                     = { group = "app.cash.turbine",     name = "turbine",          version.ref = "turbine" }
+
+# ============================================================================
+[plugins]
+androidApplication  = { id = "com.android.application",                version.ref = "agp" }
+androidLibrary      = { id = "com.android.library",                    version.ref = "agp" }
+kotlinAndroid       = { id = "org.jetbrains.kotlin.android",           version.ref = "kotlin" }
+kotlinJvm           = { id = "org.jetbrains.kotlin.jvm",               version.ref = "kotlin" }
+composeCompiler     = { id = "org.jetbrains.kotlin.plugin.compose",    version.ref = "kotlin" }
+ksp                 = { id = "com.google.devtools.ksp",                version.ref = "ksp" }
+hiltAndroid         = { id = "com.google.dagger.hilt.android",         version.ref = "hilt" }
+sonarqube           = { id = "org.sonarqube",                          version.ref = "sonarqube" }

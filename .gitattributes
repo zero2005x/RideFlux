@@ -1,0 +1,26 @@
+# Normalise line endings so the repo is byte-identical across Windows / Linux / macOS.
+# Without this, a Windows clone can commit CRLF into `gradlew`, which then fails on
+# Linux CI with "bad interpreter: /bin/sh^M".
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF.
+*.bat        text eol=crlf
+*.cmd        text eol=crlf
+*.ps1        text eol=crlf
+
+# The Gradle wrapper script is executed by /bin/sh — always LF.
+gradlew      text eol=lf
+
+# Binary files: never touch, never diff as text.
+*.jar        binary
+*.png        binary
+*.jpg        binary
+*.webp       binary
+*.keystore   binary
+*.jks        binary
+*.apk        binary
+*.aab        binary
+
+# Generated / vendored content — keep it out of language statistics and diffs.
+gradle/verification-metadata.xml  linguist-generated=true -diff
+data/database/schemas/**          linguist-generated=true

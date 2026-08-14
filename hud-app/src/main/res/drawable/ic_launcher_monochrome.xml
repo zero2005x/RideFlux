@@ -1,0 +1,31 @@
+<!--
+  RideFlux HUD launcher icon — monochrome layer for Android 13+
+  themed icons. The platform tints this layer by the theme colour, so
+  only the alpha silhouette matters: single solid fill/stroke shapes,
+  no translucent or coloured elements.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Tire ring silhouette -->
+    <path
+        android:pathData="M54,20 A34,34 0 1 1 54,88 A34,34 0 1 1 54,20 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+
+    <!-- Lightning bolt silhouette -->
+    <path
+        android:pathData="M57,34 L43,58 L51,58 L49,74 L65,50 L57,50 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Axle dot -->
+    <path
+        android:pathData="M54,54 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:fillColor="#FFFFFF" />
+
+</vector>
