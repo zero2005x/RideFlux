@@ -12,14 +12,18 @@ import java.util.UUID
  * service. Identical strings on both sides, kept in one place so the
  * protocol is impossible to skew.
  *
- * Wire format: see [BridgeFrame] / [BridgeCodec]. The frame is a
- * 32-byte little-endian binary blob. The default ATT MTU is 23 bytes
- * total, i.e. only 20 bytes of payload (23 minus the 3-byte ATT
- * header), so a 32-byte frame exceeds the default payload. The
- * client requests [PREFERRED_MTU] (64 bytes); when negotiation fails,
- * [BridgeServer] falls back to splitting the frame into two
- * notifications keyed by a tiny header — handled transparently by
- * [BridgeCodec] for the v1 layout.
+ * Wire format: see [BridgeFrame] / [BridgeCodec]. The current (v2)
+ * frame is a 20-byte little-endian binary blob — deliberately small
+ * enough to fit the default ATT MTU of 23 bytes (20 bytes of payload
+ * after the 3-byte ATT header), so one notification always carries a
+ * complete frame even when no MTU exchange happens at all. The
+ * client still requests [PREFERRED_MTU] as headroom for future
+ * versions, but correctness never depends on it.
+ *
+ * The 32-byte v1 layout is retained *decode-only* so a freshly
+ * updated glasses app still understands frames from a phone still
+ * running the previous release during a mixed-install upgrade
+ * window. The phone (server) side only ever encodes v2.
  *
  * UUIDs are randomly generated v4 values reserved for RideFlux. Do
  * not change without bumping [PROTOCOL_VERSION] and the matching
@@ -53,9 +57,20 @@ object BridgeProtocol {
     const val MAGIC: Byte = 0x52  // 'R'
 
     /** Increment when the wire format becomes incompatible. */
-    const val PROTOCOL_VERSION: Byte = 1
+    const val PROTOCOL_VERSION: Byte = 2
 
-    /** Fixed length of a v1 [BridgeFrame] when serialised — see [BridgeCodec]. */
+    /**
+     * Length of a v2 [BridgeFrame] when serialised — 20 bytes, so it
+     * fits the 20-byte payload of the default 23-byte ATT MTU. See
+     * [BridgeCodec].
+     */
+    const val FRAME_SIZE_V2: Int = 20
+
+    /**
+     * Length of a v1 [BridgeFrame]. Kept only so [BridgeCodec] can
+     * decode frames emitted by a phone still running the previous
+     * release; the server no longer encodes this layout.
+     */
     const val FRAME_SIZE_V1: Int = 32
 
     /**
@@ -63,11 +78,10 @@ object BridgeProtocol {
      *
      * In BLE only the GATT client (central) can initiate an MTU
      * exchange, so it is [BridgeClient] that calls `requestMtu` — the
-     * phone-side GATT server merely accepts whatever is negotiated and
-     * falls back to split frames if the result is too small. (An
-     * earlier version of this doc said the phone requests it, which
-     * would wire the negotiation and the split-frame fallback trigger
-     * onto the wrong side.)
+     * phone-side GATT server merely accepts whatever is negotiated.
+     * v2 frames fit the default MTU, so a failed or silently dropped
+     * exchange never prevents telemetry from flowing; the larger MTU
+     * is requested only as headroom for future protocol versions.
      */
     const val PREFERRED_MTU: Int = 64
 
@@ -76,6 +90,9 @@ object BridgeProtocol {
 
     /** Sentinel used by codec to encode "no value" for an i32 slot. */
     const val INT32_NULL: Int = Int.MIN_VALUE
+
+    /** Sentinel used by codec to encode "no value" for the u24 distance slot. */
+    const val U24_NULL: Int = 0xFF_FFFF
 
     /**
      * Sentinel used by codec to encode "no value" for an i16 slot.

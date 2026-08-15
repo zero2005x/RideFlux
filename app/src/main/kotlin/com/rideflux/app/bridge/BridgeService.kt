@@ -173,6 +173,7 @@ class BridgeService : Service() {
         openJob = scope.launch {
             if (initialDelayMillis > 0L) delay(initialDelayMillis)
             var attempt = 0L
+            var consecutiveCxrFailures = 0
             var candidate: BridgePublisher? = null
             try {
                 while (
@@ -198,6 +199,7 @@ class BridgeService : Service() {
                         publisher = candidate
                         candidate.attachSource(scope, frames())
                         candidate = null // Ownership transferred to publisher.
+                        consecutiveCxrFailures = 0
                         if (target.value == null) setBridgeState(BridgeState.STANDBY)
                         Log.i(TAG, "bridge publisher started: $openingMode")
                         return@launch
@@ -205,6 +207,31 @@ class BridgeService : Service() {
                     candidate.stop()
                     candidate = null
                     setBridgeState(BridgeState.DEGRADED)
+                    if (openingMode == GlassesLinkMode.ROKID_CXR) {
+                        consecutiveCxrFailures += 1
+                        if (consecutiveCxrFailures >= CXR_OPEN_FAILURE_LIMIT) {
+                            // In CXR mode the phone performs no BLE
+                            // advertising at all, so a persistently
+                            // failing CXR publisher (no bonded glasses,
+                            // missing provisioned-device credentials)
+                            // leaves the HUD with nothing to find.
+                            // Degrade back to the BLE bridge and make the
+                            // mode switch visible in the UI rather than
+                            // staying silently unreachable.
+                            Log.e(
+                                TAG,
+                                "CXR publisher failed $consecutiveCxrFailures times; " +
+                                    "degrading to ANDROID_BLE",
+                            )
+                            GlassesLinkPreferences.write(applicationContext, GlassesLinkMode.ANDROID_BLE)
+                            _linkMode.value = GlassesLinkMode.ANDROID_BLE
+                            consecutiveCxrFailures = 0
+                            attempt = 0L
+                            continue
+                        }
+                    } else {
+                        consecutiveCxrFailures = 0
+                    }
                     val waitMs = reconnectBackoffMillis(attempt++)
                     Log.w(TAG, "bridge publisher open failed; retrying in ${waitMs}ms")
                     delay(waitMs)
@@ -460,6 +487,7 @@ class BridgeService : Service() {
         private const val IDLE_HEARTBEAT_MILLIS = 1_000L
         private const val PHONE_BATTERY_POLL_MILLIS = 15_000L
         private const val PUBLISHER_SWITCH_SETTLE_MILLIS = 1_000L
+        private const val CXR_OPEN_FAILURE_LIMIT = 3
 
         private val _state = MutableStateFlow(BridgeState.STOPPED)
         val state: StateFlow<BridgeState> = _state.asStateFlow()

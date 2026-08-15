@@ -24,7 +24,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-release-${{ github.ref }}
@@ -157,3 +157,20 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: rm -f "$RUNNER_TEMP/release.jks"
+
+      # Publish an automatic GitHub Release for tag pushes (workflow_dispatch
+      # runs build/sign only). gh is preinstalled on ubuntu-latest runners.
+      - name: Publish GitHub Release
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --generate-notes \
+            app/build/outputs/apk/release/*.apk \
+            app/build/outputs/bundle/release/*.aab \
+            app/build/outputs/mapping/release/mapping.txt \
+            hud-app/build/outputs/apk/release/*.apk \
+            hud-app/build/outputs/bundle/release/*.aab \
+            hud-app/build/outputs/mapping/release/mapping.txt

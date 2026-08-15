@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -158,6 +159,17 @@ class HudViewModel @Inject constructor(
         else -> null
     }
 
+    /**
+     * The currently active source. Starts at [source] (resolved once
+     * from intent extras / persisted state) and is replaced in place
+     * when the rider pairs a phone, so the new allowlist MAC takes
+     * effect immediately instead of after an activity restart.
+     * `flatMapLatest` below cancels the previous source's frame
+     * collection on every switch, which tears the old GATT down
+     * through the same path as `onCleared`.
+     */
+    private val activeSource = MutableStateFlow(source)
+
     init {
         Log.i(TAG, "HUD source=$sourceKind target=${targetAddress ?: "none"}")
     }
@@ -176,28 +188,30 @@ class HudViewModel @Inject constructor(
     private var pairingJob: kotlinx.coroutines.Job? = null
 
     val uiState: StateFlow<HudUiState> =
-        if (source == null) {
-            flowOf(HudUiState(awaitingTarget = true))
-        } else {
-            combine(
-                source.frames().catch { error ->
-                    emit(
-                        HudTelemetryFrame(
-                            state = ConnectionState.Failed(
-                                ConnectionState.Failed.Reason.INTERNAL,
-                                error.message,
-                            ),
-                            telemetry = WheelTelemetry.EMPTY,
-                            signal = SignalQuality.NONE,
-                            staleHint = true,
-                            bridgeLinkState = if (isBridge) BridgeLinkState.NO_PHONE else null,
+        activeSource.flatMapLatest { active ->
+            if (active == null) {
+                flowOf(HudUiState(awaitingTarget = true))
+            } else {
+                combine(
+                    active.frames().catch { error ->
+                        emit(
+                            HudTelemetryFrame(
+                                state = ConnectionState.Failed(
+                                    ConnectionState.Failed.Reason.INTERNAL,
+                                    error.message,
+                                ),
+                                telemetry = WheelTelemetry.EMPTY,
+                                signal = SignalQuality.NONE,
+                                staleHint = true,
+                                bridgeLinkState = if (isBridge) BridgeLinkState.NO_PHONE else null,
+                            )
                         )
-                    )
-                },
-                glassesBatteryFlow(),
-                tickerFlow(),
-            ) { frame, glasses, _ ->
-                project(frame, glasses)
+                    },
+                    glassesBatteryFlow(),
+                    tickerFlow(),
+                ) { frame, glasses, _ ->
+                    project(frame, glasses)
+                }
             }
         }.stateIn(
             scope = viewModelScope,
@@ -293,6 +307,13 @@ class HudViewModel @Inject constructor(
         macStore.writePairedPhoneMac(address)
         viewModelScope.launch { settingsRepository.setHudPeerMac(address) }
         stopPhonePairing()
+        if (isBridge) {
+            // Rebuild the bridge source immediately so the freshly
+            // stored phone MAC is honoured without an activity restart.
+            // flatMapLatest cancels the old BridgeClient collection,
+            // whose awaitClose releases the scan/GATT resources first.
+            activeSource.value = BridgeTelemetrySource(appContext, macStore.readPairedPhoneMac())
+        }
     }
 
     fun setSpeedLimit(value: Float) = viewModelScope.launch { settingsRepository.setSpeedLimitKmh(value) }

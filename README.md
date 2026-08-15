@@ -8,7 +8,7 @@
 
 | | |
 |---|---|
-| Version | `0.1.4` (versionCode 5) |
+| Version | `0.1.5` (versionCode 6) |
 | License | GPL-3.0-or-later |
 | Language | Kotlin 2.0.21 · Jetpack Compose |
 | Min / Target / Compile SDK | 28 / 36 / 36 |
@@ -172,14 +172,19 @@ centrals never fight over the wheel.
 | Service UUID | `e7810a71-73ae-499d-8c15-faa9aef0c3f2` |
 | Telemetry characteristic | `e7810a72-73ae-499d-8c15-faa9aef0c3f2` (notify-only) |
 | Magic byte | `0x52` (`'R'`) |
-| Protocol version | `1` |
-| Frame size (v1) | 32 bytes, little-endian |
-| Preferred ATT MTU | 64 (client-initiated; falls back to split notifications) |
+| Protocol version | `2` (20-byte frame) |
+| Frame size (v2) | 20 bytes, little-endian — fits the default 23-byte ATT MTU |
+| Preferred ATT MTU | 64 (client-initiated; v2 never depends on it) |
 | Rokid CXR channel | `rideflux.telemetry.v1` |
 
-Frame payload: timestamp, speed, wheel battery %, phone battery %, pack voltage, trip
-distance, trip duration, coarse signal level, stale flag, ready flag. Sentinels encode
-"absent" for each numeric slot. Any breaking change must bump `PROTOCOL_VERSION`.
+Frame payload: timestamp (seconds, decoded unsigned), speed, wheel battery %,
+phone battery %, pack voltage, trip distance, trip duration, coarse signal level,
+stale flag, ready flag. Sentinels encode "absent" for each numeric slot. The v2
+layout packs signal into the flags byte and narrows the timestamp to one word so
+one notification always carries a complete frame; the previous 32-byte v1 layout
+is retained decode-only so a glasses APK updated ahead of the phone still reads
+frames during a mixed-install window. Any breaking change must bump
+`PROTOCOL_VERSION`.
 
 ### Getting started
 

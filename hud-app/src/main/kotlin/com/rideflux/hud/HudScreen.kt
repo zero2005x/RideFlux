@@ -119,7 +119,10 @@ fun HudRoute(
         onOpenSettings = { settingsOpen = true },
         onCloseSettings = { settingsOpen = false; viewModel.stopPhonePairing() },
         onStartPairing = viewModel::startPhonePairing,
-        onPairPhone = { address -> viewModel.pairPhone(address); onRetry() },
+        // The ViewModel rebuilds the bridge source in place with the new
+        // allowlist MAC, so no activity restart is needed for pairing to
+        // take effect.
+        onPairPhone = viewModel::pairPhone,
         onSpeedLimit = viewModel::setSpeedLimit,
         onTemperatureLimit = viewModel::setTemperatureLimit,
         onLowBatteryLimit = viewModel::setLowBatteryLimit,

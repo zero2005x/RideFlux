@@ -22,6 +22,8 @@ import android.bluetooth.le.AdvertiseSettings
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.Context
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
@@ -65,6 +67,15 @@ class BridgeServer(
     @Volatile private var telemetryChar: BluetoothGattCharacteristic? = null
     @Volatile private var collectionJob: Job? = null
     @Volatile private var advertiseLowLatency: Boolean = false
+
+    // Advertising can fail asynchronously (onStartFailure) even after
+    // startAdvertising() accepted the request. Track the outcome and
+    // retry with capped backoff while the server stays open — without
+    // this a failed advertise left the bridge permanently undiscoverable.
+    private val advertiseStarted = AtomicBoolean(false)
+    private val mainHandler = Handler(Looper.getMainLooper())
+    @Volatile private var advertiseRetryRunnable: Runnable? = null
+    private var advertiseAttempts = 0
 
     /**
      * Centrals that have written a non-zero CCCD value for our
@@ -197,7 +208,11 @@ class BridgeServer(
             Log.w(TAG, "stopAdvertising during mode switch threw", t)
         }
         advertiser = null
-        return startAdvertising(manager)
+        advertiseStarted.set(false)
+        cancelAdvertiseRetry()
+        val started = startAdvertising(manager)
+        if (!started) scheduleAdvertiseRetry()
+        return started
     }
 
     /** Tear everything down. Safe to call when not started. */
@@ -212,6 +227,9 @@ class BridgeServer(
             Log.w(TAG, "stopAdvertising threw", t)
         }
         advertiser = null
+        advertiseStarted.set(false)
+        advertiseAttempts = 0
+        cancelAdvertiseRetry()
 
         try {
             gattServer?.close()
@@ -265,6 +283,10 @@ class BridgeServer(
 
     /** Returns true when advertising was successfully started. */
     private fun startAdvertising(mgr: BluetoothManager): Boolean {
+        // The definitive outcome arrives via advertiseCallback; a new
+        // attempt resets the flag so a stale onStartSuccess from a
+        // previous session cannot mask a fresh failure.
+        advertiseStarted.set(false)
         val adapter = mgr.adapter ?: run {
             Log.w(TAG, "Bluetooth adapter unavailable; skipping advertise")
             return false
@@ -305,11 +327,53 @@ class BridgeServer(
 
     private val advertiseCallback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+            advertiseStarted.set(true)
+            advertiseAttempts = 0
             Log.i(TAG, "advertise start ok: $settingsInEffect")
         }
         override fun onStartFailure(errorCode: Int) {
+            advertiseStarted.set(false)
             Log.e(TAG, "advertise start failed: $errorCode")
+            scheduleAdvertiseRetry()
         }
+    }
+
+    /**
+     * Retries advertising with capped exponential backoff after an
+     * asynchronous onStartFailure. No-ops once [stop] has torn the
+     * server down; a successful start resets the attempt counter via
+     * onStartSuccess.
+     */
+    @Synchronized
+    private fun scheduleAdvertiseRetry() {
+        advertiseRetryRunnable?.let(mainHandler::removeCallbacks)
+        advertiseRetryRunnable = null
+        if (gattServer == null) return
+        val shift = advertiseAttempts.coerceIn(0, 5)
+        val waitMs = (ADVERTISE_RETRY_BASE_MILLIS shl shift)
+            .coerceAtMost(ADVERTISE_RETRY_MAX_MILLIS)
+            .toLong()
+        advertiseAttempts += 1
+        Log.w(TAG, "retrying advertising in ${waitMs}ms (attempt $advertiseAttempts)")
+        val runnable = Runnable {
+            advertiseRetryRunnable = null
+            if (gattServer == null || advertiseStarted.get()) return@Runnable
+            val manager =
+                context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+                    ?: return@Runnable
+            Log.i(TAG, "advertise retry attempt")
+            if (!startAdvertising(manager)) {
+                scheduleAdvertiseRetry()
+            }
+        }
+        advertiseRetryRunnable = runnable
+        mainHandler.postDelayed(runnable, waitMs)
+    }
+
+    @Synchronized
+    private fun cancelAdvertiseRetry() {
+        advertiseRetryRunnable?.let(mainHandler::removeCallbacks)
+        advertiseRetryRunnable = null
     }
 
     private val serverCallback = object : BluetoothGattServerCallback() {
@@ -440,5 +504,7 @@ class BridgeServer(
 
     private companion object {
         const val TAG = "BridgeServer"
+        const val ADVERTISE_RETRY_BASE_MILLIS = 2_000
+        const val ADVERTISE_RETRY_MAX_MILLIS = 30_000
     }
 }
