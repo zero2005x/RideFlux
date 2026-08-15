@@ -160,17 +160,37 @@ jobs:
 
       # Publish an automatic GitHub Release for tag pushes (workflow_dispatch
       # runs build/sign only). gh is preinstalled on ubuntu-latest runners.
+      #
+      # Assets are renamed with a phone-/hud- prefix: the two modules both
+      # produce mapping.txt, and two assets sharing one name collide in a
+      # single upload call. The release is created first and assets are then
+      # uploaded individually with --clobber, which also makes re-runs of
+      # this step idempotent.
       - name: Publish GitHub Release
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --repo "${{ github.repository }}" \
-            --generate-notes \
-            app/build/outputs/apk/release/*.apk \
-            app/build/outputs/bundle/release/*.aab \
-            app/build/outputs/mapping/release/mapping.txt \
-            hud-app/build/outputs/apk/release/*.apk \
-            hud-app/build/outputs/bundle/release/*.aab \
-            hud-app/build/outputs/mapping/release/mapping.txt
+          set -euo pipefail
+          tag="${{ github.ref_name }}"
+          repo="${{ github.repository }}"
+          if ! gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+            gh release create "$tag" --repo "$repo" --generate-notes
+          else
+            echo "Release $tag already exists; uploading assets only"
+          fi
+          for f in app/build/outputs/apk/release/*.apk; do
+            gh release upload "$tag" --repo "$repo" --clobber "$f#phone-$(basename "$f")"
+          done
+          for f in app/build/outputs/bundle/release/*.aab; do
+            gh release upload "$tag" --repo "$repo" --clobber "$f#phone-$(basename "$f")"
+          done
+          for f in hud-app/build/outputs/apk/release/*.apk; do
+            gh release upload "$tag" --repo "$repo" --clobber "$f#hud-$(basename "$f")"
+          done
+          for f in hud-app/build/outputs/bundle/release/*.aab; do
+            gh release upload "$tag" --repo "$repo" --clobber "$f#hud-$(basename "$f")"
+          done
+          gh release upload "$tag" --repo "$repo" --clobber \
+            app/build/outputs/mapping/release/mapping.txt#phone-mapping.txt \
+            hud-app/build/outputs/mapping/release/mapping.txt#hud-mapping.txt
