@@ -38,7 +38,11 @@ kable                  = "0.31.1"
 
 # --- Rokid consumer CXR (RV101) ---
 rokidCxrClient         = "1.0.4"
-rokidCxrServiceBridge  = "1.0-20250519.061355-45"
+# Pin the release, not the 1.0-SNAPSHOT timestamp build: Gradle's
+# dependency-verification writer cannot merge Maven unique-snapshot
+# identifiers ("Multiple entries with same key" in
+# DependencyVerifierBuilder), which breaks --write-verification-metadata.
+rokidCxrServiceBridge  = "1.0"
 
 # --- Misc ---
 desugar                = "2.0.4"

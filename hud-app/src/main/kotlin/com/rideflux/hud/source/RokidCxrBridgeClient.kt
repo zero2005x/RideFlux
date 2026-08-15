@@ -50,10 +50,20 @@ internal object RokidCxrBridgeClient {
             val candidate = CXRServiceBridge()
             candidate.setStatusListener(
                 object : CXRServiceBridge.StatusListener {
-                    override fun onConnected(name: String?, type: Int) {
+                    // cxr-service-bridge 1.0 API: onConnected carries the
+                    // peer name, the Rokid account id and a device-type int.
+                    override fun onConnected(deviceName: String?, account: String?, type: Int) {
                         receivedSinceConnection.set(false)
                         invalidPayloadLogged.set(false)
-                        Log.i(TAG, "Rokid CXR phone connected: $name type=$type")
+                        Log.i(
+                            TAG,
+                            "Rokid CXR phone connected: name=$deviceName type=$type" +
+                                if (account.isNullOrBlank()) "" else " account=${account.take(4)}…",
+                        )
+                    }
+
+                    override fun onConnecting(deviceName: String?, account: String?, type: Int) {
+                        Log.d(TAG, "Rokid CXR phone connecting: name=$deviceName type=$type")
                     }
 
                     override fun onDisconnected() {
@@ -62,6 +72,10 @@ internal object RokidCxrBridgeClient {
                     }
 
                     override fun onARTCStatus(health: Float, reset: Boolean) = Unit
+
+                    override fun onRokidAccountChanged(account: String?) {
+                        Log.d(TAG, "Rokid CXR account changed")
+                    }
                 },
             )
             val result = candidate.subscribe(BridgeProtocol.CXR_TELEMETRY_CHANNEL) { _, _, value ->
