@@ -408,12 +408,29 @@ class BridgeClient(
             }
         }
 
+        // Teardown must not throw — the flow is already closing and an
+        // escaping exception would mask the original failure. Each step
+        // is logged rather than swallowed: a stack that refuses to stop
+        // a scan or close a GATT client is exactly the state that makes
+        // the next connection attempt fail for no visible reason.
         awaitClose {
             watchdog.cancel()
-            try { scanner.stopScan(scanCallback) } catch (_: Throwable) { }
+            try {
+                scanner.stopScan(scanCallback)
+            } catch (t: Throwable) {
+                Log.w(TAG, "stopScan during teardown threw", t)
+            }
             val activeGatt = gattRef.getAndSet(null)
-            try { activeGatt?.disconnect() } catch (_: Throwable) { }
-            try { activeGatt?.close() } catch (_: Throwable) { }
+            try {
+                activeGatt?.disconnect()
+            } catch (t: Throwable) {
+                Log.w(TAG, "gatt.disconnect during teardown threw", t)
+            }
+            try {
+                activeGatt?.close()
+            } catch (t: Throwable) {
+                Log.w(TAG, "gatt.close during teardown threw", t)
+            }
         }
     }
 
