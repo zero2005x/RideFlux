@@ -41,8 +41,10 @@ fun SettingsRoute(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val pairingCode by viewModel.pairingCode.collectAsStateWithLifecycle()
     SettingsScreen(
         settings = settings,
+        pairingCode = pairingCode,
         onNavigateUp = onNavigateUp,
         onOpenTripHistory = onOpenTripHistory,
         onSpeedLimit = viewModel::setSpeedLimit,
@@ -61,6 +63,7 @@ fun SettingsRoute(
 @Composable
 fun SettingsScreen(
     settings: com.rideflux.domain.settings.AppSettings,
+    pairingCode: String? = null,
     onNavigateUp: () -> Unit,
     onOpenTripHistory: () -> Unit,
     onSpeedLimit: (Float) -> Unit,
@@ -104,8 +107,19 @@ fun SettingsScreen(
             ToggleItem("Start bridge automatically", "Enter standby when RideFlux starts or the phone boots", settings.bridgeAutostart, onBridgeAutostart)
             ToggleItem("Low-latency standby", "Uses more battery while waiting for a wheel", settings.bridgeStandbyAdvertiseLowLatency, onStandbyLowLatency)
             ListItem(
-                headlineContent = { Text("Paired phone MAC") },
-                supportingContent = { Text(settings.hudPeerMac ?: "Configured on the HUD during pairing") },
+                headlineContent = { Text("This phone's pairing code") },
+                supportingContent = {
+                    Text(
+                        pairingCode?.let { "$it\nSelect this code on the glasses to pair" }
+                            ?: "Preparing…",
+                    )
+                },
+            )
+            ListItem(
+                headlineContent = { Text("Paired glasses") },
+                supportingContent = {
+                    Text(settings.hudPeerMac ?: "No glasses have paired with this phone yet")
+                },
             )
             HorizontalDivider()
             SectionTitle("About")

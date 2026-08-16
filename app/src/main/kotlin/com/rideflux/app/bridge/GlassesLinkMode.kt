@@ -23,18 +23,17 @@ enum class GlassesLinkState {
 }
 
 internal object GlassesLinkPreferences {
-    private const val PREFS = "rideflux_bridge"
     private const val KEY_MODE = "glasses_link_mode"
 
     fun read(context: Context): GlassesLinkMode {
-        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val raw = context.getSharedPreferences(BRIDGE_PREFS_NAME, Context.MODE_PRIVATE)
             .getString(KEY_MODE, null)
         return runCatching { GlassesLinkMode.valueOf(raw.orEmpty()) }
             .getOrDefault(GlassesLinkMode.ANDROID_BLE)
     }
 
     fun write(context: Context, mode: GlassesLinkMode) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        context.getSharedPreferences(BRIDGE_PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_MODE, mode.name)
             .apply()

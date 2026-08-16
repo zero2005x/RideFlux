@@ -53,6 +53,41 @@ object BridgeProtocol {
      */
     val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
+    /**
+     * Length of the pairing token carried as BLE service data under
+     * [SERVICE_UUID].
+     *
+     * ### Why a token and not a MAC address
+     * Android advertises with a *resolvable private address* that the
+     * controller rotates (~15 min by convention) and that changes again
+     * on every Bluetooth restart. A MAC captured during pairing is
+     * therefore not an identity: it silently stops matching a few
+     * minutes later, which is exactly what an allowlist keyed on
+     * `ScanResult.device.address` used to do. The phone instead mints a
+     * random token once, persists it, and advertises it; the glasses
+     * store that token at pairing time and match on it, so address
+     * rotation is irrelevant.
+     *
+     * ### Where it rides on the wire
+     * The primary advertisement stays exactly as it was — flags (3 B)
+     * plus the 128-bit [SERVICE_UUID] (18 B) — so hardware scan filters
+     * and older glasses builds keep working. Service data with a
+     * 128-bit UUID costs 2 + 16 + 8 = 26 bytes, which does not fit
+     * alongside the UUID in the same 31-byte advertisement, so the
+     * token travels in the **scan response** instead. Android merges
+     * the advertisement and the scan response into a single
+     * `ScanRecord` for legacy advertising, so the receiver reads it
+     * through `ScanRecord.getServiceData(SERVICE_UUID)` without caring
+     * which PDU carried it.
+     *
+     * Eight bytes is not a secret — BLE advertisements are public and
+     * trivially replayed. It is a *stable name*, sized so two phones in
+     * the same car park effectively never collide. Defence against a
+     * deliberately spoofed peer needs LE bonding
+     * ([BridgePeerFilter.Bonded]), which is tracked separately.
+     */
+    const val PAIRING_TOKEN_SIZE: Int = 8
+
     /** First byte of every [BridgeFrame] — magic that screens out non-RideFlux notifications. */
     const val MAGIC: Byte = 0x52  // 'R'
 

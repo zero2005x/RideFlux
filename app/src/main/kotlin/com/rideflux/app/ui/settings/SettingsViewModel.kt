@@ -4,20 +4,46 @@
  */
 package com.rideflux.app.ui.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rideflux.app.bridge.BridgePairingStore
 import com.rideflux.domain.settings.AppSettings
 import com.rideflux.domain.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: SettingsRepository,
 ) : ViewModel() {
     val settings: StateFlow<AppSettings> = repository.settings
+
+    private val _pairingCode = MutableStateFlow<String?>(null)
+
+    /**
+     * This phone's bridge pairing code, shown so the rider can confirm
+     * the glasses paired with the right phone. Resolved off the main
+     * thread because reading it mints and commits the token on first
+     * run.
+     */
+    val pairingCode: StateFlow<String?> = _pairingCode.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _pairingCode.value = withContext(Dispatchers.IO) {
+                BridgePairingStore.displayCode(appContext)
+            }
+        }
+    }
 
     fun setSpeedLimit(value: Float) = update { repository.setSpeedLimitKmh(value) }
     fun setTemperatureLimit(value: Float) = update { repository.setTemperatureLimitC(value) }
