@@ -182,7 +182,7 @@ class BridgeService : Service() {
                     generation == publisherGeneration
                 ) {
                     val openingMode = _linkMode.value
-                    candidate = when (openingMode) {
+                    val opening: BridgePublisher = when (openingMode) {
                         GlassesLinkMode.ANDROID_BLE -> NativeBleBridgePublisher(
                             applicationContext,
                             ::setLinkState,
@@ -193,18 +193,22 @@ class BridgeService : Service() {
                             ::setLinkState,
                         )
                     }
-                    if (candidate.open()) {
+                    candidate = opening
+                    // BridgeServer.open() blocks until the GATT service
+                    // registration is confirmed, so keep it off the
+                    // Default dispatcher's small, CPU-sized pool.
+                    if (withContext(Dispatchers.IO) { opening.open() }) {
                         currentCoroutineContext().ensureActive()
                         if (generation != publisherGeneration) return@launch
-                        publisher = candidate
-                        candidate.attachSource(scope, frames())
+                        publisher = opening
+                        opening.attachSource(scope, frames())
                         candidate = null // Ownership transferred to publisher.
                         consecutiveCxrFailures = 0
                         if (target.value == null) setBridgeState(BridgeState.STANDBY)
                         Log.i(TAG, "bridge publisher started: $openingMode")
                         return@launch
                     }
-                    candidate.stop()
+                    opening.stop()
                     candidate = null
                     setBridgeState(BridgeState.DEGRADED)
                     if (openingMode == GlassesLinkMode.ROKID_CXR) {
