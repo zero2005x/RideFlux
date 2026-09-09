@@ -17,6 +17,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.UUID
 
 class WheelCodecFactoryImplTest {
 
@@ -138,5 +139,42 @@ class WheelCodecFactoryImplTest {
         assertEquals(GattTopology.SPLIT_CHAR, factory.topologyFor(WheelFamily.I1))
         assertEquals(GattTopology.NORDIC_UART, factory.topologyFor(WheelFamily.N2))
         assertEquals(GattTopology.NORDIC_UART, factory.topologyFor(WheelFamily.I2))
+    }
+
+    @Test
+    fun `inferFromGattTable maps split profile to I1`() {
+        val services = mapOf(
+            GattUuids.SERVICE_FFE0 to listOf(GattUuids.CHAR_FFE4),
+            GattUuids.SERVICE_FFE5 to listOf(GattUuids.CHAR_FFE9),
+        )
+        assertEquals(WheelFamily.I1, factory.inferFromGattTable(services, name = "unknown"))
+    }
+
+    @Test
+    fun `inferFromGattTable splits NUS between I2 and N2 by name`() {
+        val nus = mapOf(
+            GattUuids.SERVICE_NUS to listOf(GattUuids.CHAR_NUS_RX, GattUuids.CHAR_NUS_TX),
+        )
+        assertEquals(WheelFamily.I2, factory.inferFromGattTable(nus, name = "V14"))
+        assertEquals(WheelFamily.N2, factory.inferFromGattTable(nus, name = "Random board"))
+    }
+
+    @Test
+    fun `inferFromGattTable resolves single-char wheels by name hints`() {
+        val single = mapOf(
+            GattUuids.SERVICE_FFE0 to listOf(GattUuids.CHAR_FFE1),
+        )
+        assertEquals(WheelFamily.K, factory.inferFromGattTable(single, name = "ROCKWHEEL"))
+        assertEquals(WheelFamily.V, factory.inferFromGattTable(single, name = "SHERMAN"))
+        assertEquals(WheelFamily.N1, factory.inferFromGattTable(single, name = "NINEBOT Z10"))
+        assertEquals(WheelFamily.G, factory.inferFromGattTable(single, name = "Unknown"))
+    }
+
+    @Test
+    fun `inferFromGattTable returns null for unrelated tables`() {
+        val unrelated = mapOf(
+            UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb") to emptyList(),
+        )
+        assertNull(factory.inferFromGattTable(unrelated, name = null))
     }
 }

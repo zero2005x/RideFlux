@@ -50,8 +50,6 @@ object WheelNameClassifier {
         inmotionFamily(name)?.let { return it }
 
         return when {
-            // KingSong: "KS-16X", "KS18L", "KingSong xxxx".
-            name.contains("KINGSONG") -> WheelFamily.K
             KINGSONG_MODEL.containsMatchIn(name) -> WheelFamily.K
 
             // Veteran: only the model names that no other vendor uses.
@@ -62,15 +60,13 @@ object WheelNameClassifier {
 
             // Ninebot: the Z / KickScooter Z line speaks §2.5 (N2),
             // every other Ninebot One / E+ / S2 / Mini speaks §2.4 (N1).
-            name.contains("NINEBOT") || name.startsWith("NB") ->
+            NINEBOT_MODEL.containsMatchIn(name) ->
                 if (NINEBOT_Z_MODEL.containsMatchIn(name)) WheelFamily.N2 else WheelFamily.N1
 
             // Begode / Gotway / ExtremeBull. Same answer the UUID
             // resolver already gives for an FFE0-only advertisement, so
             // this rule costs nothing and makes the intent explicit.
-            name.contains("GOTWAY") ||
-                name.contains("BEGODE") ||
-                name.contains("EXTREMEBULL") -> WheelFamily.G
+            BEGODE_MODEL.containsMatchIn(name) -> WheelFamily.G
 
             else -> null
         }
@@ -112,12 +108,22 @@ object WheelNameClassifier {
     private val INMOTION_MODEL = Regex("""^(?:INMOTION[\s_-]*)?V(\d{1,2})(?!\d)""")
 
     /** `KS-16X`, `KS16S`, `KS_18L` — the KingSong model-number form. */
-    private val KINGSONG_MODEL = Regex("""^KS[\s_-]?\d""")
+    private val KINGSONG_MODEL = Regex(
+        """(?:\bKINGSONG\b|^KS[\s_-]?\d|^KSS\d|^KS-S|^KS-F|^RW$|^ROCKW)""",
+    )
 
     /** Veteran model names that are unambiguous across vendors. */
     private val VETERAN_MODEL =
-        Regex("""VETERAN|SHERMAN|ABRAMS|PATTON|LYNX|ORYX|NOSFET""")
+        Regex("""VETERAN|SHERMAN|ABRAMS|PATTON|LYNX|ORYX|NOSFET|LEAPERKIM|^LK[\s_-]""")
+
+    /** Ninebot / NB model namespace. */
+    private val NINEBOT_MODEL = Regex("""(^NB[\s_-]?\w*|\bNINEBOT\b|^NINEBOT-)""")
 
     /** Ninebot Z / ZT / KickScooter Z, e.g. "Ninebot Z10", "NBZ". */
     private val NINEBOT_Z_MODEL = Regex("""(^|[\s_-])Z(\d|T|$)|NBZ""")
+
+    /** Begode / Gotway / ExtremeBull families and common model prefixes. */
+    private val BEGODE_MODEL = Regex(
+        """(GOTWAY|BEGODE|EXTREMEBULL|^GW|^EXN|^MSP|^RS|^T3|^MASTER|^NIKOLA|^MCM|^TESLA)""",
+    )
 }

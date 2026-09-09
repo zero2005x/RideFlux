@@ -36,6 +36,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -97,6 +98,8 @@ class WheelRepositoryImpl(
 
     private val entries = ConcurrentHashMap<String, Entry>()
     private val connectMutex = Mutex()
+    private val lastSeenNames = ConcurrentHashMap<String, String>()
+    private val lastSeenServiceUuids = ConcurrentHashMap<String, Set<String>>()
 
     private val _active = MutableStateFlow<Map<String, WheelConnection>>(emptyMap())
 
@@ -155,10 +158,38 @@ class WheelRepositoryImpl(
                     ?.takeIf { it.isNotEmpty() }
                     ?.also { names[address] = it }
                     ?: names[address]
-
                 val uuidStrings: Set<String> = serviceUuids[address] ?: emptySet()
+                name?.let { lastSeenNames[address] = it }
+                if (uuidStrings.isNotEmpty()) {
+                    lastSeenServiceUuids[address] = uuidStrings
+                }
                 val family = codecFactory.inferFromAdvertisement(name, uuidStrings)
                 if (family == null) {
+                    val hasRelevantService = uuidStrings.any(::isRelevantWheelServiceUuid)
+                    val shouldSurfaceUnclassified = name != null || hasRelevantService
+                    if (shouldSurfaceUnclassified) {
+                        val wheel = DiscoveredWheel(
+                            address = address,
+                            displayName = name,
+                            rssi = result.rssi,
+                            family = null,
+                        )
+                        val prior = seen[address]
+                        val identityUnchanged = prior != null &&
+                            prior.displayName == wheel.displayName &&
+                            prior.family == wheel.family
+                        seen[address] = wheel
+                        if (identityUnchanged) return
+                        if (prior == null) {
+                            Log.i(
+                                TAG,
+                                "discovered unclassified $address name=${wheel.displayName} " +
+                                    "rssi=${result.rssi} services=$uuidStrings",
+                            )
+                        }
+                        trySend(seen.values.toList())
+                        return
+                    }
                     // Not a wheel we can decode. Logged (once the name is
                     // known) rather than silently dropped: when a wheel
                     // fails to appear in the list this line is the whole
@@ -308,10 +339,8 @@ class WheelRepositoryImpl(
         }
 
         val family = expectedFamily
-            ?: throw IOException(
-                "family unknown for $address; pass expectedFamily (hint-only resolution " +
-                    "from advertisement is not yet wired through connect())",
-            )
+            ?: inferFamilyHintForAddress(address)
+            ?: WheelFamily.G
 
         val codec = codecFactory.forFamilyWithAddress(family, address)
         val topology = codecFactory.topologyFor(family)
@@ -419,7 +448,26 @@ class WheelRepositoryImpl(
         }
     }
 
+    private fun inferFamilyHintForAddress(address: String): WheelFamily? {
+        val name = lastSeenNames[address]
+        val services = lastSeenServiceUuids[address].orEmpty()
+        return codecFactory.inferFromAdvertisement(name, services)
+    }
+
     private companion object {
         const val TAG = "RideFlux/BLE"
+        const val BASE_UUID_SUFFIX = "-0000-1000-8000-00805f9b34fb"
+
+        fun isRelevantWheelServiceUuid(raw: String): Boolean {
+            val normalized = raw.trim().removePrefix("0x").removePrefix("0X").lowercase(Locale.ROOT)
+            val canonical = when (normalized.length) {
+                4 -> "0000$normalized$BASE_UUID_SUFFIX"
+                8 -> "$normalized$BASE_UUID_SUFFIX"
+                else -> normalized
+            }
+            return canonical == GattUuids.SERVICE_FFE0.toString() ||
+                canonical == GattUuids.SERVICE_FFE5.toString() ||
+                canonical == GattUuids.SERVICE_NUS.toString()
+        }
     }
 }

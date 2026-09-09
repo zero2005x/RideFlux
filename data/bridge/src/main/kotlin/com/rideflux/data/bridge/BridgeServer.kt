@@ -73,8 +73,10 @@ class BridgeServer(
     // retry with capped backoff while the server stays open — without
     // this a failed advertise left the bridge permanently undiscoverable.
     private val advertiseStarted = AtomicBoolean(false)
+    private val serviceAdded = AtomicBoolean(false)
     private val mainHandler = Handler(Looper.getMainLooper())
     @Volatile private var advertiseRetryRunnable: Runnable? = null
+    @Volatile private var serviceAddTimeoutRunnable: Runnable? = null
     private var advertiseAttempts = 0
 
     /**
@@ -142,18 +144,8 @@ class BridgeServer(
 
         gattServer = server
         telemetryChar = char
-
-        // ---- Advertising ------------------------------------------
-        // If advertising cannot start the bridge is undiscoverable
-        // while the GATT server stays open and the collector keeps
-        // consuming frames — a half-started leak. Tear back down.
-        if (!startAdvertising(mgr)) {
-            Log.e(TAG, "advertising could not start; aborting bridge startup")
-            server.close()
-            gattServer = null
-            telemetryChar = null
-            return false
-        }
+        serviceAdded.set(false)
+        armServiceAddTimeout()
 
         return true
     }
@@ -230,6 +222,8 @@ class BridgeServer(
         advertiseStarted.set(false)
         advertiseAttempts = 0
         cancelAdvertiseRetry()
+        cancelServiceAddTimeout()
+        serviceAdded.set(false)
 
         try {
             gattServer?.close()
@@ -315,9 +309,12 @@ class BridgeServer(
             .setIncludeDeviceName(false)
             .addServiceUuid(ParcelUuid(BridgeProtocol.SERVICE_UUID))
             .build()
+        val scanResponse = AdvertiseData.Builder()
+            .setIncludeDeviceName(true)
+            .build()
 
         try {
-            adv.startAdvertising(settings, data, advertiseCallback)
+            adv.startAdvertising(settings, data, scanResponse, advertiseCallback)
         } catch (t: Throwable) {
             Log.e(TAG, "startAdvertising threw", t)
             return false
@@ -376,7 +373,46 @@ class BridgeServer(
         advertiseRetryRunnable = null
     }
 
+    @Synchronized
+    private fun armServiceAddTimeout() {
+        cancelServiceAddTimeout()
+        val timeout = Runnable {
+            if (gattServer == null || serviceAdded.get()) return@Runnable
+            Log.e(TAG, "bridge service registration timed out after ${SERVICE_ADD_TIMEOUT_MILLIS}ms")
+            stop()
+        }
+        serviceAddTimeoutRunnable = timeout
+        mainHandler.postDelayed(timeout, SERVICE_ADD_TIMEOUT_MILLIS)
+    }
+
+    @Synchronized
+    private fun cancelServiceAddTimeout() {
+        serviceAddTimeoutRunnable?.let(mainHandler::removeCallbacks)
+        serviceAddTimeoutRunnable = null
+    }
+
     private val serverCallback = object : BluetoothGattServerCallback() {
+        override fun onServiceAdded(status: Int, service: BluetoothGattService) {
+            if (service.uuid != BridgeProtocol.SERVICE_UUID) return
+            cancelServiceAddTimeout()
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "bridge service registration failed status=$status")
+                stop()
+                return
+            }
+            serviceAdded.set(true)
+            val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            if (manager == null) {
+                Log.e(TAG, "BluetoothManager unavailable after service registration")
+                stop()
+                return
+            }
+            if (!startAdvertising(manager)) {
+                Log.e(TAG, "advertising could not start after successful service registration")
+                stop()
+            }
+        }
+
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
             Log.i(TAG, "central ${device.address} status=$status newState=$newState")
             if (newState == BluetoothProfile.STATE_DISCONNECTED) {
@@ -506,5 +542,6 @@ class BridgeServer(
         const val TAG = "BridgeServer"
         const val ADVERTISE_RETRY_BASE_MILLIS = 2_000
         const val ADVERTISE_RETRY_MAX_MILLIS = 30_000
+        const val SERVICE_ADD_TIMEOUT_MILLIS = 5_000L
     }
 }
