@@ -173,7 +173,7 @@ class WheelCodecFactoryImplTest {
     @Test
     fun `inferFromGattTable returns null for unrelated tables`() {
         val unrelated = mapOf(
-            UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb") to emptyList(),
+            UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb") to emptyList<UUID>(),
         )
         assertNull(factory.inferFromGattTable(unrelated, name = null))
     }
