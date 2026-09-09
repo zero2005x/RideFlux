@@ -35,14 +35,10 @@ class BridgeTelemetrySource private constructor(
     private val rokidFrames: (() -> Flow<BridgeFrame>)?,
 ) : HudTelemetrySource {
 
-    constructor(context: Context, pairedPhoneMac: String?) : this(
+    constructor(context: Context, pairedPhoneToken: ByteArray?, pairedPhoneMac: String?) : this(
         clientFrames = BridgeClient(
             context.applicationContext,
-            when {
-                pairedPhoneMac != null -> BridgePeerFilter.Allowlist(setOf(pairedPhoneMac))
-                com.rideflux.hud.BuildConfig.DEBUG -> BridgePeerFilter.AcceptAny
-                else -> BridgePeerFilter.RejectAll
-            },
+            peerFilterFor(pairedPhoneToken, pairedPhoneMac),
         )
             .let { client -> { client.frames() } },
         rokidFrames = { RokidCxrBridgeClient.frames() },
@@ -116,8 +112,8 @@ class BridgeTelemetrySource private constructor(
                     if (!cxrPreferred.value) {
                         send(noPhoneFrame())
                     }
-                    val delayMs = (250L * (1L shl attempt.coerceAtMost(5)))
-                        .coerceAtMost(5_000L)
+                    val delayMs = (NATIVE_RETRY_BASE_MILLIS shl (attempt - 1).coerceAtMost(NATIVE_RETRY_MAX_SHIFT))
+                        .coerceAtMost(NATIVE_RETRY_MAX_MILLIS)
                     delay(delayMs)
                 }
             }
@@ -140,7 +136,40 @@ class BridgeTelemetrySource private constructor(
         const val CXR_RECONNECT_DELAY_MILLIS = 1_000L
         const val CXR_FRESHNESS_MILLIS = 2_500L
         const val CXR_STARTUP_GRACE_MILLIS = 3_000L
+
+        /**
+         * First native-BLE retry delay. Each attempt runs one BLE scan,
+         * and the platform silently mutes an app that starts more than
+         * five scans in 30 seconds, so retries start a full second apart
+         * rather than the 250 ms that used to exhaust the budget within
+         * half a minute. BleScanThrottle enforces the hard limit;
+         * this backoff keeps the loop from leaning on it.
+         */
+        const val NATIVE_RETRY_BASE_MILLIS = 1_000L
+        const val NATIVE_RETRY_MAX_MILLIS = 15_000L
+        const val NATIVE_RETRY_MAX_SHIFT = 4
     }
+}
+
+/**
+ * Identity check for the phone bridge, in order of preference.
+ *
+ * A stored pairing token is the only thing that keeps matching once
+ * Android rotates the advertising address, so it wins whenever one
+ * exists. A stored MAC means the rider paired before tokens shipped:
+ * honour it so the HUD keeps working until they re-pair, but it will
+ * stop matching on the next address rotation. Failing both, a debug
+ * build stays permissive for bring-up and a release build refuses —
+ * an unverified peer can feed the HUD fabricated telemetry.
+ */
+internal fun peerFilterFor(
+    pairedPhoneToken: ByteArray?,
+    pairedPhoneMac: String?,
+): BridgePeerFilter = when {
+    pairedPhoneToken != null -> BridgePeerFilter.PairingToken(pairedPhoneToken)
+    pairedPhoneMac != null -> BridgePeerFilter.Allowlist(setOf(pairedPhoneMac))
+    com.rideflux.hud.BuildConfig.DEBUG -> BridgePeerFilter.AcceptAny
+    else -> BridgePeerFilter.RejectAll
 }
 
 internal fun BridgeFrame.toHudTelemetryFrame(): HudTelemetryFrame {
