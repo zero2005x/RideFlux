@@ -28,6 +28,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
@@ -122,6 +123,8 @@ class BridgeClient(
         // once per connection.
         val mtuResolved = AtomicBoolean(false)
         val mtuFallbackJob = AtomicReference<Job?>(null)
+        val connectRetriesUsed = AtomicInteger(0)
+        lateinit var gattCallback: BluetoothGattCallback
 
         // Single funnel for service discovery so every code path (MTU
         // callback, MTU fallback, requestMtu rejection) exercises the
@@ -135,10 +138,39 @@ class BridgeClient(
             }
         }
 
-        val gattCallback = object : BluetoothGattCallback() {
+        fun closeGatt(g: BluetoothGatt?) {
+            if (g == null) return
+            runCatching { g.disconnect() }
+            runCatching { g.close() }
+        }
+
+        fun connectGattLe(device: BluetoothDevice): BluetoothGatt? = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                device.connectGatt(
+                    context,
+                    /* autoConnect = */ false,
+                    gattCallback,
+                    BluetoothDevice.TRANSPORT_LE,
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                device.connectGatt(context, false, gattCallback)
+            }
+        } catch (t: Throwable) {
+            close(IllegalStateException("connectGatt failed: ${t.message}"))
+            null
+        }?.also { /* non-null */ } ?: run {
+            close(IllegalStateException("connectGatt returned null"))
+            null
+        }
+
+        gattCallback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
                 Log.i(TAG, "conn status=$status newState=$newState")
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    connectRetriesUsed.set(0)
+                    runCatching { g.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH) }
+                        .onFailure { Log.w(TAG, "requestConnectionPriority failed", it) }
                     // requestMtu's Boolean result matters: if it returns
                     // false the peer never sends an MTU response,
                     // onMtuChanged never fires, and the flow would hang
@@ -174,6 +206,22 @@ class BridgeClient(
                         })
                     }
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    val retrying = status == GATT_ERROR_133 &&
+                        connectRetriesUsed.get() < MAX_CONNECT_RETRIES &&
+                        !subscribed.get()
+                    if (retrying) {
+                        val attempt = connectRetriesUsed.incrementAndGet()
+                        Log.w(TAG, "status=133; retrying $attempt/$MAX_CONNECT_RETRIES")
+                        gattRef.compareAndSet(g, null)
+                        closeGatt(g)
+                        launch {
+                            delay(RECONNECT_DELAY_MILLIS)
+                            val retried = connectGattLe(g.device)
+                            if (retried == null) return@launch
+                            gattRef.set(retried)
+                        }
+                        return
+                    }
                     close(IllegalStateException("disconnected status=$status"))
                 }
             }
@@ -229,9 +277,21 @@ class BridgeClient(
                         close(IllegalStateException("CCCD missing"))
                         return
                     }
-                    cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                    if (!g.writeDescriptor(cccd)) {
-                        close(IllegalStateException("writeDescriptor failed"))
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val rc = g.writeDescriptor(
+                            cccd,
+                            BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
+                        )
+                        if (rc != BluetoothGatt.GATT_SUCCESS) {
+                            close(IllegalStateException("writeDescriptor returned $rc"))
+                        }
+                    } else {
+                        @Suppress("DEPRECATION")
+                        cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                        @Suppress("DEPRECATION")
+                        if (!g.writeDescriptor(cccd)) {
+                            close(IllegalStateException("writeDescriptor failed"))
+                        }
                     }
                 } catch (t: Throwable) {
                     close(IllegalStateException("CCCD subscribe failed: ${t.message}"))
@@ -296,11 +356,6 @@ class BridgeClient(
                 }
                 val frame = BridgeCodec.decode(bytes)
                 if (frame == null) {
-                    // Previously dropped silently, which made "connected
-                    // but no data" impossible to diagnose. Log length and
-                    // a hex prefix so a truncated notification (e.g. a
-                    // stale v1 32-byte frame under a small MTU) is
-                    // visible in a bug report.
                     Log.w(
                         TAG,
                         "discarding undecodable bridge notification: " +
@@ -308,8 +363,6 @@ class BridgeClient(
                     )
                     return
                 }
-                // Log (rather than silently dropping) when the channel
-                // buffer is full so lossy behaviour stays visible.
                 if (!trySend(frame).isSuccess) {
                     Log.w(TAG, "frame dropped: trySend buffer full")
                 }
@@ -332,16 +385,8 @@ class BridgeClient(
                 // return null on failure — both must surface through
                 // close(...) instead of crashing the callback thread
                 // or hanging the flow.
-                val newGatt = try {
-                    device.connectGatt(context, /* autoConnect = */ false, gattCallback)
-                } catch (t: Throwable) {
-                    close(IllegalStateException("connectGatt failed: ${t.message}"))
-                    return
-                }
-                if (newGatt == null) {
-                    close(IllegalStateException("connectGatt returned null"))
-                    return
-                }
+                val newGatt = connectGattLe(device)
+                if (newGatt == null) return
                 gattRef.set(newGatt)
             }
 
@@ -458,6 +503,9 @@ class BridgeClient(
         const val SUBSCRIBE_TIMEOUT_MILLIS = 10_000L
         const val WATCHDOG_POLL_MILLIS = 250L
         const val MTU_FALLBACK_MILLIS = 1_500L
+        const val GATT_ERROR_133 = 133
+        const val MAX_CONNECT_RETRIES = 2
+        const val RECONNECT_DELAY_MILLIS = 600L
     }
 }
 

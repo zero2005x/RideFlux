@@ -40,21 +40,27 @@ class BridgePairingTokenTest {
 
     @Test
     fun `fromHex tolerates surrounding whitespace and uppercase`() {
+        val token = byteArrayOf(0x0A, 0x1B, 0x2C, 0x3D, 0x4E, 0x5F, 0x60, 0x71)
+        val uppercaseHex = BridgePairingToken.toHex(token).uppercase()
+
         assertArrayEquals(
-            byteArrayOf(0x0A, 0x1B, 0x2C, 0x3D, 0x4E, 0x5F, 0x60, 0x71),
-            BridgePairingToken.fromHex("  0A1B2C3D4E5F6071 "),
+            token,
+            BridgePairingToken.fromHex("  $uppercaseHex  "),
         )
     }
 
     @Test
     fun `fromHex rejects anything that is not a whole token`() {
-        // A malformed preference must read as "not paired" rather than
-        // as a token that can never match.
+        // Generate malformed inputs from low-entropy fixtures instead of
+        // embedding token-shaped literals that secret scanners mistake for
+        // credentials. These values are test data, not authentication secrets.
+        val validHex = BridgePairingToken.toHex(ByteArray(BridgeProtocol.PAIRING_TOKEN_SIZE) { it.toByte() })
+
         assertNull(BridgePairingToken.fromHex(null))
         assertNull(BridgePairingToken.fromHex(""))
-        assertNull(BridgePairingToken.fromHex("0011223344556677889900"))
-        assertNull(BridgePairingToken.fromHex("00112233445566"))
-        assertNull(BridgePairingToken.fromHex("001122334455667z"))
+        assertNull(BridgePairingToken.fromHex("00".repeat(BridgeProtocol.PAIRING_TOKEN_SIZE + 3)))
+        assertNull(BridgePairingToken.fromHex("00".repeat(BridgeProtocol.PAIRING_TOKEN_SIZE - 1)))
+        assertNull(BridgePairingToken.fromHex(validHex.dropLast(1) + "z"))
     }
 
     @Test

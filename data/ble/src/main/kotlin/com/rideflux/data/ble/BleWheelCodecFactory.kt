@@ -8,6 +8,7 @@ package com.rideflux.data.ble
 import com.rideflux.domain.codec.WheelCodec
 import com.rideflux.domain.codec.WheelCodecFactory
 import com.rideflux.domain.wheel.WheelFamily
+import java.util.UUID
 
 /**
  * The `:data:ble` view of [WheelCodecFactory].
@@ -52,4 +53,10 @@ interface BleWheelCodecFactory : WheelCodecFactory {
 
     /** Classify the GATT topology a given family uses (§1.1 / §1.2). */
     fun topologyFor(family: WheelFamily): GattTopology
+
+    /**
+     * Infer family from discovered services/characteristics after
+     * connect-time service discovery.
+     */
+    fun inferFromGattTable(services: Map<UUID, List<UUID>>, name: String?): WheelFamily?
 }
