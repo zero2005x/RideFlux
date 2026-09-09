@@ -23,7 +23,12 @@ internal class NativeBleBridgePublisher(
     context: Context,
     private val onState: (GlassesLinkState) -> Unit,
 ) : BridgePublisher {
-    private val server = BridgeServer(context) { connected ->
+    // Advertised as service data so the glasses recognise this phone
+    // across BLE address rotation; see BridgePairingStore.
+    private val server = BridgeServer(
+        context = context,
+        pairingToken = BridgePairingStore.readOrCreate(context),
+    ) { connected ->
         onState(if (connected) GlassesLinkState.CONNECTED else GlassesLinkState.READY)
     }
 
