@@ -63,16 +63,27 @@ import java.util.concurrent.ConcurrentHashMap
  * `ACCESS_FINE_LOCATION` before invoking either [scan] or [connect].
  */
 @SuppressLint("MissingPermission")
-class WheelRepositoryImpl(
-    private val context: Context,
+class WheelRepositoryImpl private constructor(
+    private val context: Context?,
     private val rootScope: CoroutineScope,
-    private val codecFactory: BleWheelCodecFactory = WheelCodecFactoryImpl(),
+    private val codecFactory: BleWheelCodecFactory,
+    private val connectionFactory: ((String, WheelFamily?, CoroutineScope) -> WheelConnectionImpl)?,
 ) : WheelRepository {
+    constructor(
+        context: Context,
+        rootScope: CoroutineScope,
+        codecFactory: BleWheelCodecFactory = WheelCodecFactoryImpl(),
+    ) : this(context, rootScope, codecFactory, null)
+
+    internal constructor(
+        rootScope: CoroutineScope,
+        connectionFactory: (String, WheelFamily?, CoroutineScope) -> WheelConnectionImpl,
+    ) : this(null, rootScope, WheelCodecFactoryImpl(), connectionFactory)
 
     // Deferred until first use (scan/connect run off the main thread) so
     // the binder call to BluetoothManagerService never stalls composition.
     private val adapter: BluetoothAdapter? by lazy {
-        (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
+        (context?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
     }
 
     // ---- Active connection book-keeping --------------------------------
@@ -300,6 +311,26 @@ class WheelRepositoryImpl(
         address: String,
         expectedFamily: WheelFamily?,
     ): WheelConnection {
+        val entryJob = SupervisorJob(parent = rootScope.coroutineContext[Job])
+        val entryScope = rootScope + entryJob
+        val conn = try {
+            connectionFactory?.invoke(address, expectedFamily, entryScope)
+                ?: createPlatformConnection(address, expectedFamily, entryScope)
+        } catch (error: Throwable) {
+            entryJob.cancel()
+            throw error
+        }
+        entries[address] = Entry(conn, entryJob, refCount = 1)
+        publishActive()
+        entryScope.launch { conn.start() }
+        return SharedWheelConnection(address, conn)
+    }
+
+    private fun createPlatformConnection(
+        address: String,
+        expectedFamily: WheelFamily?,
+        entryScope: CoroutineScope,
+    ): WheelConnectionImpl {
         val adapter = adapter ?: throw IOException("Bluetooth adapter unavailable")
         val device = try {
             adapter.getRemoteDevice(address)
@@ -316,28 +347,16 @@ class WheelRepositoryImpl(
         val codec = codecFactory.forFamilyWithAddress(family, address)
         val topology = codecFactory.topologyFor(family)
 
-        val entryJob = SupervisorJob(parent = rootScope.coroutineContext[Job])
-        val entryScope = rootScope + entryJob
         val transport = AndroidBleTransport(
-            context = context,
+            context = checkNotNull(context),
             device = device,
             topology = topology,
-            scope = entryScope,
         )
-        val conn = WheelConnectionImpl(
+        return WheelConnectionImpl(
             transport = transport,
             codec = codec,
             scope = entryScope,
         )
-
-        entries[address] = Entry(conn, entryJob, refCount = 1)
-        publishActive()
-
-        // Kick off the connection; errors surface through
-        // WheelConnection.state as ConnectionState.Failed.
-        entryScope.launch { conn.start() }
-
-        return SharedWheelConnection(address, conn)
     }
 
     /**
@@ -400,6 +419,9 @@ class WheelRepositoryImpl(
                         return@withLock
                     }
                     val entry = entries[address] ?: return@withLock
+                    // A failed session may already have been replaced for this MAC.
+                    // Releasing an old handle must never decrement its successor.
+                    if (entry.connection !== delegate) return@withLock
                     entry.refCount -= 1
                     if (entry.refCount <= 0 && entry.closing == null) {
                         // Mark closing but LEAVE the entry in the map:

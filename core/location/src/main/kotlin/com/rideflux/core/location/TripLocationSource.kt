@@ -67,10 +67,14 @@ class FusedTripLocationSource(
             .build()
         try {
             client.requestLocationUpdates(request, callback, Looper.getMainLooper())
+                .addOnFailureListener { close(it) }
         } catch (_: SecurityException) {
             close()
         }
-        awaitClose { client.removeLocationUpdates(callback) }
+        awaitClose {
+            // Permission revocation must not throw from flow cleanup.
+            try { client.removeLocationUpdates(callback) } catch (_: SecurityException) { }
+        }
     }
 
     companion object { const val SAMPLE_INTERVAL_MILLIS = 1_000L }

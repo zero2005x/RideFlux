@@ -27,6 +27,10 @@ import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.launchIn
@@ -34,6 +38,7 @@ import kotlinx.coroutines.flow.onEach
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -67,6 +72,20 @@ class BridgeServer(
     @Volatile private var telemetryChar: BluetoothGattCharacteristic? = null
     @Volatile private var collectionJob: Job? = null
     @Volatile private var advertiseLowLatency: Boolean = false
+    private val openMutex = Mutex()
+    @Volatile private var serviceRegistered = false
+
+    /**
+     * Bumped by every [open] attempt and by [stop], so a GATT callback
+     * from a previous session can recognise itself as stale.
+     *
+     * Atomic rather than `@Volatile var`: [open] is serialised by
+     * [openMutex] while [stop] is serialised by the instance monitor,
+     * so the two increments are not otherwise ordered against each
+     * other and a read-modify-write could be lost — handing a stale
+     * callback an epoch that matches again.
+     */
+    private val generation = AtomicLong(0L)
 
     // Advertising can fail asynchronously (onStartFailure) even after
     // startAdvertising() accepted the request. Track the outcome and
@@ -94,14 +113,15 @@ class BridgeServer(
      * Begin advertising. Safe to call multiple times — the first call
      * wins; subsequent calls are no-ops until [stop].
      */
-    @Synchronized
-    fun open(): Boolean {
-        if (gattServer != null) return true
+    suspend fun open(): Boolean = openMutex.withLock {
+        if (serviceRegistered) return@withLock true
+        val openingGeneration = generation.incrementAndGet()
+        val registration = CompletableDeferred<Boolean>()
 
         val mgr = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
             ?: run {
                 Log.w(TAG, "BluetoothManager unavailable; bridge not started")
-                return false
+                return@withLock false
             }
 
         // ---- GATT server setup ------------------------------------
@@ -127,35 +147,59 @@ class BridgeServer(
             BluetoothGattService.SERVICE_TYPE_PRIMARY,
         ).apply { addCharacteristic(char) }
 
-        val server = mgr.openGattServer(context, serverCallback)
+        val server = mgr.openGattServer(context, serverCallback(registration, openingGeneration))
             ?: run {
                 Log.e(TAG, "openGattServer returned null; bridge aborted")
-                return false
+                return@withLock false
             }
-        if (!server.addService(service)) {
-            // The service is absent from the GATT database; advertising
-            // it anyway would let centrals find an unusable service.
-            Log.e(TAG, "addService failed; aborting bridge startup")
-            server.close()
-            return false
-        }
-
         gattServer = server
         telemetryChar = char
+        try {
+            if (!server.addService(service)) {
+                // The service is absent from the GATT database;
+                // advertising it anyway would let centrals find an
+                // unusable service.
+                Log.e(TAG, "addService failed; aborting bridge startup")
+                return@withLock false
+            }
 
-        // ---- Advertising ------------------------------------------
-        // If advertising cannot start the bridge is undiscoverable
-        // while the GATT server stays open and the collector keeps
-        // consuming frames — a half-started leak. Tear back down.
-        if (!startAdvertising(mgr)) {
-            Log.e(TAG, "advertising could not start; aborting bridge startup")
-            server.close()
-            gattServer = null
-            telemetryChar = null
-            return false
+            // addService() is asynchronous. Advertising before
+            // onServiceAdded lets a central connect and discover an
+            // empty GATT database — the phone then looks reachable but
+            // has nothing to subscribe to.
+            if (withTimeoutOrNull(SERVICE_REGISTRATION_TIMEOUT_MILLIS) { registration.await() } != true) {
+                Log.e(TAG, "service registration did not complete; aborting bridge startup")
+                return@withLock false
+            }
+            // A stop() that landed while we waited already tore this
+            // server down; do not advertise on its behalf.
+            if (generation.get() != openingGeneration) return@withLock false
+            serviceRegistered = true
+
+            // ---- Advertising ------------------------------------------
+            // If advertising cannot start the bridge is undiscoverable
+            // while the GATT server stays open and the collector keeps
+            // consuming frames — a half-started leak. Tear back down.
+            if (!startAdvertising(mgr)) {
+                Log.e(TAG, "advertising could not start; aborting bridge startup")
+                serviceRegistered = false
+                return@withLock false
+            }
+
+            true
+        } finally {
+            if (!serviceRegistered || generation.get() != openingGeneration) {
+                // Covers a stop() that raced in after startAdvertising:
+                // the advertiser it could not see would otherwise stay
+                // live with no server behind it.
+                teardownAdvertising()
+                server.close()
+                if (gattServer === server) {
+                    gattServer = null
+                    telemetryChar = null
+                }
+            }
         }
-
-        return true
     }
 
     /**
@@ -165,7 +209,7 @@ class BridgeServer(
      */
     @Synchronized
     fun attachSource(scope: CoroutineScope, source: Flow<BridgeFrame>) {
-        check(gattServer != null) { "BridgeServer.open() must succeed before attachSource()" }
+        check(serviceRegistered) { "BridgeServer.open() must succeed before attachSource()" }
         collectionJob?.cancel()
         collectionJob = source.onEach { frame ->
             val payload = try {
@@ -188,7 +232,7 @@ class BridgeServer(
     }
 
     /** Compatibility wrapper for callers that still want one-shot setup. */
-    fun start(scope: CoroutineScope, source: Flow<BridgeFrame>): Boolean {
+    suspend fun start(scope: CoroutineScope, source: Flow<BridgeFrame>): Boolean {
         if (!open()) return false
         attachSource(scope, source)
         return true
@@ -199,7 +243,7 @@ class BridgeServer(
     fun setAdvertiseMode(lowLatency: Boolean): Boolean {
         if (advertiseLowLatency == lowLatency) return true
         advertiseLowLatency = lowLatency
-        if (gattServer == null) return true
+        if (!serviceRegistered) return true
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
             ?: return false
         try {
@@ -218,18 +262,12 @@ class BridgeServer(
     /** Tear everything down. Safe to call when not started. */
     @Synchronized
     fun stop() {
+        generation.incrementAndGet()
+        serviceRegistered = false
         collectionJob?.cancel()
         collectionJob = null
 
-        try {
-            advertiser?.stopAdvertising(advertiseCallback)
-        } catch (t: Throwable) {
-            Log.w(TAG, "stopAdvertising threw", t)
-        }
-        advertiser = null
-        advertiseStarted.set(false)
-        advertiseAttempts = 0
-        cancelAdvertiseRetry()
+        teardownAdvertising()
 
         try {
             gattServer?.close()
@@ -243,6 +281,23 @@ class BridgeServer(
         latestPayload.set(null)
         notificationsInFlight.clear()
         lastSubmittedPayload.clear()
+    }
+
+    /**
+     * Stop advertising and reset the retry bookkeeping. Idempotent, so
+     * both [stop] and a failed [open] can call it.
+     */
+    @Synchronized
+    private fun teardownAdvertising() {
+        try {
+            advertiser?.stopAdvertising(advertiseCallback)
+        } catch (t: Throwable) {
+            Log.w(TAG, "stopAdvertising threw", t)
+        }
+        advertiser = null
+        advertiseStarted.set(false)
+        advertiseAttempts = 0
+        cancelAdvertiseRetry()
     }
 
     private fun notifyLatest(device: BluetoothDevice) {
@@ -376,8 +431,22 @@ class BridgeServer(
         advertiseRetryRunnable = null
     }
 
-    private val serverCallback = object : BluetoothGattServerCallback() {
+    /**
+     * A callback bound to one [open] attempt. [epoch] pins it to that
+     * attempt so a callback delivered after [stop] (or after a later
+     * reopen) cannot mutate the current session's bookkeeping.
+     */
+    private fun serverCallback(
+        registration: CompletableDeferred<Boolean>,
+        epoch: Long,
+    ) = object : BluetoothGattServerCallback() {
+        override fun onServiceAdded(status: Int, service: BluetoothGattService) {
+            if (epoch != generation.get()) return
+            registration.complete(status == BluetoothGatt.GATT_SUCCESS)
+        }
+
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
+            if (epoch != generation.get()) return
             Log.i(TAG, "central ${device.address} status=$status newState=$newState")
             if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 subscribers.remove(device)
@@ -388,6 +457,7 @@ class BridgeServer(
         }
 
         override fun onNotificationSent(device: BluetoothDevice, status: Int) {
+            if (epoch != generation.get()) return
             notificationsInFlight.remove(device)
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 Log.w(TAG, "notification to ${device.address} failed status=$status")
@@ -404,6 +474,7 @@ class BridgeServer(
             offset: Int,
             descriptor: BluetoothGattDescriptor,
         ) {
+            if (epoch != generation.get()) return
             // The CCCD is readable (PERMISSION_READ), so a central
             // verifying subscription state expects a response. Reply
             // with the current value from our bookkeeping.
@@ -415,7 +486,11 @@ class BridgeServer(
             // Honor the read offset: a partial read must return only
             // the remaining bytes from `offset` onward, not the whole
             // value from position 0.
-            val response = if (offset >= value.size) {
+            if (offset < 0 || offset > value.size) {
+                gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_INVALID_OFFSET, offset, null)
+                return
+            }
+            val response = if (offset == value.size) {
                 byteArrayOf()
             } else {
                 value.copyOfRange(offset, value.size)
@@ -432,6 +507,13 @@ class BridgeServer(
             offset: Int,
             value: ByteArray,
         ) {
+            if (epoch != generation.get()) return
+            if (offset != 0) {
+                if (responseNeeded) gattServer?.sendResponse(
+                    device, requestId, BluetoothGatt.GATT_INVALID_OFFSET, offset, null,
+                )
+                return
+            }
             if (descriptor.uuid == BridgeProtocol.CCCD_UUID) {
                 // Prepared (long) writes are acknowledged but never
                 // committed: there is no onExecuteWrite override, so a
@@ -506,5 +588,13 @@ class BridgeServer(
         const val TAG = "BridgeServer"
         const val ADVERTISE_RETRY_BASE_MILLIS = 2_000
         const val ADVERTISE_RETRY_MAX_MILLIS = 30_000
+
+        /**
+         * How long to wait for `onServiceAdded` before treating the
+         * GATT registration as failed. The callback normally lands in
+         * a few milliseconds; a stack that has not answered in five
+         * seconds is not going to.
+         */
+        const val SERVICE_REGISTRATION_TIMEOUT_MILLIS = 5_000L
     }
 }

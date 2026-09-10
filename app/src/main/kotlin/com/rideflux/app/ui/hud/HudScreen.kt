@@ -33,11 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rideflux.app.R
 import com.rideflux.app.ui.dashboard.DashboardUiState
 import com.rideflux.app.ui.dashboard.DashboardViewModel
 import com.rideflux.domain.telemetry.RideMode
@@ -143,7 +145,7 @@ private fun SpeedBlock(speedKmh: Float?) {
         val display = speedKmh
             ?.takeIf { it.isFinite() }
             ?.let { kotlin.math.abs(it).roundToInt().toString() }
-            ?: "--"
+            ?: stringResource(R.string.value_unavailable)
         Text(
             text = display,
             fontSize = 220.sp,
@@ -152,7 +154,7 @@ private fun SpeedBlock(speedKmh: Float?) {
             textAlign = TextAlign.Center,
         )
         Text(
-            text = "km/h",
+            text = stringResource(R.string.unit_kmh),
             fontSize = 36.sp,
             fontWeight = FontWeight.Medium,
             color = HudWhite,
@@ -170,9 +172,11 @@ private fun BatteryBlock(percent: Float?, voltageV: Float?) {
         else -> HudGreen
     }
 
-    val pctText = clamped?.let { "${it.roundToInt()}%" } ?: "--%"
-    val voltText = voltageV?.takeIf { it.isFinite() }
-        ?.let { "%.1f V".format(Locale.ROOT, it) } ?: "-- V"
+    val dash = stringResource(R.string.value_unavailable)
+    val pctText = (clamped?.let { "${it.roundToInt()}" } ?: dash) +
+        stringResource(R.string.unit_percent)
+    val voltText = (voltageV?.takeIf { it.isFinite() }?.let { "%.1f".format(Locale.ROOT, it) } ?: dash) +
+        " " + stringResource(R.string.unit_volt)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -215,24 +219,28 @@ private fun StatusIconsRow(headlightOn: Boolean, rideMode: RideMode?) {
             iconContent = {
                 Icon(
                     imageVector = if (headlightOn) Icons.Filled.Lightbulb else Icons.Outlined.Lightbulb,
-                    contentDescription = if (headlightOn) "Headlight on" else "Headlight off",
+                    contentDescription = stringResource(
+                        if (headlightOn) R.string.hud_headlight_on else R.string.hud_headlight_off,
+                    ),
                     tint = if (headlightOn) HudCyan else HudWhite.copy(alpha = 0.5f),
                     modifier = Modifier.size(56.dp),
                 )
             },
-            label = if (headlightOn) "ON" else "OFF",
+            label = stringResource(
+                if (headlightOn) R.string.hud_label_on else R.string.hud_label_off,
+            ),
             labelColor = if (headlightOn) HudCyan else HudWhite.copy(alpha = 0.6f),
         )
         HudStatusTile(
             iconContent = {
                 Icon(
                     Icons.Filled.Speed,
-                    contentDescription = "Pedals mode",
+                    contentDescription = stringResource(R.string.hud_pedals_mode),
                     tint = HudCyan,
                     modifier = Modifier.size(56.dp),
                 )
             },
-            label = rideMode?.label?.ifBlank { null } ?: "—",
+            label = rideMode?.label?.ifBlank { null } ?: stringResource(R.string.value_em_dash),
             labelColor = HudWhite,
         )
     }

@@ -14,9 +14,10 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <!-- Fine location is only a runtime scan gate on API <= 30; on
          API 31+ BLUETOOTH_SCAN is used (marked neverForLocation). -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"
-        android:maxSdkVersion="30" />
+    <!-- Remove legacy caps inherited from the BLE libraries: trip GPS is also used on API 31+. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+        tools:remove="android:maxSdkVersion" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
@@ -38,7 +39,7 @@
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="RideFlux"
+        android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.RideFlux">
 

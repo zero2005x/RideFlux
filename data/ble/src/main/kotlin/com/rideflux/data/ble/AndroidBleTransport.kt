@@ -19,17 +19,11 @@ import android.os.Looper
 import android.util.Log
 import com.rideflux.domain.transport.BleTransport
 import kotlinx.coroutines.CancellableContinuation
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 import java.io.IOException
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -55,9 +49,11 @@ import kotlin.coroutines.resumeWithException
  * `suspend` methods therefore acquire [opMutex] and suspend on a
  * [CompletableDeferred] completed by the matching callback method.
  *
- * Callbacks fire on the platform's binder thread; we re-dispatch every
- * emission to [scope] so consumers see bytes on a predictable
- * dispatcher.
+ * Callbacks fire on the platform's binder thread; incoming fragments
+ * are handed to [IncomingPackets], a buffered channel, so the binder
+ * thread never runs consumer code and the byte stream keeps its
+ * arrival order. The collector of [incoming] therefore observes bytes
+ * on its own dispatcher, in order.
  *
  * ### Permissions
  * The Android manifest / runtime permission dance
@@ -70,17 +66,12 @@ class AndroidBleTransport internal constructor(
     private val context: Context,
     private val device: BluetoothDevice,
     private val topology: GattTopology,
-    private val scope: CoroutineScope,
 ) : BleTransport {
 
     // ---- Public flow ---------------------------------------------------
 
-    private val _incoming = MutableSharedFlow<ByteArray>(
-        replay = 0,
-        extraBufferCapacity = 256,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
-    override val incoming: Flow<ByteArray> = _incoming.asSharedFlow()
+    private val receivedPackets = IncomingPackets()
+    override val incoming: Flow<ByteArray> = receivedPackets.flow
 
     // ---- GATT state (single-writer via opMutex) ------------------------
 
@@ -91,13 +82,15 @@ class AndroidBleTransport internal constructor(
     @Volatile private var connected: Boolean = false
     @Volatile private var closed: Boolean = false
 
-    // Continuations completed by GATT callbacks. @Volatile: these are
-    // written from coroutines (connect/disconnect/write) and read on the
-    // binder callback thread, so without a happens-before edge a
-    // callback can observe a stale null and skip the resume — hanging
-    // the operation forever.
+    // Continuation completed by GATT callbacks. @Volatile: it is
+    // written from coroutines (connect) and read on the binder callback
+    // thread, so without a happens-before edge a callback can observe a
+    // stale null and skip the resume — hanging the operation forever.
+    //
+    // disconnect() deliberately has no counterpart: it no longer waits
+    // for onConnectionStateChange, because a vendor stack that never
+    // reports the teardown would strand the caller forever.
     @Volatile private var connectCont: CancellableContinuation<Unit>? = null
-    @Volatile private var disconnectCont: CancellableContinuation<Unit>? = null
 
     /**
      * A submitted write awaiting its `onCharacteristicWrite` callback,
@@ -198,9 +191,6 @@ class AndroidBleTransport internal constructor(
                     discoveryInFlight = false
                     Log.w(TAG, "GATT disconnected addr=${device.address} status=$status connected=$connected")
                     connected = false
-                    // Resume a pending disconnect, if any.
-                    disconnectCont?.takeIf { it.isActive }?.resume(Unit)
-                    disconnectCont = null
 
                     // Status 133 (GATT_ERROR / 0x85) is the BT stack's
                     // generic "connection attempt failed" code and is
@@ -309,9 +299,10 @@ class AndroidBleTransport internal constructor(
             c: BluetoothGattCharacteristic,
         ) {
             // Legacy API, still invoked on API < 33 and as a fallback.
+            if (g !== gatt || closed || c.uuid != notifyChar?.uuid) return
             val value = c.value ?: return
             Log.v(TAG, "notify(legacy) ${c.uuid} len=${value.size}")
-            dispatchIncoming(value.copyOf())
+            dispatchIncoming(value)
         }
 
         // API 33+ overload carries the value directly.
@@ -320,8 +311,9 @@ class AndroidBleTransport internal constructor(
             c: BluetoothGattCharacteristic,
             value: ByteArray,
         ) {
+            if (g !== gatt || closed || c.uuid != notifyChar?.uuid) return
             Log.v(TAG, "notify ${c.uuid} len=${value.size}")
-            dispatchIncoming(value.copyOf())
+            dispatchIncoming(value)
         }
 
         override fun onCharacteristicWrite(
@@ -357,61 +349,77 @@ class AndroidBleTransport internal constructor(
     // ---- Public API ----------------------------------------------------
 
     override suspend fun connect() {
-        opMutex.withLock {
-            check(!closed) { "transport has been closed" }
-            if (connected) return
-            connectRetriesUsed = 0
-            discoveryInFlight = false
-            suspendCancellableCoroutine<Unit> { cont ->
-                connectCont = cont
-                cont.invokeOnCancellation {
-                    connectCont = null
-                    // A cancelled connect must not leak the BluetoothGatt:
-                    // close it so its callbacks stop firing into stale
-                    // state and the link is actually torn down.
-                    cancelDiscoverWatchdog()
-                    cancelMtuFallback()
-                    cancelConnectSettle()
-                    discoveryInFlight = false
-                    try { gatt?.close() } catch (_: Throwable) { /* best-effort */ }
-                    gatt = null
-                }
-                try {
-                    // Create into a local first. If the coroutine is
-                    // cancelled while connectGatt() is executing, the
-                    // cancellation handler above closes whatever `gatt`
-                    // held at that moment (null) — publishing the fresh
-                    // instance afterwards would leak a live link whose
-                    // callbacks fire into already-nulled state. Publish
-                    // only while the continuation is still active.
-                    val newGatt: BluetoothGatt? =
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            device.connectGatt(
-                                context,
-                                /* autoConnect = */ false,
-                                callback,
-                                BluetoothDevice.TRANSPORT_LE,
-                            )
-                        } else {
-                            @Suppress("DEPRECATION")
-                            device.connectGatt(context, false, callback)
-                        }
-                    when {
-                        !cont.isActive -> {
-                            try {
-                                newGatt?.close()
-                            } catch (_: Throwable) { /* best-effort */ }
-                        }
-                        newGatt == null -> {
-                            connectCont = null
-                            cont.resumeWithException(IOException("connectGatt returned null"))
-                        }
-                        else -> gatt = newGatt
+        // Bound the whole link-up (connectGatt -> MTU -> discovery ->
+        // CCCD). Without it a vendor stack that never delivers a
+        // callback leaves the caller suspended forever, holding opMutex
+        // so even disconnect() could not make progress.
+        //
+        // The body lives in connectLocked() because withTimeout's block
+        // is not inline: an early `return` written directly inside it
+        // would not compile.
+        withTimeout(CONNECT_TIMEOUT_MILLIS) {
+            opMutex.withLock {
+                connectLocked()
+            }
+        }
+    }
+
+    /** Body of [connect]; the caller holds [opMutex]. */
+    private suspend fun connectLocked() {
+        check(!closed) { "transport has been closed" }
+        if (connected) return
+        connectRetriesUsed = 0
+        discoveryInFlight = false
+        suspendCancellableCoroutine<Unit> { cont ->
+            connectCont = cont
+            cont.invokeOnCancellation {
+                connectCont = null
+                receivedPackets.close(IOException("BLE connect cancelled or timed out"))
+                // A cancelled connect must not leak the BluetoothGatt:
+                // close it so its callbacks stop firing into stale
+                // state and the link is actually torn down.
+                cancelDiscoverWatchdog()
+                cancelMtuFallback()
+                cancelConnectSettle()
+                discoveryInFlight = false
+                try { gatt?.close() } catch (_: Throwable) { /* best-effort */ }
+                gatt = null
+            }
+            try {
+                // Create into a local first. If the coroutine is
+                // cancelled while connectGatt() is executing, the
+                // cancellation handler above closes whatever `gatt`
+                // held at that moment (null) — publishing the fresh
+                // instance afterwards would leak a live link whose
+                // callbacks fire into already-nulled state. Publish
+                // only while the continuation is still active.
+                val newGatt: BluetoothGatt? =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        device.connectGatt(
+                            context,
+                            /* autoConnect = */ false,
+                            callback,
+                            BluetoothDevice.TRANSPORT_LE,
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        device.connectGatt(context, false, callback)
                     }
-                } catch (t: Throwable) {
-                    connectCont = null
-                    cont.resumeWithException(t)
+                when {
+                    !cont.isActive -> {
+                        try {
+                            newGatt?.close()
+                        } catch (_: Throwable) { /* best-effort */ }
+                    }
+                    newGatt == null -> {
+                        connectCont = null
+                        cont.resumeWithException(IOException("connectGatt returned null"))
+                    }
+                    else -> gatt = newGatt
                 }
+            } catch (t: Throwable) {
+                connectCont = null
+                cont.resumeWithException(t)
             }
         }
     }
@@ -421,9 +429,17 @@ class AndroidBleTransport internal constructor(
         // this instance is single-use. A later connect() throws
         // "transport has been closed". Reconnects must allocate a fresh
         // transport (as WheelRepositoryImpl does per connection entry).
+        if (closed) return
+        closed = true
+        receivedPackets.close()
+        // Release connect() before waiting for its operation lock. A vendor
+        // stack may never report the pending connection or disconnection.
+        connectCont?.cancel()
+        cancelDiscoverWatchdog()
+        cancelMtuFallback()
+        cancelConnectSettle()
+        drainWriteQueueWithError(IOException("transport closed"))
         opMutex.withLock {
-            if (closed) return
-            closed = true
             val g = gatt ?: run {
                 connected = false
                 return
@@ -434,14 +450,7 @@ class AndroidBleTransport internal constructor(
                 return
             }
             try {
-                suspendCancellableCoroutine<Unit> { cont ->
-                    disconnectCont = cont
-                    cont.invokeOnCancellation { disconnectCont = null }
-                    try { g.disconnect() } catch (t: Throwable) {
-                        disconnectCont = null
-                        cont.resumeWithException(t)
-                    }
-                }
+                g.disconnect()
             } finally {
                 try { g.close() } catch (_: Throwable) { /* best-effort */ }
                 gatt = null
@@ -483,6 +492,7 @@ class AndroidBleTransport internal constructor(
                         connected = false
                         try { gatt?.close() } catch (_: Throwable) { /* best-effort */ }
                         gatt = null
+                        receivedPackets.close(IOException("BLE write timed out"))
                         drainWriteQueueWithError(
                             IOException("link invalidated after write timeout"),
                         )
@@ -519,28 +529,17 @@ class AndroidBleTransport internal constructor(
     // ---- Helpers -------------------------------------------------------
 
     private fun dispatchIncoming(bytes: ByteArray) {
-        // No UNDISPATCHED: it runs the body synchronously on the binder
-        // callback thread until the first real suspension, and because
-        // _incoming is a DROP_OLDEST SharedFlow with spare capacity,
-        // emit() effectively never suspends — so downstream collectors
-        // would execute on the binder thread, contradicting this class's
-        // documented "emissions are re-dispatched" contract.
-        scope.launch(Dispatchers.Default) {
-            try {
-                _incoming.emit(bytes)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (t: Throwable) {
-                // A throwing downstream collector must not escape this
-                // launch: depending on the injected scope's job type it
-                // would cancel the whole transport scope, killing
-                // connect/write/disconnect.
-                Log.w(TAG, "incoming collector failed: ${t.message}", t)
-            }
-        }
+        // Queue directly rather than launching a coroutine per fragment:
+        // concurrent launches can deliver fragments out of order, which
+        // corrupts a byte-stream protocol. [IncomingPackets] copies the
+        // array (the platform reuses its notification buffer) and the
+        // collector runs on its own dispatcher, so the binder thread
+        // never executes consumer code.
+        if (!closed) receivedPackets.offer(bytes)
     }
 
     private fun failConnect(cause: Throwable) {
+        receivedPackets.close(cause)
         val cont = connectCont
         if (cont != null && cont.isActive) {
             connectCont = null
@@ -824,6 +823,15 @@ class AndroidBleTransport internal constructor(
 
         /** Settle delay between a status=133 disconnect and the next connectGatt(). */
         const val RECONNECT_DELAY_MILLIS: Long = 600L
+
+        /**
+         * Upper bound for the whole connect() sequence, including the
+         * status=133 retries above (settle + MTU + discovery per
+         * attempt). Generous enough that a slow-but-working wheel is
+         * never cut off, short enough that a silent vendor stack cannot
+         * strand the caller — and opMutex with it — forever.
+         */
+        const val CONNECT_TIMEOUT_MILLIS: Long = 35_000L
 
         /**
          * Watchdog timeout for onServicesDiscovered. If the callback hasn't

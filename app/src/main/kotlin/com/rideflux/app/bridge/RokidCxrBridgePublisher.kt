@@ -120,8 +120,15 @@ internal class RokidCxrBridgePublisher(
         }
     }
 
+    // The interface method is `suspend` for the native-BLE publisher,
+    // which must await its GATT service registration. Nothing here
+    // suspends, so the body stays in a @Synchronized helper: open() and
+    // stop() mutate the same `running` / `targetDevice` state and must
+    // not interleave.
+    override suspend fun open(): Boolean = openBlocking()
+
     @Synchronized
-    override fun open(): Boolean {
+    private fun openBlocking(): Boolean {
         if (running) return true
         val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)
             ?.adapter
@@ -153,7 +160,12 @@ internal class RokidCxrBridgePublisher(
                     Log.w(TAG, "CXR frame source ended: ${error.message}")
                 }
                 .collect { frame ->
-                    val payload = BridgeCodec.encode(frame)
+                    val payload = try {
+                        BridgeCodec.encode(frame)
+                    } catch (t: Throwable) {
+                        Log.w(TAG, "dropping unencodable CXR frame: ${t.message}")
+                        return@collect
+                    }
                     latestPayload.set(payload)
                     if (connected) sendPayload(payload)
                 }

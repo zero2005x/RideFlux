@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Russian (Русский) translations for :app.
+-->
+<resources>
+
+    <string name="action_back">Назад</string>
+    <string name="action_open">Открыть</string>
+    <string name="action_scan">Поиск</string>
+    <string name="action_stop">Стоп</string>
+    <string name="action_clear_all">Очистить всё</string>
+    <string name="action_export_csv">Экспорт в CSV</string>
+    <string name="action_export_gpx">Экспорт в GPX</string>
+    <string name="action_delete_trip">Удалить поездку</string>
+    <string name="action_beep">Сигнал</string>
+    <string name="action_grant_permissions">Предоставить разрешения</string>
+    <string name="action_open_settings">Открыть настройки</string>
+    <string name="filter_all">Все</string>
+
+    <string name="scanner_title">Поиск моноколёс</string>
+    <string name="scanner_searching">Идёт поиск моноколёс…</string>
+    <string name="scanner_no_devices">Устройств пока нет</string>
+    <string name="scanner_no_devices_hint">Нажмите «Поиск», чтобы найти моноколёса поблизости.</string>
+    <string name="scanner_scan_failed">Ошибка поиска</string>
+    <string name="scanner_scan_failed_reason">Ошибка поиска: %1$s</string>
+    <string name="scanner_unknown_device">Неизвестное устройство</string>
+    <string name="scanner_device_family">Семейство: %1$s</string>
+
+    <string name="bridge_card_title">Мост HUD</string>
+    <string name="bridge_state_off">Выключен</string>
+    <string name="bridge_state_standby">Ожидание моноколеса</string>
+    <string name="bridge_state_attaching">Подключение к моноколесу</string>
+    <string name="bridge_state_relaying">Передача телеметрии</string>
+    <string name="bridge_state_degraded">Моноколесо недоступно · мост остаётся видимым</string>
+    <string name="glasses_link_stopped">передача остановлена</string>
+    <string name="glasses_link_starting">запуск связи с очками</string>
+    <string name="glasses_link_ready">ожидание очков</string>
+    <string name="glasses_link_connected">очки подключены</string>
+    <string name="glasses_link_error">ошибка связи с очками</string>
+    <string name="glasses_connection">Подключение очков</string>
+
+    <string name="page_dashboard">Панель</string>
+    <string name="page_graph">График</string>
+    <string name="page_parameters">Параметры</string>
+    <string name="page_battery">Батарея</string>
+    <string name="page_trips">Поездки</string>
+    <string name="page_events">События</string>
+    <string name="page_map">Карта</string>
+    <string name="dashboard_bridge_remove">Убрать моноколесо из моста HUD</string>
+    <string name="dashboard_bridge_send">Передать моноколесо в мост HUD</string>
+    <string name="dashboard_open_ar_hud">Открыть AR-HUD</string>
+    <string name="controls_headlight">Фара</string>
+    <string name="pedals_soft">Мягкий</string>
+    <string name="pedals_medium">Средний</string>
+    <string name="pedals_hard">Жёсткий</string>
+
+    <string name="alert_speed_limit_title">ПРЕВЫШЕНИЕ СКОРОСТИ</string>
+    <string name="alert_speed_limit_body">%1$s км/ч превышает %2$s км/ч</string>
+    <string name="alert_mos_temperature_title">ТЕМПЕРАТУРА MOS</string>
+    <string name="alert_mos_temperature_body">%1$s°C превышает %2$s°C</string>
+    <string name="alert_low_battery_title">НИЗКИЙ ЗАРЯД</string>
+    <string name="alert_low_battery_body">%1$s%% ниже %2$s%%</string>
+    <string name="alert_pwm_load_title">НАГРУЗКА PWM</string>
+    <string name="alert_pwm_load_body">%1$s%% превышает %2$s%%</string>
+    <string name="alert_tilt_back_title">ОТКЛОН НАЗАД</string>
+    <string name="alert_tilt_back_body">Скорость %1$s км/ч · предел %2$s км/ч</string>
+    <string name="alert_speed_cutoff_title">ОТКЛЮЧЕНИЕ МОТОРА</string>
+    <string name="alert_speed_cutoff_body">Мотор отключён на %1$s км/ч</string>
+    <string name="alert_wheel_low_battery_title">Низкий заряд</string>
+    <string name="alert_wheel_low_battery_body">Напряжение батареи %1$s В</string>
+    <string name="alert_over_temperature_title">Перегрев</string>
+    <string name="alert_fall_title">ОБНАРУЖЕНО ПАДЕНИЕ</string>
+    <string name="alert_fall_body">Моноколесо сообщает о падении</string>
+    <string name="alert_fault_set_title">Набор неисправностей изменён</string>
+    <string name="alert_faults_added">+%1$d неисправностей</string>
+    <string name="alert_faults_cleared">-%1$d устранено</string>
+    <string name="alert_updated">Обновлено</string>
+    <string name="alert_raw_title">Оповещение %1$s 0x%2$s</string>
+    <string name="alert_raw_body">%1$d байт</string>
+
+    <string name="events_header">События</string>
+    <string name="events_empty">Событий пока нет</string>
+    <string name="event_speed_limit">Превышение скорости</string>
+    <string name="event_mos_temperature">Температура MOS</string>
+    <string name="event_low_battery_threshold">Порог низкого заряда</string>
+    <string name="event_pwm_load">Нагрузка PWM</string>
+    <string name="event_tilt_back">Отклон назад</string>
+    <string name="event_speed_cutoff">Отключение мотора</string>
+    <string name="event_low_battery">Низкий заряд</string>
+    <string name="event_low_battery_body">Напряжение %1$s В</string>
+    <string name="event_over_temperature">Перегрев</string>
+    <string name="event_fall_detected">Обнаружено падение</string>
+    <string name="event_fault_set_changed">Набор неисправностей изменён</string>
+    <string name="event_raw_title">%1$s необработанное 0x%2$s</string>
+
+    <string name="section_speed">Скорость</string>
+    <string name="section_power">Мощность</string>
+    <string name="section_thermals">Температуры</string>
+    <string name="section_distance">Расстояние</string>
+    <string name="section_device">Устройство</string>
+    <string name="section_pack">Батарея</string>
+    <string name="section_cells">Ячейки</string>
+    <string name="section_current_ride">Текущая поездка</string>
+    <string name="section_lifetime">За всё время</string>
+    <string name="section_saved_rides">Сохранённые поездки</string>
+    <string name="section_route">Маршрут</string>
+
+    <string name="metric_speed">Скорость</string>
+    <string name="metric_max">Макс.</string>
+    <string name="metric_average">Средняя</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">Напряжение</string>
+    <string name="metric_current">Ток</string>
+    <string name="metric_phase_current">Фазный ток</string>
+    <string name="metric_power">Мощность</string>
+    <string name="metric_battery">Заряд</string>
+    <string name="metric_battery_voltage">Напряжение батареи</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">Темп. MOS</string>
+    <string name="metric_motor">Мотор</string>
+    <string name="metric_battery_temp">Темп. батареи</string>
+    <string name="metric_board">Плата</string>
+    <string name="metric_trip">Поездка</string>
+    <string name="metric_total">Всего</string>
+    <string name="metric_ride_time">Время в пути</string>
+    <string name="metric_mode">Режим</string>
+    <string name="metric_model">Модель</string>
+    <string name="metric_family">Семейство</string>
+    <string name="metric_firmware">Прошивка</string>
+    <string name="metric_address">Адрес</string>
+    <string name="metric_state_of_charge">Уровень заряда</string>
+    <string name="metric_trip_distance">Расстояние поездки</string>
+    <string name="metric_max_speed">Макс. скорость</string>
+    <string name="metric_avg_speed">Средняя скорость</string>
+    <string name="metric_total_distance">Общий пробег</string>
+    <string name="metric_vehicle">Транспорт</string>
+    <string name="unit_hms">ч:м:с</string>
+
+    <string name="bms_per_cell_title">Данные по ячейкам</string>
+    <string name="bms_per_cell_body">Это моноколесо не передаёт напряжения отдельных ячеек по каналу телеметрии BLE. Данные умного BMS доступны только в сборках, где UART BMS подключён к контроллеру, — ни одно из поддерживаемых семейств так не устроено.</string>
+
+    <string name="graph_header">ТЕЛЕМЕТРИЯ</string>
+    <string name="graph_waiting">Ожидание данных телеметрии…</string>
+    <string name="series_speed_kmh">Скорость (км/ч)</string>
+    <string name="series_speed_mph">Скорость (миль/ч)</string>
+    <string name="series_battery">Заряд (%%)</string>
+    <string name="series_current">Ток (А)</string>
+    <string name="series_mos">MOS (°C)</string>
+    <string name="series_voltage">Напряжение (В)</string>
+
+    <string name="map_no_location_permission">Разрешение на геолокацию не выдано</string>
+    <string name="map_waiting_fix">Ожидание сигнала GPS…</string>
+    <string name="map_track_preview">Офлайн-просмотр трека • %1$d точек GPS</string>
+
+    <string name="trips_stop_recording">Остановить запись</string>
+    <string name="trips_saved_empty">Завершённые поездки появятся здесь и сохранятся после перезапуска.</string>
+    <string name="trip_history_title">История поездок</string>
+    <string name="trip_history_subtitle">Просмотр и экспорт локально сохранённых поездок</string>
+    <string name="trip_none_saved">Сохранённых поездок пока нет</string>
+    <string name="trip_details_title">Сведения о поездке</string>
+    <string name="trip_not_found">Поездка не найдена</string>
+    <string name="trip_summary_card">%1$s км  •  %2$s  •  макс %3$s км/ч</string>
+    <string name="trip_summary_detail">%1$s км  •  %2$s  •  сред %3$s км/ч  •  макс %4$s км/ч</string>
+
+    <string name="settings_title">Настройки</string>
+    <string name="settings_section_alerts">Оповещения</string>
+    <string name="settings_enable_alerts_title">Включить пороговые оповещения</string>
+    <string name="settings_enable_alerts_subtitle">Проверять пределы безопасности на телефоне</string>
+    <string name="settings_speed_limit">Ограничение скорости</string>
+    <string name="settings_mos_temperature">Температура MOS</string>
+    <string name="settings_low_battery">Низкий заряд</string>
+    <string name="settings_pwm_load">Нагрузка PWM</string>
+    <string name="settings_section_display">Отображение</string>
+    <string name="settings_metric_units_title">Метрические единицы</string>
+    <string name="settings_metric_units_subtitle">Отключите для миль и миль/ч</string>
+    <string name="settings_keep_awake_title">Не гасить панель</string>
+    <string name="settings_keep_awake_subtitle">Экран не засыпает во время поездки</string>
+    <string name="settings_section_hud_bridge">Мост HUD</string>
+    <string name="settings_bridge_autostart_title">Запускать мост автоматически</string>
+    <string name="settings_bridge_autostart_subtitle">Переходить в ожидание при запуске RideFlux или загрузке телефона</string>
+    <string name="settings_low_latency_title">Ожидание с низкой задержкой</string>
+    <string name="settings_low_latency_subtitle">Расходует больше заряда в ожидании моноколеса</string>
+    <string name="settings_paired_mac">MAC сопряжённого телефона</string>
+    <string name="settings_paired_mac_unset">Задаётся на очках во время сопряжения</string>
+    <string name="settings_section_about">О приложении</string>
+    <string name="settings_about_subtitle">Телеметрия и мост HUD, работающие офлайн</string>
+
+    <string name="permission_bluetooth_title">Требуется разрешение Bluetooth</string>
+    <string name="permission_bluetooth_body">RideFlux нужны разрешения на поиск и подключение по Bluetooth, чтобы найти моноколесо и обмениваться с ним данными.</string>
+
+    <string name="hud_headlight_on">Фара включена</string>
+    <string name="hud_headlight_off">Фара выключена</string>
+    <string name="hud_pedals_mode">Режим педалей</string>
+    <string name="hud_label_on">ВКЛ</string>
+    <string name="hud_label_off">ВЫКЛ</string>
+
+    <string name="notification_channel_bridge">Мост RideFlux</string>
+    <string name="notification_bridge_title">RideFlux → мост HUD</string>
+    <string name="notification_bridge_standby">Ожидание моноколеса; очки уже могут подключиться</string>
+    <string name="notification_bridge_attaching">Подключение к выбранному моноколесу</string>
+    <string name="notification_bridge_relaying">Передача телеметрии на очки</string>
+    <string name="notification_bridge_degraded">Моноколесо недоступно; мост остаётся видимым</string>
+    <string name="notification_channel_recording">Запись поездок</string>
+    <string name="notification_recording_title">RideFlux ведёт запись</string>
+    <string name="notification_recording_text">Телеметрия сохраняется локально</string>
+
+</resources>

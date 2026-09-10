@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Japanese (日本語) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">スマホを\n待機中</string>
+    <string name="hud_waiting_phone_subtitle">RideFlux を検索中…</string>
+    <string name="hud_phone_connected_title">スマホ\n接続済み</string>
+    <string name="hud_phone_standby_subtitle">スマホ %1$s  ·  グラス %2$s</string>
+    <string name="hud_scanning_title">検索中</string>
+    <string name="hud_scanning_subtitle">車両を検索中…</string>
+    <string name="hud_connecting_title">接続中</string>
+    <string name="hud_offline">オフライン</string>
+    <string name="hud_offline_reason">オフライン · %1$s</string>
+    <string name="hud_action_retry">再試行</string>
+    <string name="hud_action_scan">スキャン</string>
+    <string name="hud_action_pair_phone">ペア設定</string>
+    <string name="hud_stale">古いデータ</string>
+    <string name="hud_signal_good">良好</string>
+    <string name="hud_signal_weak">弱い</string>
+    <string name="hud_signal_none">オフライン</string>
+    <string name="hud_settings_title">HUD 設定</string>
+    <string name="hud_settings_close">閉じる</string>
+    <string name="hud_settings_exit">終了</string>
+    <string name="hud_settings_pair_with_phone">スマホとペア設定</string>
+    <string name="hud_limit_speed">速度</string>
+    <string name="hud_limit_mos_temp">MOS 温度</string>
+    <string name="hud_limit_low_battery">バッテリー低下</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">Bluetooth の権限が必要です</string>
+    <string name="permission_bluetooth_body">ホイールに接続するために、RideFlux HUD には Bluetooth のスキャンと接続の権限が必要です。</string>
+    <string name="permission_location_body">Bluetooth でホイールを検出して接続するために、RideFlux HUD には位置情報へのアクセスが必要です。</string>
+    <string name="action_open_settings">設定を開く</string>
+</resources>

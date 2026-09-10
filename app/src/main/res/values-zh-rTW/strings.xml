@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Traditional Chinese (華語) translations for :app.
+-->
+<resources>
+
+    <string name="action_back">返回</string>
+    <string name="action_open">開啟</string>
+    <string name="action_scan">掃描</string>
+    <string name="action_stop">停止</string>
+    <string name="action_clear_all">全部清除</string>
+    <string name="action_export_csv">匯出 CSV</string>
+    <string name="action_export_gpx">匯出 GPX</string>
+    <string name="action_delete_trip">刪除行程</string>
+    <string name="action_beep">鳴笛</string>
+    <string name="action_grant_permissions">授予權限</string>
+    <string name="action_open_settings">開啟設定</string>
+    <string name="filter_all">全部</string>
+
+    <string name="scanner_title">掃描車輛</string>
+    <string name="scanner_searching">正在搜尋車輛…</string>
+    <string name="scanner_no_devices">尚未發現裝置</string>
+    <string name="scanner_no_devices_hint">點擊「掃描」以搜尋附近的車輛。</string>
+    <string name="scanner_scan_failed">掃描失敗</string>
+    <string name="scanner_scan_failed_reason">掃描失敗：%1$s</string>
+    <string name="scanner_unknown_device">未知裝置</string>
+    <string name="scanner_device_family">協定家族：%1$s</string>
+
+    <string name="bridge_card_title">HUD 橋接</string>
+    <string name="bridge_state_off">已關閉</string>
+    <string name="bridge_state_standby">等待車輛</string>
+    <string name="bridge_state_attaching">正在連線車輛</string>
+    <string name="bridge_state_relaying">正在轉送遙測資料</string>
+    <string name="bridge_state_degraded">車輛無法使用 · 仍可被搜尋</string>
+    <string name="glasses_link_stopped">傳輸已停止</string>
+    <string name="glasses_link_starting">正在啟動眼鏡連線</string>
+    <string name="glasses_link_ready">等待眼鏡</string>
+    <string name="glasses_link_connected">眼鏡已連線</string>
+    <string name="glasses_link_error">眼鏡連線錯誤</string>
+    <string name="glasses_connection">眼鏡連線方式</string>
+
+    <string name="page_dashboard">儀表板</string>
+    <string name="page_graph">圖表</string>
+    <string name="page_parameters">參數</string>
+    <string name="page_battery">電池</string>
+    <string name="page_trips">行程</string>
+    <string name="page_events">事件</string>
+    <string name="page_map">地圖</string>
+    <string name="dashboard_bridge_remove">從 HUD 橋接中移除車輛</string>
+    <string name="dashboard_bridge_send">將車輛送至 HUD 橋接</string>
+    <string name="dashboard_open_ar_hud">開啟 AR HUD</string>
+    <string name="controls_headlight">大燈</string>
+    <string name="pedals_soft">柔和</string>
+    <string name="pedals_medium">中等</string>
+    <string name="pedals_hard">強硬</string>
+
+    <string name="alert_speed_limit_title">超速</string>
+    <string name="alert_speed_limit_body">%1$s km/h 已超過 %2$s km/h</string>
+    <string name="alert_mos_temperature_title">MOS 溫度</string>
+    <string name="alert_mos_temperature_body">%1$s°C 已超過 %2$s°C</string>
+    <string name="alert_low_battery_title">電量過低</string>
+    <string name="alert_low_battery_body">%1$s%% 低於 %2$s%%</string>
+    <string name="alert_pwm_load_title">PWM 負載</string>
+    <string name="alert_pwm_load_body">%1$s%% 已超過 %2$s%%</string>
+    <string name="alert_tilt_back_title">回正提醒</string>
+    <string name="alert_tilt_back_body">時速 %1$s km/h · 限速 %2$s km/h</string>
+    <string name="alert_speed_cutoff_title">斷電保護</string>
+    <string name="alert_speed_cutoff_body">馬達於 %1$s km/h 斷電</string>
+    <string name="alert_wheel_low_battery_title">電量過低</string>
+    <string name="alert_wheel_low_battery_body">電池組電壓 %1$s V</string>
+    <string name="alert_over_temperature_title">溫度過高</string>
+    <string name="alert_fall_title">偵測到摔車</string>
+    <string name="alert_fall_body">車輛回報了一次摔倒事件</string>
+    <string name="alert_fault_set_title">故障狀態已變更</string>
+    <string name="alert_faults_added">新增 %1$d 項故障</string>
+    <string name="alert_faults_cleared">已清除 %1$d 項</string>
+    <string name="alert_updated">已更新</string>
+    <string name="alert_raw_title">%1$s 警示 0x%2$s</string>
+    <string name="alert_raw_body">%1$d 位元組</string>
+
+    <string name="events_header">事件</string>
+    <string name="events_empty">尚無事件</string>
+    <string name="event_speed_limit">超速</string>
+    <string name="event_mos_temperature">MOS 溫度</string>
+    <string name="event_low_battery_threshold">低電量門檻</string>
+    <string name="event_pwm_load">PWM 負載</string>
+    <string name="event_tilt_back">回正提醒</string>
+    <string name="event_speed_cutoff">斷電保護</string>
+    <string name="event_low_battery">電量過低</string>
+    <string name="event_low_battery_body">電壓 %1$s V</string>
+    <string name="event_over_temperature">溫度過高</string>
+    <string name="event_fall_detected">偵測到摔車</string>
+    <string name="event_fault_set_changed">故障狀態已變更</string>
+    <string name="event_raw_title">%1$s 原始 0x%2$s</string>
+
+    <string name="section_speed">速度</string>
+    <string name="section_power">電力</string>
+    <string name="section_thermals">溫度</string>
+    <string name="section_distance">里程</string>
+    <string name="section_device">裝置</string>
+    <string name="section_pack">電池組</string>
+    <string name="section_cells">電芯</string>
+    <string name="section_current_ride">本次騎乘</string>
+    <string name="section_lifetime">累計</string>
+    <string name="section_saved_rides">已儲存的行程</string>
+    <string name="section_route">路線</string>
+
+    <string name="metric_speed">時速</string>
+    <string name="metric_max">最高</string>
+    <string name="metric_average">平均</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">電壓</string>
+    <string name="metric_current">電流</string>
+    <string name="metric_phase_current">相電流</string>
+    <string name="metric_power">功率</string>
+    <string name="metric_battery">電量</string>
+    <string name="metric_battery_voltage">電池電壓</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">MOS 溫度</string>
+    <string name="metric_motor">馬達</string>
+    <string name="metric_battery_temp">電池溫度</string>
+    <string name="metric_board">主機板</string>
+    <string name="metric_trip">本次里程</string>
+    <string name="metric_total">總里程</string>
+    <string name="metric_ride_time">騎乘時間</string>
+    <string name="metric_mode">模式</string>
+    <string name="metric_model">型號</string>
+    <string name="metric_family">協定家族</string>
+    <string name="metric_firmware">韌體</string>
+    <string name="metric_address">位址</string>
+    <string name="metric_state_of_charge">剩餘電量</string>
+    <string name="metric_trip_distance">本次里程</string>
+    <string name="metric_max_speed">最高時速</string>
+    <string name="metric_avg_speed">平均時速</string>
+    <string name="metric_total_distance">總里程</string>
+    <string name="metric_vehicle">車輛</string>
+    <string name="unit_hms">時:分:秒</string>
+
+    <string name="bms_per_cell_title">單芯資料</string>
+    <string name="bms_per_cell_body">此車輛不會透過 BLE 遙測連線提供各電芯電壓。只有將 BMS UART 接到控制器的機種才會提供智慧 BMS 資料——目前已連線的家族皆不支援。</string>
+
+    <string name="graph_header">遙測</string>
+    <string name="graph_waiting">正在等待遙測資料…</string>
+    <string name="series_speed_kmh">時速（km/h）</string>
+    <string name="series_speed_mph">時速（mph）</string>
+    <string name="series_battery">電量（%%）</string>
+    <string name="series_current">電流（A）</string>
+    <string name="series_mos">MOS（°C）</string>
+    <string name="series_voltage">電壓（V）</string>
+
+    <string name="map_no_location_permission">尚未授予定位權限</string>
+    <string name="map_waiting_fix">正在等待 GPS 定位…</string>
+    <string name="map_track_preview">離線軌跡預覽 • %1$d 個 GPS 點</string>
+
+    <string name="trips_stop_recording">停止記錄</string>
+    <string name="trips_saved_empty">已完成的行程會顯示在這裡，並在重新啟動後保留。</string>
+    <string name="trip_history_title">行程歷史</string>
+    <string name="trip_history_subtitle">瀏覽並匯出本機儲存的騎乘記錄</string>
+    <string name="trip_none_saved">尚無儲存的行程</string>
+    <string name="trip_details_title">行程詳情</string>
+    <string name="trip_not_found">找不到該行程</string>
+    <string name="trip_summary_card">%1$s km  •  %2$s  •  最高 %3$s km/h</string>
+    <string name="trip_summary_detail">%1$s km  •  %2$s  •  平均 %3$s km/h  •  最高 %4$s km/h</string>
+
+    <string name="settings_title">設定</string>
+    <string name="settings_section_alerts">警示</string>
+    <string name="settings_enable_alerts_title">啟用門檻警示</string>
+    <string name="settings_enable_alerts_subtitle">由手機端判斷安全上限</string>
+    <string name="settings_speed_limit">速度上限</string>
+    <string name="settings_mos_temperature">MOS 溫度</string>
+    <string name="settings_low_battery">低電量</string>
+    <string name="settings_pwm_load">PWM 負載</string>
+    <string name="settings_section_display">顯示</string>
+    <string name="settings_metric_units_title">公制單位</string>
+    <string name="settings_metric_units_subtitle">關閉後改用英里與 mph</string>
+    <string name="settings_keep_awake_title">保持儀表板不休眠</string>
+    <string name="settings_keep_awake_subtitle">騎乘時不讓螢幕進入休眠</string>
+    <string name="settings_section_hud_bridge">HUD 橋接</string>
+    <string name="settings_bridge_autostart_title">自動啟動橋接</string>
+    <string name="settings_bridge_autostart_subtitle">在 RideFlux 啟動或手機開機時進入待機</string>
+    <string name="settings_low_latency_title">低延遲待機</string>
+    <string name="settings_low_latency_subtitle">等待車輛時會消耗較多電量</string>
+    <string name="settings_paired_mac">已配對手機 MAC</string>
+    <string name="settings_paired_mac_unset">於 HUD 端配對時設定</string>
+    <string name="settings_section_about">關於</string>
+    <string name="settings_about_subtitle">離線優先的車輛遙測與 HUD 橋接</string>
+
+    <string name="permission_bluetooth_title">需要藍牙權限</string>
+    <string name="permission_bluetooth_body">RideFlux 需要藍牙掃描與連線權限，才能找到並與你的車輛通訊。</string>
+
+    <string name="hud_headlight_on">大燈已開啟</string>
+    <string name="hud_headlight_off">大燈已關閉</string>
+    <string name="hud_pedals_mode">踏板模式</string>
+    <string name="hud_label_on">開</string>
+    <string name="hud_label_off">關</string>
+
+    <string name="notification_channel_bridge">RideFlux 橋接</string>
+    <string name="notification_bridge_title">RideFlux → HUD 橋接</string>
+    <string name="notification_bridge_standby">等待車輛中；眼鏡可連線</string>
+    <string name="notification_bridge_attaching">正在連線所選車輛</string>
+    <string name="notification_bridge_relaying">正在將車輛遙測轉送至眼鏡</string>
+    <string name="notification_bridge_degraded">車輛無法使用；橋接仍可被搜尋</string>
+    <string name="notification_channel_recording">行程記錄</string>
+    <string name="notification_recording_title">RideFlux 正在記錄</string>
+    <string name="notification_recording_text">車輛遙測資料正儲存至本機</string>
+
+</resources>

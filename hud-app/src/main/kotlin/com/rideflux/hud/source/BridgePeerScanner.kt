@@ -34,7 +34,7 @@ class BridgePeerScanner(context: Context) {
             close(IllegalStateException("Bluetooth scanner unavailable"))
             return@callbackFlow
         }
-        val found = mutableMapOf<String, BridgePeerCandidate>()
+        val found = java.util.Collections.synchronizedMap(mutableMapOf<String, BridgePeerCandidate>())
         // Vendor stacks (early RV101 firmware) can mishandle hardware
         // service-UUID filters and return nothing at all; after a short
         // silence restart the scan unfiltered and match the advertised
@@ -53,8 +53,9 @@ class BridgePeerScanner(context: Context) {
                     name = result.scanRecord?.deviceName,
                     rssi = result.rssi,
                 )
-                found[candidate.address] = candidate
-                trySend(found.values.sortedByDescending(BridgePeerCandidate::rssi))
+                synchronized(found) { found[candidate.address] = candidate }
+                val snapshot = synchronized(found) { found.values.sortedByDescending(BridgePeerCandidate::rssi) }
+                trySend(snapshot)
             }
 
             override fun onScanFailed(errorCode: Int) {
@@ -67,11 +68,17 @@ class BridgePeerScanner(context: Context) {
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
-        scanner.startScan(listOf(filter), settings, callback)
+        try {
+            scanner.startScan(listOf(filter), settings, callback)
+        } catch (t: Throwable) {
+            close(t)
+            return@callbackFlow
+        }
 
         launch {
             delay(FILTER_FALLBACK_MILLIS)
-            if (found.isEmpty() && !filterExpired.getAndSet(true)) {
+            val isEmpty = synchronized(found) { found.isEmpty() }
+            if (isEmpty && !filterExpired.getAndSet(true)) {
                 Log.w(
                     TAG,
                     "no candidates with service-UUID filter after ${FILTER_FALLBACK_MILLIS}ms — " +
@@ -88,7 +95,7 @@ class BridgePeerScanner(context: Context) {
             }
         }
 
-        awaitClose { scanner.stopScan(callback) }
+        awaitClose { try { scanner.stopScan(callback) } catch (_: Throwable) { } }
     }
 
     private companion object {

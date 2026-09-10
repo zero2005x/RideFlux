@@ -45,6 +45,8 @@ data class HudTelemetryFrame(
     val phoneBatteryPercent: Int? = null,
     /** Bridge-only phone/wheel availability. Null for direct-wheel mode. */
     val bridgeLinkState: BridgeLinkState? = null,
+    /** Phone-owned trip clock; null in direct mode or when unknown. */
+    val tripDurationSeconds: Long? = null,
 )
 
 /**

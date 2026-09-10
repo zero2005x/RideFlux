@@ -430,7 +430,7 @@ class BridgeService : Service() {
             manager.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_ID,
-                    "RideFlux Bridge",
+                    getString(com.rideflux.app.R.string.notification_channel_bridge),
                     NotificationManager.IMPORTANCE_LOW,
                 ),
             )
@@ -455,14 +455,17 @@ class BridgeService : Service() {
             @Suppress("DEPRECATION")
             Notification.Builder(this)
         }
-        val detail = when (state) {
-            BridgeState.STOPPED, BridgeState.STANDBY -> "Waiting for a wheel; glasses can connect"
-            BridgeState.ATTACHING -> "Connecting to the selected wheel"
-            BridgeState.RELAYING -> "Relaying wheel telemetry to glasses"
-            BridgeState.DEGRADED -> "Wheel unavailable; bridge remains discoverable"
-        }
+        val detail = getString(
+            when (state) {
+                BridgeState.STOPPED, BridgeState.STANDBY ->
+                    com.rideflux.app.R.string.notification_bridge_standby
+                BridgeState.ATTACHING -> com.rideflux.app.R.string.notification_bridge_attaching
+                BridgeState.RELAYING -> com.rideflux.app.R.string.notification_bridge_relaying
+                BridgeState.DEGRADED -> com.rideflux.app.R.string.notification_bridge_degraded
+            },
+        )
         return builder
-            .setContentTitle("RideFlux → HUD bridge")
+            .setContentTitle(getString(com.rideflux.app.R.string.notification_bridge_title))
             .setContentText(detail)
             .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
             .setOngoing(true)

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Modern Standard Arabic (العربية) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">بانتظار\nالهاتف</string>
+    <string name="hud_waiting_phone_subtitle">جارٍ البحث عن RideFlux…</string>
+    <string name="hud_phone_connected_title">تم الاتصال\nبالهاتف</string>
+    <string name="hud_phone_standby_subtitle">الهاتف %1$s  ·  النظارة %2$s</string>
+    <string name="hud_scanning_title">جارٍ البحث</string>
+    <string name="hud_scanning_subtitle">جارٍ البحث عن المركبة…</string>
+    <string name="hud_connecting_title">جارٍ الاتصال</string>
+    <string name="hud_offline">غير متصل</string>
+    <string name="hud_offline_reason">غير متصل · %1$s</string>
+    <string name="hud_action_retry">إعادة المحاولة</string>
+    <string name="hud_action_scan">بحث</string>
+    <string name="hud_action_pair_phone">اقتران الهاتف</string>
+    <string name="hud_stale">بيانات قديمة</string>
+    <string name="hud_signal_good">جيدة</string>
+    <string name="hud_signal_weak">ضعيفة</string>
+    <string name="hud_signal_none">غير متصل</string>
+    <string name="hud_settings_title">إعدادات HUD</string>
+    <string name="hud_settings_close">إغلاق</string>
+    <string name="hud_settings_exit">خروج</string>
+    <string name="hud_settings_pair_with_phone">الاقتران بالهاتف</string>
+    <string name="hud_limit_speed">السرعة</string>
+    <string name="hud_limit_mos_temp">حرارة MOS</string>
+    <string name="hud_limit_low_battery">انخفاض البطارية</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">إذن البلوتوث مطلوب</string>
+    <string name="permission_bluetooth_body">يحتاج RideFlux HUD إلى إذني البحث والاتصال عبر البلوتوث للوصول إلى عجلتك.</string>
+    <string name="permission_location_body">يحتاج RideFlux HUD إلى إذن الموقع لاكتشاف عجلتك والاتصال بها عبر البلوتوث.</string>
+    <string name="action_open_settings">فتح الإعدادات</string>
+</resources>

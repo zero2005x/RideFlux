@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Simplified Chinese (华语) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">等待\n手机</string>
+    <string name="hud_waiting_phone_subtitle">正在搜索 RideFlux…</string>
+    <string name="hud_phone_connected_title">手机\n已连接</string>
+    <string name="hud_phone_standby_subtitle">手机 %1$s  ·  眼镜 %2$s</string>
+    <string name="hud_scanning_title">搜索中</string>
+    <string name="hud_scanning_subtitle">正在寻找车辆…</string>
+    <string name="hud_connecting_title">连接中</string>
+    <string name="hud_offline">离线</string>
+    <string name="hud_offline_reason">离线 · %1$s</string>
+    <string name="hud_action_retry">重试</string>
+    <string name="hud_action_scan">扫描</string>
+    <string name="hud_action_pair_phone">配对手机</string>
+    <string name="hud_stale">数据过期</string>
+    <string name="hud_signal_good">良好</string>
+    <string name="hud_signal_weak">较弱</string>
+    <string name="hud_signal_none">离线</string>
+    <string name="hud_settings_title">HUD 设置</string>
+    <string name="hud_settings_close">关闭</string>
+    <string name="hud_settings_exit">退出</string>
+    <string name="hud_settings_pair_with_phone">与手机配对</string>
+    <string name="hud_limit_speed">速度</string>
+    <string name="hud_limit_mos_temp">MOS 温度</string>
+    <string name="hud_limit_low_battery">低电量</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">需要蓝牙权限</string>
+    <string name="permission_bluetooth_body">RideFlux HUD 需要蓝牙扫描与连接权限，才能连上你的车辆。</string>
+    <string name="permission_location_body">RideFlux HUD 需要定位权限，才能透过蓝牙发现并连接你的车辆。</string>
+    <string name="action_open_settings">打开设置</string>
+</resources>

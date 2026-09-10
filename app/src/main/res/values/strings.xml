@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+
+  Default (English) strings for :app.
+
+  This file is the translation source of truth. Every `values-<locale>/`
+  sibling must define exactly the same key set — `LocalizationCoverageTest`
+  fails the build otherwise. Strings that must never be translated are
+  marked `translatable="false"` and are omitted from the locale files.
+-->
+<resources>
+
+    <!-- ===== Application / brand ===================================== -->
+    <string name="app_name" translatable="false">RideFlux</string>
+    <string name="link_mode_android_ble" translatable="false">Android BLE</string>
+    <string name="link_mode_rokid_cxr" translatable="false">Rokid CXR</string>
+    <string name="value_unavailable" translatable="false">--</string>
+    <string name="value_em_dash" translatable="false">—</string>
+    <string name="unit_percent" translatable="false">%</string>
+    <string name="unit_volt" translatable="false">V</string>
+    <string name="unit_ampere" translatable="false">A</string>
+    <string name="unit_watt" translatable="false">W</string>
+    <string name="unit_celsius" translatable="false">°C</string>
+    <string name="unit_kmh" translatable="false">km/h</string>
+    <string name="unit_dbm" translatable="false">%1$d dBm</string>
+    <string name="slider_value" translatable="false">%1$d %2$s</string>
+    <string name="bridge_status_combined" translatable="false">%1$s · %2$s</string>
+
+    <!-- ===== Shared actions ========================================== -->
+    <string name="action_back">Back</string>
+    <string name="action_open">Open</string>
+    <string name="action_scan">Scan</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_clear_all">Clear all</string>
+    <string name="action_export_csv">Export CSV</string>
+    <string name="action_export_gpx">Export GPX</string>
+    <string name="action_delete_trip">Delete trip</string>
+    <string name="action_beep">Beep</string>
+    <string name="action_grant_permissions">Grant permissions</string>
+    <string name="action_open_settings">Open settings</string>
+    <string name="filter_all">All</string>
+
+    <!-- ===== Scanner screen ========================================== -->
+    <string name="scanner_title">Scan for wheels</string>
+    <string name="scanner_searching">Searching for wheels…</string>
+    <string name="scanner_no_devices">No devices yet</string>
+    <string name="scanner_no_devices_hint">Tap Scan to search for nearby wheels.</string>
+    <string name="scanner_scan_failed">Scan failed</string>
+    <string name="scanner_scan_failed_reason">Scan failed: %1$s</string>
+    <string name="scanner_unknown_device">Unknown device</string>
+    <string name="scanner_device_family">Family: %1$s</string>
+
+    <!-- ===== HUD bridge card ========================================= -->
+    <string name="bridge_card_title">HUD bridge</string>
+    <string name="bridge_state_off">Off</string>
+    <string name="bridge_state_standby">Waiting for a wheel</string>
+    <string name="bridge_state_attaching">Connecting to wheel</string>
+    <string name="bridge_state_relaying">Relaying telemetry</string>
+    <string name="bridge_state_degraded">Wheel unavailable · still discoverable</string>
+    <string name="glasses_link_stopped">transport stopped</string>
+    <string name="glasses_link_starting">starting glasses link</string>
+    <string name="glasses_link_ready">waiting for glasses</string>
+    <string name="glasses_link_connected">glasses connected</string>
+    <string name="glasses_link_error">glasses link error</string>
+    <string name="glasses_connection">Glasses connection</string>
+
+    <!-- ===== Dashboard chrome ======================================== -->
+    <string name="page_dashboard">Dashboard</string>
+    <string name="page_graph">Graph</string>
+    <string name="page_parameters">Parameters</string>
+    <string name="page_battery">Battery</string>
+    <string name="page_trips">Trips</string>
+    <string name="page_events">Events</string>
+    <string name="page_map">Map</string>
+    <string name="dashboard_bridge_remove">Remove wheel from HUD bridge</string>
+    <string name="dashboard_bridge_send">Send wheel to HUD bridge</string>
+    <string name="dashboard_open_ar_hud">Open AR HUD</string>
+    <string name="controls_headlight">Headlight</string>
+    <string name="pedals_soft">Soft</string>
+    <string name="pedals_medium">Medium</string>
+    <string name="pedals_hard">Hard</string>
+
+    <!-- ===== Alert banner ============================================ -->
+    <string name="alert_speed_limit_title">SPEED LIMIT</string>
+    <string name="alert_speed_limit_body">%1$s km/h exceeds %2$s km/h</string>
+    <string name="alert_mos_temperature_title">MOS TEMPERATURE</string>
+    <string name="alert_mos_temperature_body">%1$s°C exceeds %2$s°C</string>
+    <string name="alert_low_battery_title">LOW BATTERY</string>
+    <string name="alert_low_battery_body">%1$s%% is below %2$s%%</string>
+    <string name="alert_pwm_load_title">PWM LOAD</string>
+    <string name="alert_pwm_load_body">%1$s%% exceeds %2$s%%</string>
+    <string name="alert_tilt_back_title">TILT-BACK</string>
+    <string name="alert_tilt_back_body">Speed %1$s km/h · limit %2$s km/h</string>
+    <string name="alert_speed_cutoff_title">SPEED CUTOFF</string>
+    <string name="alert_speed_cutoff_body">Motor cut at %1$s km/h</string>
+    <string name="alert_wheel_low_battery_title">Low battery</string>
+    <string name="alert_wheel_low_battery_body">Pack voltage %1$s V</string>
+    <string name="alert_over_temperature_title">Over temperature</string>
+    <string name="alert_fall_title">FALL DETECTED</string>
+    <string name="alert_fall_body">Wheel reports a fall event</string>
+    <string name="alert_fault_set_title">Fault set changed</string>
+    <string name="alert_faults_added">+%1$d faults</string>
+    <string name="alert_faults_cleared">-%1$d cleared</string>
+    <string name="alert_updated">Updated</string>
+    <string name="alert_raw_title">%1$s alert 0x%2$s</string>
+    <string name="alert_raw_body">%1$d bytes</string>
+
+    <!-- ===== Events page ============================================= -->
+    <string name="events_header">Events</string>
+    <string name="events_empty">No events yet</string>
+    <string name="event_speed_limit">Speed limit</string>
+    <string name="event_mos_temperature">MOS temperature</string>
+    <string name="event_low_battery_threshold">Low battery threshold</string>
+    <string name="event_pwm_load">PWM load</string>
+    <string name="event_tilt_back">Tilt-back</string>
+    <string name="event_speed_cutoff">Speed cutoff</string>
+    <string name="event_low_battery">Low battery</string>
+    <string name="event_low_battery_body">Voltage %1$s V</string>
+    <string name="event_over_temperature">Over temperature</string>
+    <string name="event_fall_detected">Fall detected</string>
+    <string name="event_fault_set_changed">Fault set changed</string>
+    <string name="event_raw_title">%1$s raw 0x%2$s</string>
+
+    <!-- ===== Section headers ========================================= -->
+    <string name="section_speed">Speed</string>
+    <string name="section_power">Power</string>
+    <string name="section_thermals">Thermals</string>
+    <string name="section_distance">Distance</string>
+    <string name="section_device">Device</string>
+    <string name="section_pack">Pack</string>
+    <string name="section_cells">Cells</string>
+    <string name="section_current_ride">Current Ride</string>
+    <string name="section_lifetime">Lifetime</string>
+    <string name="section_saved_rides">Saved rides</string>
+    <string name="section_route">Route</string>
+
+    <!-- ===== Metric labels =========================================== -->
+    <string name="metric_speed">Speed</string>
+    <string name="metric_max">Max</string>
+    <string name="metric_average">Average</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">Voltage</string>
+    <string name="metric_current">Current</string>
+    <string name="metric_phase_current">Phase Current</string>
+    <string name="metric_power">Power</string>
+    <string name="metric_battery">Battery</string>
+    <string name="metric_battery_voltage">Battery Voltage</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">MOS Temp</string>
+    <string name="metric_motor">Motor</string>
+    <string name="metric_battery_temp">Battery Temp</string>
+    <string name="metric_board">Board</string>
+    <string name="metric_trip">Trip</string>
+    <string name="metric_total">Total</string>
+    <string name="metric_ride_time">Ride Time</string>
+    <string name="metric_mode">Mode</string>
+    <string name="metric_model">Model</string>
+    <string name="metric_family">Family</string>
+    <string name="metric_firmware">Firmware</string>
+    <string name="metric_address">Address</string>
+    <string name="metric_state_of_charge">State of Charge</string>
+    <string name="metric_trip_distance">Trip Distance</string>
+    <string name="metric_max_speed">Max Speed</string>
+    <string name="metric_avg_speed">Avg Speed</string>
+    <string name="metric_total_distance">Total Distance</string>
+    <string name="metric_vehicle">Vehicle</string>
+    <string name="unit_hms">h:m:s</string>
+
+    <!-- ===== BMS page ================================================ -->
+    <string name="bms_per_cell_title">Per-cell data</string>
+    <string name="bms_per_cell_body">This wheel does not expose individual cell voltages over its BLE telemetry link. Smart-BMS data is only available on builds that wire the BMS UART through the controller — none of the connected family does.</string>
+
+    <!-- ===== Graph page ============================================== -->
+    <string name="graph_header">TELEMETRY</string>
+    <string name="graph_waiting">Waiting for telemetry samples…</string>
+    <string name="series_speed_kmh">Speed (km/h)</string>
+    <string name="series_speed_mph">Speed (mph)</string>
+    <string name="series_battery">Battery (%%)</string>
+    <string name="series_current">Current (A)</string>
+    <string name="series_mos">MOS (°C)</string>
+    <string name="series_voltage">Voltage (V)</string>
+
+    <!-- ===== Map page ================================================ -->
+    <string name="map_no_location_permission">Location permission not granted</string>
+    <string name="map_waiting_fix">Waiting for a GPS fix…</string>
+    <string name="map_track_preview">Offline track preview • %1$d GPS points</string>
+
+    <!-- ===== Trips ==================================================== -->
+    <string name="trips_stop_recording">Stop recording</string>
+    <string name="trips_saved_empty">Completed rides will appear here and remain available after restart.</string>
+    <string name="trip_history_title">Trip history</string>
+    <string name="trip_history_subtitle">Browse and export locally saved rides</string>
+    <string name="trip_none_saved">No saved rides yet</string>
+    <string name="trip_details_title">Trip details</string>
+    <string name="trip_not_found">Trip not found</string>
+    <string name="trip_summary_card">%1$s km  •  %2$s  •  max %3$s km/h</string>
+    <string name="trip_summary_detail">%1$s km  •  %2$s  •  avg %3$s km/h  •  max %4$s km/h</string>
+
+    <!-- ===== Settings ================================================ -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_alerts">Alerts</string>
+    <string name="settings_enable_alerts_title">Enable threshold alerts</string>
+    <string name="settings_enable_alerts_subtitle">Evaluate phone-side safety limits</string>
+    <string name="settings_speed_limit">Speed limit</string>
+    <string name="settings_mos_temperature">MOS temperature</string>
+    <string name="settings_low_battery">Low battery</string>
+    <string name="settings_pwm_load">PWM load</string>
+    <string name="settings_section_display">Display</string>
+    <string name="settings_metric_units_title">Metric units</string>
+    <string name="settings_metric_units_subtitle">Disable for mph and miles</string>
+    <string name="settings_keep_awake_title">Keep dashboard awake</string>
+    <string name="settings_keep_awake_subtitle">Prevent screen sleep while riding</string>
+    <string name="settings_section_hud_bridge">HUD Bridge</string>
+    <string name="settings_bridge_autostart_title">Start bridge automatically</string>
+    <string name="settings_bridge_autostart_subtitle">Enter standby when RideFlux starts or the phone boots</string>
+    <string name="settings_low_latency_title">Low-latency standby</string>
+    <string name="settings_low_latency_subtitle">Uses more battery while waiting for a wheel</string>
+    <string name="settings_paired_mac">Paired phone MAC</string>
+    <string name="settings_paired_mac_unset">Configured on the HUD during pairing</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_about_subtitle">Offline-first wheel telemetry and HUD bridge</string>
+
+    <!-- ===== Permission gate ========================================= -->
+    <string name="permission_bluetooth_title">Bluetooth permission required</string>
+    <string name="permission_bluetooth_body">RideFlux needs Bluetooth scan and connect permissions to find and talk to your wheel.</string>
+
+    <!-- ===== In-app HUD ============================================== -->
+    <string name="hud_headlight_on">Headlight on</string>
+    <string name="hud_headlight_off">Headlight off</string>
+    <string name="hud_pedals_mode">Pedals mode</string>
+    <string name="hud_label_on">ON</string>
+    <string name="hud_label_off">OFF</string>
+
+    <!-- ===== Notifications =========================================== -->
+    <string name="notification_channel_bridge">RideFlux Bridge</string>
+    <string name="notification_bridge_title">RideFlux → HUD bridge</string>
+    <string name="notification_bridge_standby">Waiting for a wheel; glasses can connect</string>
+    <string name="notification_bridge_attaching">Connecting to the selected wheel</string>
+    <string name="notification_bridge_relaying">Relaying wheel telemetry to glasses</string>
+    <string name="notification_bridge_degraded">Wheel unavailable; bridge remains discoverable</string>
+    <string name="notification_channel_recording">Trip recording</string>
+    <string name="notification_recording_title">RideFlux is recording</string>
+    <string name="notification_recording_text">Wheel telemetry is being saved locally</string>
+
+</resources>

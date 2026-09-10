@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Modern Standard Arabic (العربية) translations for :app. RTL layout is
+  enabled via android:supportsRtl="true" in the manifest.
+-->
+<resources>
+
+    <string name="action_back">رجوع</string>
+    <string name="action_open">فتح</string>
+    <string name="action_scan">بحث</string>
+    <string name="action_stop">إيقاف</string>
+    <string name="action_clear_all">مسح الكل</string>
+    <string name="action_export_csv">تصدير CSV</string>
+    <string name="action_export_gpx">تصدير GPX</string>
+    <string name="action_delete_trip">حذف الرحلة</string>
+    <string name="action_beep">تنبيه صوتي</string>
+    <string name="action_grant_permissions">منح الأذونات</string>
+    <string name="action_open_settings">فتح الإعدادات</string>
+    <string name="filter_all">الكل</string>
+
+    <string name="scanner_title">البحث عن العجلات</string>
+    <string name="scanner_searching">جارٍ البحث عن العجلات…</string>
+    <string name="scanner_no_devices">لا توجد أجهزة بعد</string>
+    <string name="scanner_no_devices_hint">اضغط «بحث» للعثور على العجلات القريبة.</string>
+    <string name="scanner_scan_failed">فشل البحث</string>
+    <string name="scanner_scan_failed_reason">فشل البحث: %1$s</string>
+    <string name="scanner_unknown_device">جهاز غير معروف</string>
+    <string name="scanner_device_family">العائلة: %1$s</string>
+
+    <string name="bridge_card_title">جسر HUD</string>
+    <string name="bridge_state_off">متوقف</string>
+    <string name="bridge_state_standby">في انتظار عجلة</string>
+    <string name="bridge_state_attaching">جارٍ الاتصال بالعجلة</string>
+    <string name="bridge_state_relaying">جارٍ نقل بيانات القياس</string>
+    <string name="bridge_state_degraded">العجلة غير متاحة · لا يزال الجسر ظاهرًا</string>
+    <string name="glasses_link_stopped">تم إيقاف النقل</string>
+    <string name="glasses_link_starting">جارٍ بدء الاتصال بالنظارة</string>
+    <string name="glasses_link_ready">في انتظار النظارة</string>
+    <string name="glasses_link_connected">تم الاتصال بالنظارة</string>
+    <string name="glasses_link_error">خطأ في الاتصال بالنظارة</string>
+    <string name="glasses_connection">اتصال النظارة</string>
+
+    <string name="page_dashboard">لوحة القيادة</string>
+    <string name="page_graph">الرسم البياني</string>
+    <string name="page_parameters">المعطيات</string>
+    <string name="page_battery">البطارية</string>
+    <string name="page_trips">الرحلات</string>
+    <string name="page_events">الأحداث</string>
+    <string name="page_map">الخريطة</string>
+    <string name="dashboard_bridge_remove">إزالة العجلة من جسر HUD</string>
+    <string name="dashboard_bridge_send">إرسال العجلة إلى جسر HUD</string>
+    <string name="dashboard_open_ar_hud">فتح HUD للواقع المعزز</string>
+    <string name="controls_headlight">المصباح الأمامي</string>
+    <string name="pedals_soft">لين</string>
+    <string name="pedals_medium">متوسط</string>
+    <string name="pedals_hard">قوي</string>
+
+    <string name="alert_speed_limit_title">حد السرعة</string>
+    <string name="alert_speed_limit_body">%1$s كم/س تتجاوز %2$s كم/س</string>
+    <string name="alert_mos_temperature_title">حرارة MOS</string>
+    <string name="alert_mos_temperature_body">%1$s°م تتجاوز %2$s°م</string>
+    <string name="alert_low_battery_title">البطارية منخفضة</string>
+    <string name="alert_low_battery_body">%1$s%% أقل من %2$s%%</string>
+    <string name="alert_pwm_load_title">حِمل PWM</string>
+    <string name="alert_pwm_load_body">%1$s%% يتجاوز %2$s%%</string>
+    <string name="alert_tilt_back_title">إمالة للخلف</string>
+    <string name="alert_tilt_back_body">السرعة %1$s كم/س · الحد %2$s كم/س</string>
+    <string name="alert_speed_cutoff_title">قطع السرعة</string>
+    <string name="alert_speed_cutoff_body">تم قطع المحرك عند %1$s كم/س</string>
+    <string name="alert_wheel_low_battery_title">البطارية منخفضة</string>
+    <string name="alert_wheel_low_battery_body">جهد المجموعة %1$s فولت</string>
+    <string name="alert_over_temperature_title">ارتفاع الحرارة</string>
+    <string name="alert_fall_title">تم رصد سقوط</string>
+    <string name="alert_fall_body">أبلغت العجلة عن حادث سقوط</string>
+    <string name="alert_fault_set_title">تغيّرت مجموعة الأعطال</string>
+    <string name="alert_faults_added">+%1$d أعطال</string>
+    <string name="alert_faults_cleared">-%1$d تم حلّها</string>
+    <string name="alert_updated">تم التحديث</string>
+    <string name="alert_raw_title">تنبيه %1$s 0x%2$s</string>
+    <string name="alert_raw_body">%1$d بايت</string>
+
+    <string name="events_header">الأحداث</string>
+    <string name="events_empty">لا توجد أحداث بعد</string>
+    <string name="event_speed_limit">حد السرعة</string>
+    <string name="event_mos_temperature">حرارة MOS</string>
+    <string name="event_low_battery_threshold">عتبة انخفاض البطارية</string>
+    <string name="event_pwm_load">حِمل PWM</string>
+    <string name="event_tilt_back">إمالة للخلف</string>
+    <string name="event_speed_cutoff">قطع السرعة</string>
+    <string name="event_low_battery">البطارية منخفضة</string>
+    <string name="event_low_battery_body">الجهد %1$s فولت</string>
+    <string name="event_over_temperature">ارتفاع الحرارة</string>
+    <string name="event_fall_detected">تم رصد سقوط</string>
+    <string name="event_fault_set_changed">تغيّرت مجموعة الأعطال</string>
+    <string name="event_raw_title">%1$s خام 0x%2$s</string>
+
+    <string name="section_speed">السرعة</string>
+    <string name="section_power">الطاقة</string>
+    <string name="section_thermals">الحرارة</string>
+    <string name="section_distance">المسافة</string>
+    <string name="section_device">الجهاز</string>
+    <string name="section_pack">مجموعة البطارية</string>
+    <string name="section_cells">الخلايا</string>
+    <string name="section_current_ride">الرحلة الحالية</string>
+    <string name="section_lifetime">الإجمالي</string>
+    <string name="section_saved_rides">الرحلات المحفوظة</string>
+    <string name="section_route">المسار</string>
+
+    <string name="metric_speed">السرعة</string>
+    <string name="metric_max">الأقصى</string>
+    <string name="metric_average">المتوسط</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">الجهد</string>
+    <string name="metric_current">التيار</string>
+    <string name="metric_phase_current">تيار الطور</string>
+    <string name="metric_power">القدرة</string>
+    <string name="metric_battery">البطارية</string>
+    <string name="metric_battery_voltage">جهد البطارية</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">حرارة MOS</string>
+    <string name="metric_motor">المحرك</string>
+    <string name="metric_battery_temp">حرارة البطارية</string>
+    <string name="metric_board">اللوحة</string>
+    <string name="metric_trip">الرحلة</string>
+    <string name="metric_total">الإجمالي</string>
+    <string name="metric_ride_time">زمن الرحلة</string>
+    <string name="metric_mode">الوضع</string>
+    <string name="metric_model">الطراز</string>
+    <string name="metric_family">العائلة</string>
+    <string name="metric_firmware">البرنامج الثابت</string>
+    <string name="metric_address">العنوان</string>
+    <string name="metric_state_of_charge">مستوى الشحن</string>
+    <string name="metric_trip_distance">مسافة الرحلة</string>
+    <string name="metric_max_speed">السرعة القصوى</string>
+    <string name="metric_avg_speed">متوسط السرعة</string>
+    <string name="metric_total_distance">المسافة الإجمالية</string>
+    <string name="metric_vehicle">المركبة</string>
+    <string name="unit_hms">س:د:ث</string>
+
+    <string name="bms_per_cell_title">بيانات كل خلية</string>
+    <string name="bms_per_cell_body">لا توفّر هذه العجلة جهد كل خلية على حدة عبر وصلة القياس بالبلوتوث. تتوفّر بيانات BMS الذكية فقط في التركيبات التي تصل منفذ UART الخاص بالـ BMS بوحدة التحكم، ولا تفعل ذلك أيٌّ من العائلات المدعومة.</string>
+
+    <string name="graph_header">القياس عن بُعد</string>
+    <string name="graph_waiting">في انتظار عيّنات القياس…</string>
+    <string name="series_speed_kmh">السرعة (كم/س)</string>
+    <string name="series_speed_mph">السرعة (ميل/س)</string>
+    <string name="series_battery">البطارية (%%)</string>
+    <string name="series_current">التيار (أمبير)</string>
+    <string name="series_mos">MOS (°م)</string>
+    <string name="series_voltage">الجهد (فولت)</string>
+
+    <string name="map_no_location_permission">لم يتم منح إذن الموقع</string>
+    <string name="map_waiting_fix">في انتظار إشارة GPS…</string>
+    <string name="map_track_preview">معاينة المسار دون اتصال • %1$d نقطة GPS</string>
+
+    <string name="trips_stop_recording">إيقاف التسجيل</string>
+    <string name="trips_saved_empty">ستظهر الرحلات المكتملة هنا وتبقى متاحة بعد إعادة التشغيل.</string>
+    <string name="trip_history_title">سجل الرحلات</string>
+    <string name="trip_history_subtitle">تصفّح الرحلات المحفوظة محليًا وصدّرها</string>
+    <string name="trip_none_saved">لا توجد رحلات محفوظة بعد</string>
+    <string name="trip_details_title">تفاصيل الرحلة</string>
+    <string name="trip_not_found">لم يتم العثور على الرحلة</string>
+    <string name="trip_summary_card">%1$s كم  •  %2$s  •  أقصى %3$s كم/س</string>
+    <string name="trip_summary_detail">%1$s كم  •  %2$s  •  متوسط %3$s كم/س  •  أقصى %4$s كم/س</string>
+
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_section_alerts">التنبيهات</string>
+    <string name="settings_enable_alerts_title">تفعيل تنبيهات العتبات</string>
+    <string name="settings_enable_alerts_subtitle">تقييم حدود السلامة على الهاتف</string>
+    <string name="settings_speed_limit">حد السرعة</string>
+    <string name="settings_mos_temperature">حرارة MOS</string>
+    <string name="settings_low_battery">انخفاض البطارية</string>
+    <string name="settings_pwm_load">حِمل PWM</string>
+    <string name="settings_section_display">العرض</string>
+    <string name="settings_metric_units_title">الوحدات المترية</string>
+    <string name="settings_metric_units_subtitle">عطّلها لاستخدام الأميال والميل/س</string>
+    <string name="settings_keep_awake_title">إبقاء اللوحة مضاءة</string>
+    <string name="settings_keep_awake_subtitle">منع إطفاء الشاشة أثناء القيادة</string>
+    <string name="settings_section_hud_bridge">جسر HUD</string>
+    <string name="settings_bridge_autostart_title">بدء الجسر تلقائيًا</string>
+    <string name="settings_bridge_autostart_subtitle">الدخول في وضع الانتظار عند تشغيل RideFlux أو إقلاع الهاتف</string>
+    <string name="settings_low_latency_title">انتظار بزمن استجابة منخفض</string>
+    <string name="settings_low_latency_subtitle">يستهلك بطارية أكثر أثناء انتظار عجلة</string>
+    <string name="settings_paired_mac">عنوان MAC للهاتف المقترن</string>
+    <string name="settings_paired_mac_unset">يُضبط على النظارة أثناء الاقتران</string>
+    <string name="settings_section_about">حول</string>
+    <string name="settings_about_subtitle">قياس عن بُعد وجسر HUD يعملان دون اتصال</string>
+
+    <string name="permission_bluetooth_title">إذن البلوتوث مطلوب</string>
+    <string name="permission_bluetooth_body">يحتاج RideFlux إلى إذني البحث والاتصال عبر البلوتوث للعثور على عجلتك والتواصل معها.</string>
+
+    <string name="hud_headlight_on">المصباح مُشغَّل</string>
+    <string name="hud_headlight_off">المصباح مُطفَأ</string>
+    <string name="hud_pedals_mode">وضع الدواسات</string>
+    <string name="hud_label_on">تشغيل</string>
+    <string name="hud_label_off">إيقاف</string>
+
+    <string name="notification_channel_bridge">جسر RideFlux</string>
+    <string name="notification_bridge_title">‏RideFlux ← جسر HUD</string>
+    <string name="notification_bridge_standby">في انتظار عجلة؛ يمكن للنظارة الاتصال</string>
+    <string name="notification_bridge_attaching">جارٍ الاتصال بالعجلة المختارة</string>
+    <string name="notification_bridge_relaying">جارٍ نقل بيانات العجلة إلى النظارة</string>
+    <string name="notification_bridge_degraded">العجلة غير متاحة؛ لا يزال الجسر ظاهرًا</string>
+    <string name="notification_channel_recording">تسجيل الرحلات</string>
+    <string name="notification_recording_title">RideFlux يسجّل الآن</string>
+    <string name="notification_recording_text">يتم حفظ بيانات القياس محليًا</string>
+
+</resources>

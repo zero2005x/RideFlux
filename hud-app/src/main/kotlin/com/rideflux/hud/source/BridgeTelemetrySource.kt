@@ -16,6 +16,7 @@ import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.hud.BridgeLinkState
 import com.rideflux.hud.SignalQuality
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
 /**
@@ -59,6 +61,7 @@ class BridgeTelemetrySource private constructor(
         testOnly: Unit,
     ) : this(clientFrames = clientFrames, rokidFrames = rokidFrames)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun frames(): Flow<HudTelemetryFrame> = channelFlow {
         // Give the preferred CXR path an exclusive startup window. Once a
         // CXR frame arrives, collectLatest below cancels BridgeClient, whose
@@ -124,6 +127,14 @@ class BridgeTelemetrySource private constructor(
         }
 
         awaitCancellation()
+    }.transformLatest { frame ->
+        emit(frame)
+        // Radio state alone is not proof of a live phone. Expire the
+        // displayed snapshot even if a transport stops delivering callbacks.
+        if (frame.bridgeLinkState != BridgeLinkState.NO_PHONE) {
+            delay(PHONE_FRESHNESS_MILLIS)
+            emit(noPhoneFrame())
+        }
     }
 
     private fun noPhoneFrame() = HudTelemetryFrame(
@@ -140,6 +151,7 @@ class BridgeTelemetrySource private constructor(
         const val CXR_RECONNECT_DELAY_MILLIS = 1_000L
         const val CXR_FRESHNESS_MILLIS = 2_500L
         const val CXR_STARTUP_GRACE_MILLIS = 3_000L
+        const val PHONE_FRESHNESS_MILLIS = 3_500L
     }
 }
 
@@ -165,6 +177,7 @@ internal fun BridgeFrame.toHudTelemetryFrame(): HudTelemetryFrame {
         },
         staleHint = stale,
         phoneBatteryPercent = phoneBatteryPercent,
+        tripDurationSeconds = tripDurationSeconds,
         bridgeLinkState = if (state == ConnectionState.Ready) {
             BridgeLinkState.WHEEL_LIVE
         } else {

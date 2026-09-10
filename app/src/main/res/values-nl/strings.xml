@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Dutch (Nederlands) translations for :app.
+-->
+<resources>
+
+    <string name="action_back">Terug</string>
+    <string name="action_open">Openen</string>
+    <string name="action_scan">Scannen</string>
+    <string name="action_stop">Stoppen</string>
+    <string name="action_clear_all">Alles wissen</string>
+    <string name="action_export_csv">CSV exporteren</string>
+    <string name="action_export_gpx">GPX exporteren</string>
+    <string name="action_delete_trip">Rit verwijderen</string>
+    <string name="action_beep">Claxon</string>
+    <string name="action_grant_permissions">Rechten verlenen</string>
+    <string name="action_open_settings">Instellingen openen</string>
+    <string name="filter_all">Alle</string>
+
+    <string name="scanner_title">Zoeken naar wheels</string>
+    <string name="scanner_searching">Zoeken naar wheels…</string>
+    <string name="scanner_no_devices">Nog geen apparaten</string>
+    <string name="scanner_no_devices_hint">Tik op Scannen om wheels in de buurt te vinden.</string>
+    <string name="scanner_scan_failed">Scan mislukt</string>
+    <string name="scanner_scan_failed_reason">Scan mislukt: %1$s</string>
+    <string name="scanner_unknown_device">Onbekend apparaat</string>
+    <string name="scanner_device_family">Familie: %1$s</string>
+
+    <string name="bridge_card_title">HUD-brug</string>
+    <string name="bridge_state_off">Uit</string>
+    <string name="bridge_state_standby">Wacht op een wheel</string>
+    <string name="bridge_state_attaching">Verbinden met de wheel</string>
+    <string name="bridge_state_relaying">Telemetrie doorsturen</string>
+    <string name="bridge_state_degraded">Wheel niet beschikbaar · brug blijft vindbaar</string>
+    <string name="glasses_link_stopped">transport gestopt</string>
+    <string name="glasses_link_starting">brilverbinding starten</string>
+    <string name="glasses_link_ready">wacht op de bril</string>
+    <string name="glasses_link_connected">bril verbonden</string>
+    <string name="glasses_link_error">fout in de brilverbinding</string>
+    <string name="glasses_connection">Brilverbinding</string>
+
+    <string name="page_dashboard">Dashboard</string>
+    <string name="page_graph">Grafiek</string>
+    <string name="page_parameters">Parameters</string>
+    <string name="page_battery">Accu</string>
+    <string name="page_trips">Ritten</string>
+    <string name="page_events">Gebeurtenissen</string>
+    <string name="page_map">Kaart</string>
+    <string name="dashboard_bridge_remove">Wheel uit de HUD-brug halen</string>
+    <string name="dashboard_bridge_send">Wheel naar de HUD-brug sturen</string>
+    <string name="dashboard_open_ar_hud">AR-HUD openen</string>
+    <string name="controls_headlight">Koplamp</string>
+    <string name="pedals_soft">Zacht</string>
+    <string name="pedals_medium">Gemiddeld</string>
+    <string name="pedals_hard">Hard</string>
+
+    <string name="alert_speed_limit_title">SNELHEIDSLIMIET</string>
+    <string name="alert_speed_limit_body">%1$s km/u overschrijdt %2$s km/u</string>
+    <string name="alert_mos_temperature_title">MOS-TEMPERATUUR</string>
+    <string name="alert_mos_temperature_body">%1$s°C overschrijdt %2$s°C</string>
+    <string name="alert_low_battery_title">ACCU BIJNA LEEG</string>
+    <string name="alert_low_battery_body">%1$s%% ligt onder %2$s%%</string>
+    <string name="alert_pwm_load_title">PWM-BELASTING</string>
+    <string name="alert_pwm_load_body">%1$s%% overschrijdt %2$s%%</string>
+    <string name="alert_tilt_back_title">TILT-BACK</string>
+    <string name="alert_tilt_back_body">Snelheid %1$s km/u · limiet %2$s km/u</string>
+    <string name="alert_speed_cutoff_title">MOTOR UITGESCHAKELD</string>
+    <string name="alert_speed_cutoff_body">Motor afgeschakeld bij %1$s km/u</string>
+    <string name="alert_wheel_low_battery_title">Accu bijna leeg</string>
+    <string name="alert_wheel_low_battery_body">Pakspanning %1$s V</string>
+    <string name="alert_over_temperature_title">Overtemperatuur</string>
+    <string name="alert_fall_title">VAL GEDETECTEERD</string>
+    <string name="alert_fall_body">De wheel meldt een val</string>
+    <string name="alert_fault_set_title">Foutenlijst gewijzigd</string>
+    <string name="alert_faults_added">+%1$d fouten</string>
+    <string name="alert_faults_cleared">-%1$d opgelost</string>
+    <string name="alert_updated">Bijgewerkt</string>
+    <string name="alert_raw_title">%1$s-melding 0x%2$s</string>
+    <string name="alert_raw_body">%1$d bytes</string>
+
+    <string name="events_header">Gebeurtenissen</string>
+    <string name="events_empty">Nog geen gebeurtenissen</string>
+    <string name="event_speed_limit">Snelheidslimiet</string>
+    <string name="event_mos_temperature">MOS-temperatuur</string>
+    <string name="event_low_battery_threshold">Drempel voor lege accu</string>
+    <string name="event_pwm_load">PWM-belasting</string>
+    <string name="event_tilt_back">Tilt-back</string>
+    <string name="event_speed_cutoff">Motor uitgeschakeld</string>
+    <string name="event_low_battery">Accu bijna leeg</string>
+    <string name="event_low_battery_body">Spanning %1$s V</string>
+    <string name="event_over_temperature">Overtemperatuur</string>
+    <string name="event_fall_detected">Val gedetecteerd</string>
+    <string name="event_fault_set_changed">Foutenlijst gewijzigd</string>
+    <string name="event_raw_title">%1$s ruw 0x%2$s</string>
+
+    <string name="section_speed">Snelheid</string>
+    <string name="section_power">Vermogen</string>
+    <string name="section_thermals">Temperaturen</string>
+    <string name="section_distance">Afstand</string>
+    <string name="section_device">Apparaat</string>
+    <string name="section_pack">Accupakket</string>
+    <string name="section_cells">Cellen</string>
+    <string name="section_current_ride">Huidige rit</string>
+    <string name="section_lifetime">Totaal</string>
+    <string name="section_saved_rides">Opgeslagen ritten</string>
+    <string name="section_route">Route</string>
+
+    <string name="metric_speed">Snelheid</string>
+    <string name="metric_max">Max.</string>
+    <string name="metric_average">Gemiddeld</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">Spanning</string>
+    <string name="metric_current">Stroom</string>
+    <string name="metric_phase_current">Fasestroom</string>
+    <string name="metric_power">Vermogen</string>
+    <string name="metric_battery">Accu</string>
+    <string name="metric_battery_voltage">Accuspanning</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">MOS-temp.</string>
+    <string name="metric_motor">Motor</string>
+    <string name="metric_battery_temp">Accutemp.</string>
+    <string name="metric_board">Print</string>
+    <string name="metric_trip">Rit</string>
+    <string name="metric_total">Totaal</string>
+    <string name="metric_ride_time">Rijtijd</string>
+    <string name="metric_mode">Modus</string>
+    <string name="metric_model">Model</string>
+    <string name="metric_family">Familie</string>
+    <string name="metric_firmware">Firmware</string>
+    <string name="metric_address">Adres</string>
+    <string name="metric_state_of_charge">Laadtoestand</string>
+    <string name="metric_trip_distance">Ritafstand</string>
+    <string name="metric_max_speed">Max. snelheid</string>
+    <string name="metric_avg_speed">Gem. snelheid</string>
+    <string name="metric_total_distance">Totale afstand</string>
+    <string name="metric_vehicle">Voertuig</string>
+    <string name="unit_hms">u:m:s</string>
+
+    <string name="bms_per_cell_title">Gegevens per cel</string>
+    <string name="bms_per_cell_body">Deze wheel geeft geen afzonderlijke celspanningen door via de BLE-telemetrieverbinding. Slimme-BMS-gegevens zijn alleen beschikbaar bij opstellingen die de UART van het BMS via de controller lopen — geen van de ondersteunde families doet dat.</string>
+
+    <string name="graph_header">TELEMETRIE</string>
+    <string name="graph_waiting">Wachten op telemetriegegevens…</string>
+    <string name="series_speed_kmh">Snelheid (km/u)</string>
+    <string name="series_speed_mph">Snelheid (mph)</string>
+    <string name="series_battery">Accu (%%)</string>
+    <string name="series_current">Stroom (A)</string>
+    <string name="series_mos">MOS (°C)</string>
+    <string name="series_voltage">Spanning (V)</string>
+
+    <string name="map_no_location_permission">Locatierecht niet verleend</string>
+    <string name="map_waiting_fix">Wachten op een gps-fix…</string>
+    <string name="map_track_preview">Offline routevoorbeeld • %1$d gps-punten</string>
+
+    <string name="trips_stop_recording">Opname stoppen</string>
+    <string name="trips_saved_empty">Voltooide ritten verschijnen hier en blijven na een herstart beschikbaar.</string>
+    <string name="trip_history_title">Ritgeschiedenis</string>
+    <string name="trip_history_subtitle">Bekijk en exporteer lokaal opgeslagen ritten</string>
+    <string name="trip_none_saved">Nog geen opgeslagen ritten</string>
+    <string name="trip_details_title">Ritdetails</string>
+    <string name="trip_not_found">Rit niet gevonden</string>
+    <string name="trip_summary_card">%1$s km  •  %2$s  •  max %3$s km/u</string>
+    <string name="trip_summary_detail">%1$s km  •  %2$s  •  gem %3$s km/u  •  max %4$s km/u</string>
+
+    <string name="settings_title">Instellingen</string>
+    <string name="settings_section_alerts">Waarschuwingen</string>
+    <string name="settings_enable_alerts_title">Drempelwaarschuwingen inschakelen</string>
+    <string name="settings_enable_alerts_subtitle">Veiligheidsgrenzen op de telefoon beoordelen</string>
+    <string name="settings_speed_limit">Snelheidslimiet</string>
+    <string name="settings_mos_temperature">MOS-temperatuur</string>
+    <string name="settings_low_battery">Accu bijna leeg</string>
+    <string name="settings_pwm_load">PWM-belasting</string>
+    <string name="settings_section_display">Weergave</string>
+    <string name="settings_metric_units_title">Metrische eenheden</string>
+    <string name="settings_metric_units_subtitle">Uitschakelen voor mph en mijlen</string>
+    <string name="settings_keep_awake_title">Dashboard aan laten</string>
+    <string name="settings_keep_awake_subtitle">Voorkomt dat het scherm tijdens het rijden uitgaat</string>
+    <string name="settings_section_hud_bridge">HUD-brug</string>
+    <string name="settings_bridge_autostart_title">Brug automatisch starten</string>
+    <string name="settings_bridge_autostart_subtitle">Ga in stand-by wanneer RideFlux start of de telefoon opstart</string>
+    <string name="settings_low_latency_title">Stand-by met lage latentie</string>
+    <string name="settings_low_latency_subtitle">Verbruikt meer accu tijdens het wachten op een wheel</string>
+    <string name="settings_paired_mac">MAC van gekoppelde telefoon</string>
+    <string name="settings_paired_mac_unset">Wordt tijdens het koppelen op de HUD ingesteld</string>
+    <string name="settings_section_about">Over</string>
+    <string name="settings_about_subtitle">Offline-first wheel-telemetrie en HUD-brug</string>
+
+    <string name="permission_bluetooth_title">Bluetooth-recht vereist</string>
+    <string name="permission_bluetooth_body">RideFlux heeft de Bluetooth-rechten voor scannen en verbinden nodig om je wheel te vinden en ermee te communiceren.</string>
+
+    <string name="hud_headlight_on">Koplamp aan</string>
+    <string name="hud_headlight_off">Koplamp uit</string>
+    <string name="hud_pedals_mode">Pedaalmodus</string>
+    <string name="hud_label_on">AAN</string>
+    <string name="hud_label_off">UIT</string>
+
+    <string name="notification_channel_bridge">RideFlux-brug</string>
+    <string name="notification_bridge_title">RideFlux → HUD-brug</string>
+    <string name="notification_bridge_standby">Wacht op een wheel; de bril kan al verbinden</string>
+    <string name="notification_bridge_attaching">Verbinden met de gekozen wheel</string>
+    <string name="notification_bridge_relaying">Wheel-telemetrie doorsturen naar de bril</string>
+    <string name="notification_bridge_degraded">Wheel niet beschikbaar; de brug blijft vindbaar</string>
+    <string name="notification_channel_recording">Ritopname</string>
+    <string name="notification_recording_title">RideFlux neemt op</string>
+    <string name="notification_recording_text">Wheel-telemetrie wordt lokaal opgeslagen</string>
+
+</resources>

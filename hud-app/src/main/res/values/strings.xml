@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+
+  Default (English) strings for :hud-app.
+
+  The glasses viewport is 320 dp wide and the placard type is 40 sp, so
+  translations of `hud_*_title` must stay short — prefer a single word per
+  line and keep the embedded "\n" where the English has one.
+
+  Every `values-<locale>/` sibling must define exactly the same key set —
+  `LocalizationCoverageTest` fails the build otherwise.
+-->
+<resources>
+
+    <!-- ===== Application / brand ===================================== -->
+    <string name="app_name" translatable="false">RideFlux HUD</string>
+    <string name="hud_brand_title" translatable="false">RIDEFLUX\nHUD</string>
+    <string name="hud_awaiting_target_subtitle" translatable="false">Launch with --es mac &lt;BLE-ADDRESS&gt;</string>
+    <string name="hud_peer_row" translatable="false">%1$s  %2$d dBm</string>
+    <string name="unit_kmh" translatable="false">km/h</string>
+    <string name="unit_celsius" translatable="false">°C</string>
+    <string name="unit_percent" translatable="false">%</string>
+    <string name="hud_limit_value" translatable="false">%1$d %2$s</string>
+    <string name="hud_step_decrement" translatable="false">−</string>
+    <string name="hud_step_increment" translatable="false">+</string>
+
+    <!-- ===== Placards ================================================ -->
+    <string name="hud_waiting_phone_title">WAITING\nPHONE</string>
+    <string name="hud_waiting_phone_subtitle">Searching for RideFlux…</string>
+    <string name="hud_phone_connected_title">PHONE\nCONNECTED</string>
+    <string name="hud_phone_standby_subtitle">Phone %1$s  ·  Glasses %2$s</string>
+    <string name="hud_scanning_title">SCANNING</string>
+    <string name="hud_scanning_subtitle">Looking for vehicle…</string>
+    <string name="hud_connecting_title">CONNECTING</string>
+    <string name="hud_offline">OFFLINE</string>
+    <string name="hud_offline_reason">OFFLINE · %1$s</string>
+
+    <!-- ===== Chips / actions ========================================= -->
+    <string name="hud_action_retry">RETRY</string>
+    <string name="hud_action_scan">SCAN</string>
+    <string name="hud_action_pair_phone">PAIR PHONE</string>
+
+    <!-- ===== Ready-state badges ====================================== -->
+    <string name="hud_stale">STALE</string>
+    <string name="hud_signal_good">GOOD</string>
+    <string name="hud_signal_weak">WEAK</string>
+    <string name="hud_signal_none">OFFLINE</string>
+
+    <!-- ===== Settings overlay ======================================== -->
+    <string name="hud_settings_title">HUD SETTINGS</string>
+    <string name="hud_settings_close">CLOSE</string>
+    <string name="hud_settings_exit">EXIT</string>
+    <string name="hud_settings_pair_with_phone">PAIR WITH PHONE</string>
+    <string name="hud_limit_speed">Speed</string>
+    <string name="hud_limit_mos_temp">MOS temp</string>
+    <string name="hud_limit_low_battery">Low battery</string>
+    <string name="hud_limit_pwm">PWM</string>
+
+    <!-- ===== Permission gate ========================================= -->
+    <string name="permission_bluetooth_title">Bluetooth permission required</string>
+    <string name="permission_bluetooth_body">RideFlux HUD needs Bluetooth scan and connect permissions to reach your wheel.</string>
+    <string name="permission_location_body">RideFlux HUD needs location access to discover and connect to your wheel over Bluetooth.</string>
+    <string name="action_open_settings">Open settings</string>
+
+</resources>

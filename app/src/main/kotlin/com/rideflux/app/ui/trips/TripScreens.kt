@@ -39,10 +39,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rideflux.app.R
 import com.rideflux.app.ui.dashboard.components.ChartLegend
 import com.rideflux.app.ui.dashboard.components.ChartSeries
 import com.rideflux.app.ui.dashboard.components.TelemetryChart
@@ -76,13 +78,22 @@ fun TripHistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Trip history") },
+                title = { Text(stringResource(R.string.trip_history_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
-                actions = { if (trips.isNotEmpty()) TextButton(onClick = onClearAll) { Text("Clear all") } },
+                actions = {
+                    if (trips.isNotEmpty()) {
+                        TextButton(onClick = onClearAll) {
+                            Text(stringResource(R.string.action_clear_all))
+                        }
+                    }
+                },
             )
         },
     ) { padding ->
@@ -92,7 +103,11 @@ fun TripHistoryScreen(
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    FilterChip(selected = filter == null, onClick = { filter = null }, label = { Text("All") })
+                    FilterChip(
+                        selected = filter == null,
+                        onClick = { filter = null },
+                        label = { Text(stringResource(R.string.filter_all)) },
+                    )
                     addresses.take(3).forEach { address ->
                         FilterChip(
                             selected = filter == address,
@@ -104,7 +119,7 @@ fun TripHistoryScreen(
             }
             if (visible.isEmpty()) {
                 Text(
-                    "No saved rides yet",
+                    stringResource(R.string.trip_none_saved),
                     modifier = Modifier.padding(24.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -129,11 +144,12 @@ fun TripCard(trip: Trip, onClick: () -> Unit, modifier: Modifier = Modifier) {
             Text(trip.wheelModel ?: trip.wheelAddress, fontWeight = FontWeight.SemiBold)
             Text(DATE_FORMAT.format(Date(trip.startedAtMillis)), style = MaterialTheme.typography.bodySmall)
             Text(
-                "%.2f km  •  %s  •  max %s km/h".format(
-                    Locale.US,
-                    trip.distanceMetres / 1_000.0,
+                stringResource(
+                    R.string.trip_summary_card,
+                    "%.2f".format(Locale.US, trip.distanceMetres / 1_000.0),
                     formatDuration(trip.durationSeconds),
-                    trip.maxSpeedKmh?.let { "%.1f".format(Locale.US, it) } ?: "--",
+                    trip.maxSpeedKmh?.let { "%.1f".format(Locale.US, it) }
+                        ?: stringResource(R.string.value_unavailable),
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -178,17 +194,23 @@ fun TripDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Trip details") },
+                title = { Text(stringResource(R.string.trip_details_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
             )
         },
     ) { padding ->
         if (trip == null) {
-            Text("Trip not found", Modifier.padding(padding).padding(24.dp))
+            Text(
+                stringResource(R.string.trip_not_found),
+                Modifier.padding(padding).padding(24.dp),
+            )
             return@Scaffold
         }
         Column(
@@ -196,28 +218,43 @@ fun TripDetailScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(trip.wheelModel ?: trip.wheelAddress, style = MaterialTheme.typography.headlineSmall)
+            val dash = stringResource(R.string.value_unavailable)
             Text(
-                "%.2f km  •  %s  •  avg %s km/h  •  max %s km/h".format(
-                    Locale.US,
-                    trip.distanceMetres / 1_000.0,
+                stringResource(
+                    R.string.trip_summary_detail,
+                    "%.2f".format(Locale.US, trip.distanceMetres / 1_000.0),
                     formatDuration(trip.durationSeconds),
-                    trip.avgSpeedKmh?.let { "%.1f".format(Locale.US, it) } ?: "--",
-                    trip.maxSpeedKmh?.let { "%.1f".format(Locale.US, it) } ?: "--",
+                    trip.avgSpeedKmh?.let { "%.1f".format(Locale.US, it) } ?: dash,
+                    trip.maxSpeedKmh?.let { "%.1f".format(Locale.US, it) } ?: dash,
                 )
             )
             TrackCanvas(samples = state.samples, modifier = Modifier.fillMaxWidth().height(260.dp))
             val series = listOf(
-                ChartSeries("Speed (km/h)", Color.Cyan, state.samples.map { it.speedKmh }),
-                ChartSeries("Voltage (V)", Color.Green, state.samples.map { it.voltageV }),
-                ChartSeries("Current (A)", Color.Yellow, state.samples.map { it.currentA }),
+                ChartSeries(
+                    stringResource(R.string.series_speed_kmh),
+                    Color.Cyan,
+                    state.samples.map { it.speedKmh },
+                ),
+                ChartSeries(
+                    stringResource(R.string.series_voltage),
+                    Color.Green,
+                    state.samples.map { it.voltageV },
+                ),
+                ChartSeries(
+                    stringResource(R.string.series_current),
+                    Color.Yellow,
+                    state.samples.map { it.currentA },
+                ),
             )
             TelemetryChart(series, Modifier.fillMaxWidth().height(240.dp))
             ChartLegend(series)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onCsv) { Text("Export CSV") }
-                Button(onClick = onGpx) { Text("Export GPX") }
+                Button(onClick = onCsv) { Text(stringResource(R.string.action_export_csv)) }
+                Button(onClick = onGpx) { Text(stringResource(R.string.action_export_gpx)) }
             }
-            OutlinedButton(onClick = onDelete) { Text("Delete trip") }
+            OutlinedButton(onClick = onDelete) {
+                Text(stringResource(R.string.action_delete_trip))
+            }
         }
     }
 }

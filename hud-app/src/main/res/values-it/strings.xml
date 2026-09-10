@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Italian (Italiano) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">ATTESA\nTELEFONO</string>
+    <string name="hud_waiting_phone_subtitle">Ricerca di RideFlux…</string>
+    <string name="hud_phone_connected_title">TELEFONO\nCONNESSO</string>
+    <string name="hud_phone_standby_subtitle">Telefono %1$s  ·  Occhiali %2$s</string>
+    <string name="hud_scanning_title">RICERCA</string>
+    <string name="hud_scanning_subtitle">Ricerca del veicolo…</string>
+    <string name="hud_connecting_title">CONNESSIONE</string>
+    <string name="hud_offline">OFFLINE</string>
+    <string name="hud_offline_reason">OFFLINE · %1$s</string>
+    <string name="hud_action_retry">RIPROVA</string>
+    <string name="hud_action_scan">CERCA</string>
+    <string name="hud_action_pair_phone">ASSOCIA</string>
+    <string name="hud_stale">NON AGGIORNATO</string>
+    <string name="hud_signal_good">BUONO</string>
+    <string name="hud_signal_weak">DEBOLE</string>
+    <string name="hud_signal_none">OFFLINE</string>
+    <string name="hud_settings_title">IMPOSTAZIONI HUD</string>
+    <string name="hud_settings_close">CHIUDI</string>
+    <string name="hud_settings_exit">ESCI</string>
+    <string name="hud_settings_pair_with_phone">ASSOCIA AL TELEFONO</string>
+    <string name="hud_limit_speed">Velocità</string>
+    <string name="hud_limit_mos_temp">Temp. MOS</string>
+    <string name="hud_limit_low_battery">Batteria scarica</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">Autorizzazione Bluetooth necessaria</string>
+    <string name="permission_bluetooth_body">RideFlux HUD ha bisogno delle autorizzazioni Bluetooth di ricerca e connessione per raggiungere il tuo monoruota.</string>
+    <string name="permission_location_body">RideFlux HUD ha bisogno dell\'accesso alla posizione per rilevare il tuo monoruota e connettersi via Bluetooth.</string>
+    <string name="action_open_settings">Apri impostazioni</string>
+</resources>

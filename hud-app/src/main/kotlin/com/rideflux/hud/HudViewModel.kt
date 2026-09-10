@@ -276,7 +276,7 @@ class HudViewModel @Inject constructor(
             vehicleBatteryPercent = telem.batteryPercent,
             voltageV = telem.voltageV,
             tripDistanceMetres = telem.tripDistanceMetres,
-            tripDurationSeconds = tripDurationSec,
+            tripDurationSeconds = frame.tripDurationSeconds ?: tripDurationSec,
             rideMode = telem.rideMode,
             glassesBatteryPercent = glassesBattery,
             phoneBatteryPercent = frame.phoneBatteryPercent,

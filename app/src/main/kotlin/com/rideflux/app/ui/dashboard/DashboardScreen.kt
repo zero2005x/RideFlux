@@ -64,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -71,6 +72,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.ContextCompat
+import com.rideflux.app.R
 import com.rideflux.app.ui.dashboard.components.RideFluxColors
 import com.rideflux.app.ui.dashboard.pages.BmsPage
 import com.rideflux.app.ui.dashboard.pages.EventsPage
@@ -112,11 +114,14 @@ fun DashboardRoute(
         mutableStateOf(RecordingService.hasLocationPermission(context))
     }
     val locationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted -> locationPermissionGranted = granted }
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { result -> locationPermissionGranted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true }
     LaunchedEffect(Unit) {
         if (!locationPermissionGranted) {
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            locationPermissionLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+            ))
         }
     }
     val bridgedMac by com.rideflux.app.bridge.BridgeService.activeMac
@@ -171,16 +176,16 @@ fun DashboardRoute(
 
 /**
  * Top-level pages exposed by the dashboard pager. Order is the
- * swipe order; the [title] renders above the page indicator.
+ * swipe order; [titleRes] renders above the page indicator.
  */
-private enum class DashboardPage(val title: String) {
-    Main("Dashboard"),
-    Graph("Graph"),
-    Parameters("Parameters"),
-    Bms("Battery"),
-    Trips("Trips"),
-    Events("Events"),
-    Map("Map"),
+private enum class DashboardPage(@androidx.annotation.StringRes val titleRes: Int) {
+    Main(R.string.page_dashboard),
+    Graph(R.string.page_graph),
+    Parameters(R.string.page_parameters),
+    Bms(R.string.page_battery),
+    Trips(R.string.page_trips),
+    Events(R.string.page_events),
+    Map(R.string.page_map),
 }
 
 /**
@@ -237,7 +242,7 @@ fun DashboardScreen(
                         Text(
                             text = uiState.identity?.modelName
                                 ?: uiState.identity?.address
-                                ?: currentPage.title,
+                                ?: stringResource(currentPage.titleRes),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -248,7 +253,7 @@ fun DashboardScreen(
                     IconButton(onClick = onNavigateUp) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.action_back),
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
@@ -265,10 +270,10 @@ fun DashboardScreen(
                                 Icons.Filled.CastConnected
                             else
                                 Icons.Filled.Cast,
-                            contentDescription = if (bridgeActive)
-                                "Remove wheel from HUD bridge"
-                            else
-                                "Send wheel to HUD bridge",
+                            contentDescription = stringResource(
+                                if (bridgeActive) R.string.dashboard_bridge_remove
+                                else R.string.dashboard_bridge_send,
+                            ),
                             tint = if (bridgeActive)
                                 RideFluxColors.Neon
                             else
@@ -278,7 +283,7 @@ fun DashboardScreen(
                     IconButton(onClick = onNavigateToHud) {
                         Icon(
                             Icons.Filled.Tv,
-                            contentDescription = "Open AR HUD",
+                            contentDescription = stringResource(R.string.dashboard_open_ar_hud),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -293,7 +298,7 @@ fun DashboardScreen(
             PageIndicator(
                 pageCount = DashboardPage.values().size,
                 selected = pagerState.currentPage,
-                label = currentPage.title,
+                label = stringResource(currentPage.titleRes),
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -404,7 +409,9 @@ private fun PageIndicator(pageCount: Int, selected: Int, label: String) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = label.uppercase(),
+                // uppercase() with the default locale: the page labels are
+                // translated, and casing rules are language-specific.
+                text = label.uppercase(Locale.getDefault()),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold,
@@ -490,83 +497,131 @@ fun AlertBanner(alert: DashboardAlert?, modifier: Modifier = Modifier) {
 
 private data class AlertDescription(val title: String, val body: String, val severe: Boolean)
 
+/**
+ * Numbers stay on [Locale.US] so the decimal separator matches the units
+ * ("45.0 km/h", never "45,0 km/h" beside an ASCII unit), while the
+ * surrounding sentence comes from the translated string resources.
+ */
+private fun Float.fmt1(): String = "%.1f".format(Locale.US, this)
+private fun Float.fmt0(): String = "%.0f".format(Locale.US, this)
+
+@Composable
 private fun describeAlert(alert: DashboardAlert): AlertDescription = when (alert) {
     is DashboardAlert.Wheel -> describeWheelAlert(alert.value)
     is DashboardAlert.Threshold -> when (val threshold = alert.value) {
         is ThresholdAlert.Overspeed -> AlertDescription(
-            "SPEED LIMIT",
-            "${"%.1f".format(Locale.US, threshold.speedKmh)} km/h exceeds ${"%.1f".format(Locale.US, threshold.limitKmh)} km/h",
+            stringResource(R.string.alert_speed_limit_title),
+            stringResource(
+                R.string.alert_speed_limit_body,
+                threshold.speedKmh.fmt1(),
+                threshold.limitKmh.fmt1(),
+            ),
             true,
         )
         is ThresholdAlert.OverTemperature -> AlertDescription(
-            "MOS TEMPERATURE",
-            "${"%.1f".format(Locale.US, threshold.temperatureC)}°C exceeds ${"%.1f".format(Locale.US, threshold.limitC)}°C",
+            stringResource(R.string.alert_mos_temperature_title),
+            stringResource(
+                R.string.alert_mos_temperature_body,
+                threshold.temperatureC.fmt1(),
+                threshold.limitC.fmt1(),
+            ),
             true,
         )
         is ThresholdAlert.LowBattery -> AlertDescription(
-            "LOW BATTERY",
-            "${"%.0f".format(Locale.US, threshold.percent)}% is below ${"%.0f".format(Locale.US, threshold.limitPercent)}%",
+            stringResource(R.string.alert_low_battery_title),
+            stringResource(
+                R.string.alert_low_battery_body,
+                threshold.percent.fmt0(),
+                threshold.limitPercent.fmt0(),
+            ),
             true,
         )
         is ThresholdAlert.PwmLoad -> AlertDescription(
-            "PWM LOAD",
-            "${"%.0f".format(Locale.US, threshold.pwmPercent)}% exceeds ${"%.0f".format(Locale.US, threshold.limitPercent)}%",
+            stringResource(R.string.alert_pwm_load_title),
+            stringResource(
+                R.string.alert_pwm_load_body,
+                threshold.pwmPercent.fmt0(),
+                threshold.limitPercent.fmt0(),
+            ),
             true,
         )
     }
 }
 
+@Composable
 private fun describeWheelAlert(alert: WheelAlert): AlertDescription = when (alert) {
     is WheelAlert.TiltBack -> AlertDescription(
-        title = "TILT-BACK",
-        body = "Speed ${"%.0f".format(Locale.US, alert.speedKmh)} km/h · limit ${"%.0f".format(Locale.US, alert.limit)} km/h",
+        title = stringResource(R.string.alert_tilt_back_title),
+        body = stringResource(
+            R.string.alert_tilt_back_body,
+            alert.speedKmh.fmt0(),
+            alert.limit.fmt0(),
+        ),
         severe = true,
     )
     is WheelAlert.SpeedCutoff -> AlertDescription(
-        title = "SPEED CUTOFF",
-        body = "Motor cut at ${"%.0f".format(Locale.US, alert.speedKmh)} km/h",
+        title = stringResource(R.string.alert_speed_cutoff_title),
+        body = stringResource(R.string.alert_speed_cutoff_body, alert.speedKmh.fmt0()),
         severe = true,
     )
     is WheelAlert.LowBattery -> AlertDescription(
-        title = "Low battery",
-        body = "Pack voltage ${"%.1f".format(Locale.US, alert.voltageV)} V",
+        title = stringResource(R.string.alert_wheel_low_battery_title),
+        body = stringResource(R.string.alert_wheel_low_battery_body, alert.voltageV.fmt1()),
         severe = false,
     )
     is WheelAlert.OverTemperature -> AlertDescription(
-        title = "Over temperature",
-        body = "${alert.source.name}" + (alert.temperatureC?.let { " · ${"%.0f".format(Locale.US, it)}°C" } ?: ""),
+        title = stringResource(R.string.alert_over_temperature_title),
+        // The source is a protocol enum name — deliberately untranslated.
+        body = alert.source.name + (alert.temperatureC?.let { " · ${it.fmt0()}°C" } ?: ""),
         severe = true,
     )
     is WheelAlert.FallDown -> AlertDescription(
-        title = "FALL DETECTED",
-        body = "Wheel reports a fall event",
+        title = stringResource(R.string.alert_fall_title),
+        body = stringResource(R.string.alert_fall_body),
         severe = true,
     )
     is WheelAlert.FaultSetChanged -> AlertDescription(
-        title = "Fault set changed",
-        body = buildString {
-            if (alert.added.isNotEmpty()) append("+${alert.added.size} faults ")
-            if (alert.removed.isNotEmpty()) append("-${alert.removed.size} cleared")
-        }.ifBlank { "Updated" },
+        title = stringResource(R.string.alert_fault_set_title),
+        body = faultSetSummary(alert),
         severe = alert.added.isNotEmpty(),
     )
     is WheelAlert.Raw -> AlertDescription(
-        title = "${alert.domain} alert 0x${alert.code.toString(16).uppercase()}",
-        body = "${alert.payload.size} bytes",
+        title = stringResource(
+            R.string.alert_raw_title,
+            alert.domain,
+            alert.code.toString(16).uppercase(Locale.ROOT),
+        ),
+        body = stringResource(R.string.alert_raw_body, alert.payload.size),
         severe = false,
     )
+}
+
+/**
+ * "+2 faults -1 cleared", or the fallback when the wheel reported a change
+ * with neither set populated. Both fragments are resolved unconditionally
+ * because [stringResource] may not be called inside a data-dependent branch.
+ */
+@Composable
+internal fun faultSetSummary(alert: WheelAlert.FaultSetChanged): String {
+    val added = stringResource(R.string.alert_faults_added, alert.added.size)
+    val cleared = stringResource(R.string.alert_faults_cleared, alert.removed.size)
+    val fallback = stringResource(R.string.alert_updated)
+    return listOfNotNull(
+        added.takeIf { alert.added.isNotEmpty() },
+        cleared.takeIf { alert.removed.isNotEmpty() },
+    ).joinToString(" ").ifBlank { fallback }
 }
 
 // ---------------------------------------------------------------------
 // Wheel controls (kept on the main page for at-glance access)
 // ---------------------------------------------------------------------
 
-private data class PedalsModePreset(val code: Int, val label: String)
+private data class PedalsModePreset(val code: Int, @androidx.annotation.StringRes val labelRes: Int)
 
 private val DEFAULT_PEDALS_PRESETS: List<PedalsModePreset> = listOf(
-    PedalsModePreset(0, "Soft"),
-    PedalsModePreset(1, "Medium"),
-    PedalsModePreset(2, "Hard"),
+    PedalsModePreset(0, R.string.pedals_soft),
+    PedalsModePreset(1, R.string.pedals_medium),
+    PedalsModePreset(2, R.string.pedals_hard),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -593,7 +648,7 @@ private fun ControlsCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Headlight",
+                    stringResource(R.string.controls_headlight),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -619,7 +674,7 @@ private fun ControlsCard(
                         selected = selected,
                         onClick = { onSetPedalsMode(preset.code) },
                         enabled = enabled,
-                        label = { Text(preset.label, fontSize = 12.sp) },
+                        label = { Text(stringResource(preset.labelRes), fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
@@ -641,7 +696,11 @@ private fun ControlsCard(
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text("Beep", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                    Text(
+                        stringResource(R.string.action_beep),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                    )
                 }
             }
         }
@@ -674,7 +733,9 @@ fun BatteryGauge(percent: Float?, voltageV: Float?, modifier: Modifier = Modifie
         com.rideflux.app.ui.dashboard.components.BatteryBar(percent = percent)
         Spacer(Modifier.height(6.dp))
         Text(
-            text = voltageV?.let { "%.1f V".format(Locale.US, it) } ?: "-- V",
+            text = voltageV?.let { "%.1f".format(Locale.US, it) }
+                ?.plus(" ${stringResource(R.string.unit_volt)}")
+                ?: "${stringResource(R.string.value_unavailable)} ${stringResource(R.string.unit_volt)}",
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )

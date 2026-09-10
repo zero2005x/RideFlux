@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * AR-glasses-side BLE central. Scans for the bridge advertised by
@@ -87,6 +88,9 @@ class BridgeClient(
         // skip disconnect()/close(), leaking a live GATT link. An
         // AtomicReference publishes it safely across both threads.
         val gattRef = AtomicReference<BluetoothGatt?>(null)
+        val lifecycleLock = Any()
+        val disposed = AtomicBoolean(false)
+        val lastFrameMillis = AtomicLong(0L)
         // Guard against duplicate onScanResult deliveries opening a
         // second BluetoothGatt: each delivery would otherwise overwrite
         // the reference without closing the previous one, leaking the
@@ -107,8 +111,9 @@ class BridgeClient(
         // same guard-and-close behaviour instead of a bare call that
         // could throw SecurityException onto the BLE callback thread.
         fun startDiscovery(g: BluetoothGatt) {
+            if (disposed.get()) return
             try {
-                g.discoverServices()
+                if (!g.discoverServices()) close(IllegalStateException("discoverServices rejected"))
             } catch (t: Throwable) {
                 close(IllegalStateException("discoverServices failed: ${t.message}"))
             }
@@ -116,7 +121,12 @@ class BridgeClient(
 
         val gattCallback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
+                if (disposed.get()) return
                 Log.i(TAG, "conn status=$status newState=$newState")
+                if (status != BluetoothGatt.GATT_SUCCESS) {
+                    close(IllegalStateException("GATT connection failed status=$status"))
+                    return
+                }
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     // requestMtu's Boolean result matters: if it returns
                     // false the peer never sends an MTU response,
@@ -158,6 +168,7 @@ class BridgeClient(
             }
 
             override fun onMtuChanged(g: BluetoothGatt, mtu: Int, status: Int) {
+                if (disposed.get()) return
                 Log.i(TAG, "mtu=$mtu status=$status")
                 if (!mtuResolved.getAndSet(true)) {
                     // Even a failed MTU exchange must not block the
@@ -173,6 +184,7 @@ class BridgeClient(
             }
 
             override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
+                if (disposed.get()) return
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     close(IllegalStateException("discoverServices status=$status"))
                     return
@@ -205,6 +217,9 @@ class BridgeClient(
                     }
                     val cccd = ch.getDescriptor(BridgeProtocol.CCCD_UUID)
                     if (cccd == null) {
+                        // A cached service can contain the characteristic but
+                        // omit its descriptor after the phone rebuilds GATT.
+                        refreshGattCache(g)
                         close(IllegalStateException("CCCD missing"))
                         return
                     }
@@ -222,6 +237,7 @@ class BridgeClient(
                 descriptor: BluetoothGattDescriptor,
                 status: Int,
             ) {
+                if (disposed.get()) return
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     // The CCCD write result is the signal that the server
                     // will start sending notifications. If it failed the
@@ -229,6 +245,7 @@ class BridgeClient(
                     // so callers' retryWhen can recover.
                     close(IllegalStateException("CCCD write failed status=$status"))
                 } else {
+                    lastFrameMillis.set(SystemClock.elapsedRealtime())
                     subscribed.set(true)
                 }
             }
@@ -237,6 +254,7 @@ class BridgeClient(
                 g: BluetoothGatt,
                 characteristic: BluetoothGattCharacteristic,
             ) {
+                if (disposed.get()) return
                 if (characteristic.uuid != BridgeProtocol.TELEMETRY_CHAR_UUID) return
                 val bytes = characteristic.value
                 if (bytes == null) {
@@ -257,6 +275,7 @@ class BridgeClient(
                     )
                     return
                 }
+                lastFrameMillis.set(SystemClock.elapsedRealtime())
                 // Log (rather than silently dropping) when the channel
                 // buffer is full so lossy behaviour stays visible.
                 if (!trySend(frame).isSuccess) {
@@ -274,40 +293,50 @@ class BridgeClient(
         val filterExpired = AtomicBoolean(false)
 
         val scanCallback = object : ScanCallback() {
+            // Serialised against awaitClose and the filter fallback:
+            // without the lock a scan hit delivered while the flow is
+            // being torn down can publish a fresh BluetoothGatt into
+            // gattRef *after* the cleanup already read and cleared it,
+            // leaking a live link with no owner.
             override fun onScanResult(callbackType: Int, result: ScanResult) {
-                val device = result.device ?: return
-                if (
-                    filterExpired.get() &&
-                    result.scanRecord?.serviceUuids?.any { it.uuid == BridgeProtocol.SERVICE_UUID } != true
-                ) {
-                    return
+                synchronized(lifecycleLock) {
+                    if (disposed.get()) return
+                    val device = result.device ?: return
+                    if (
+                        filterExpired.get() &&
+                        result.scanRecord?.serviceUuids
+                            ?.any { it.uuid == BridgeProtocol.SERVICE_UUID } != true
+                    ) {
+                        return
+                    }
+                    if (!peerFilter.accepts(device)) return
+                    if (!connectStarted.compareAndSet(false, true)) return
+                    Log.i(TAG, "scan hit: ${device.address} rssi=${result.rssi}")
+                    // Stop scanning immediately and connect.
+                    try {
+                        scanner.stopScan(this)
+                    } catch (_: Throwable) { /* already stopped */ }
+                    // connectGatt can throw SecurityException if
+                    // BLUETOOTH_CONNECT was revoked at runtime, and can
+                    // return null on failure — both must surface through
+                    // close(...) instead of crashing the callback thread
+                    // or hanging the flow.
+                    val newGatt = try {
+                        device.connectGatt(context, /* autoConnect = */ false, gattCallback)
+                    } catch (t: Throwable) {
+                        close(IllegalStateException("connectGatt failed: ${t.message}"))
+                        return
+                    }
+                    if (newGatt == null) {
+                        close(IllegalStateException("connectGatt returned null"))
+                        return
+                    }
+                    gattRef.set(newGatt)
                 }
-                if (!peerFilter.accepts(device)) return
-                if (!connectStarted.compareAndSet(false, true)) return
-                Log.i(TAG, "scan hit: ${device.address} rssi=${result.rssi}")
-                // Stop scanning immediately and connect.
-                try {
-                    scanner.stopScan(this)
-                } catch (_: Throwable) { /* already stopped */ }
-                // connectGatt can throw SecurityException if
-                // BLUETOOTH_CONNECT was revoked at runtime, and can
-                // return null on failure — both must surface through
-                // close(...) instead of crashing the callback thread
-                // or hanging the flow.
-                val newGatt = try {
-                    device.connectGatt(context, /* autoConnect = */ false, gattCallback)
-                } catch (t: Throwable) {
-                    close(IllegalStateException("connectGatt failed: ${t.message}"))
-                    return
-                }
-                if (newGatt == null) {
-                    close(IllegalStateException("connectGatt returned null"))
-                    return
-                }
-                gattRef.set(newGatt)
             }
 
             override fun onScanFailed(errorCode: Int) {
+                if (disposed.get()) return
                 close(IllegalStateException("scan failed: $errorCode"))
             }
         }
@@ -331,21 +360,27 @@ class BridgeClient(
         // and rely on the in-code serviceUuids check in onScanResult.
         // The overall watchdog still bounds the attempt so a dead scan
         // cannot hang the outer retry loop forever.
-        launch {
+        val filterFallbackJob = launch {
             delay(SCAN_FILTER_FALLBACK_MILLIS)
-            if (!connectStarted.get() && !filterExpired.getAndSet(true)) {
-                Log.w(
-                    TAG,
-                    "no hits with service-UUID filter after ${SCAN_FILTER_FALLBACK_MILLIS}ms — " +
-                        "restarting unfiltered",
-                )
-                try {
-                    scanner.stopScan(scanCallback)
-                } catch (_: Throwable) { /* already stopped */ }
-                try {
-                    scanner.startScan(emptyList(), settings, scanCallback)
-                } catch (t: Throwable) {
-                    close(t)
+            // Same lock as onScanResult/awaitClose: restarting the scan
+            // after the flow has been disposed would re-register a
+            // callback nobody stops.
+            synchronized(lifecycleLock) {
+                if (disposed.get()) return@launch
+                if (!connectStarted.get() && !filterExpired.getAndSet(true)) {
+                    Log.w(
+                        TAG,
+                        "no hits with service-UUID filter after ${SCAN_FILTER_FALLBACK_MILLIS}ms — " +
+                            "restarting unfiltered",
+                    )
+                    try {
+                        scanner.stopScan(scanCallback)
+                    } catch (_: Throwable) { /* already stopped */ }
+                    try {
+                        scanner.startScan(emptyList(), settings, scanCallback)
+                    } catch (t: Throwable) {
+                        close(t)
+                    }
                 }
             }
         }
@@ -371,15 +406,31 @@ class BridgeClient(
             if (!subscribed.get()) {
                 Log.w(TAG, "GATT subscribe timeout; restarting")
                 close(IllegalStateException("bridge subscribe timeout"))
+                return@launch
+            }
+            while (true) {
+                delay(WATCHDOG_POLL_MILLIS)
+                if (SystemClock.elapsedRealtime() - lastFrameMillis.get() > FRAME_TIMEOUT_MILLIS) {
+                    close(IllegalStateException("bridge telemetry timeout"))
+                    return@launch
+                }
             }
         }
 
         awaitClose {
-            watchdog.cancel()
-            try { scanner.stopScan(scanCallback) } catch (_: Throwable) { }
-            val activeGatt = gattRef.getAndSet(null)
-            try { activeGatt?.disconnect() } catch (_: Throwable) { }
-            try { activeGatt?.close() } catch (_: Throwable) { }
+            synchronized(lifecycleLock) {
+                // disposed first: every callback and timer checks it
+                // under this lock, so nothing can hand us a new scan
+                // result or GATT instance after this point.
+                disposed.set(true)
+                watchdog.cancel()
+                filterFallbackJob.cancel()
+                mtuFallbackJob.getAndSet(null)?.cancel()
+                try { scanner.stopScan(scanCallback) } catch (_: Throwable) { }
+                val activeGatt = gattRef.getAndSet(null)
+                try { activeGatt?.disconnect() } catch (_: Throwable) { }
+                try { activeGatt?.close() } catch (_: Throwable) { }
+            }
         }
     }
 
@@ -400,6 +451,7 @@ class BridgeClient(
         const val WATCHDOG_POLL_MILLIS = 250L
         const val SCAN_FILTER_FALLBACK_MILLIS = 4_000L
         const val MTU_FALLBACK_MILLIS = 1_500L
+        const val FRAME_TIMEOUT_MILLIS = 5_000L
     }
 }
 

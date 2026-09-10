@@ -23,7 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.rideflux.app.R
 import com.rideflux.app.ui.dashboard.components.RideFluxColors
 import com.rideflux.app.ui.dashboard.components.SectionHeader
 import com.rideflux.domain.ride.TripSample
@@ -39,22 +41,28 @@ fun MapPage(
         modifier = modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        SectionHeader("Route", accent = RideFluxColors.Cyan)
+        SectionHeader(stringResource(R.string.section_route), accent = RideFluxColors.Cyan)
         Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
             Box(Modifier.fillMaxWidth().height(420.dp), contentAlignment = Alignment.Center) {
                 TrackCanvas(samples = samples, modifier = Modifier.fillMaxSize(), showLiveMarker = true)
                 if (!locationPermissionGranted) {
                     Text(
-                        "Location permission not granted",
+                        stringResource(R.string.map_no_location_permission),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else if (samples.none { it.latitudeDeg != null && it.longitudeDeg != null }) {
-                    Text("Waiting for a GPS fix…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        stringResource(R.string.map_waiting_fix),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
         Text(
-            "Offline track preview • ${samples.count { it.latitudeDeg != null && it.longitudeDeg != null }} GPS points",
+            stringResource(
+                R.string.map_track_preview,
+                samples.count { it.latitudeDeg != null && it.longitudeDeg != null },
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

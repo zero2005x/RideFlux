@@ -18,6 +18,8 @@ import com.rideflux.domain.wheel.WheelCapabilities
 import com.rideflux.domain.wheel.WheelIdentity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancelAndJoin
@@ -37,6 +39,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+
+private const val HANDSHAKE_TIMEOUT_MILLIS = 15_000L
 
 /**
  * Framework-free logical "glue" implementation of [WheelConnection].
@@ -145,8 +149,22 @@ class WheelConnectionImpl(
     private val lifecycleMutex = Mutex()
     private var ingestJob: Job? = null
     private var keepAliveJob: Job? = null
+    private var handshakeTimeoutJob: Job? = null
     private var started: Boolean = false
-    private var closed: Boolean = false
+    @Volatile private var closed: Boolean = false
+
+    /**
+     * Set once the codec has decoded anything usable from the wheel.
+     *
+     * The handshake watchdog only fires on a *silent* link. Several
+     * families gate [DecodeEvent.Identified] on a complete identity
+     * tuple (Inmotion I2 needs model, serial *and* firmware), so a
+     * variant that never answers one of those queries streams perfectly
+     * good telemetry while staying in [ConnectionState.Handshaking].
+     * Tearing that link down after the timeout would break a working
+     * ride; staying silent for the whole window would not.
+     */
+    @Volatile private var sawWheelData: Boolean = false
 
     /**
      * Connect the transport, start ingesting bytes and (if required)
@@ -165,6 +183,14 @@ class WheelConnectionImpl(
         _state.value = ConnectionState.Connecting
         try {
             transport.connect()
+        } catch (_: TimeoutCancellationException) {
+            // The transport's own timeout, not our caller being
+            // cancelled: report it as a link failure (must be caught
+            // before CancellationException, which it extends) and make
+            // sure the half-open GATT is released.
+            onLinkLost("BLE connection timed out")
+            try { transport.disconnect() } catch (_: Throwable) { /* best-effort */ }
+            return
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
@@ -204,24 +230,54 @@ class WheelConnectionImpl(
             return
         }
 
-        // Emit Handshaking and write the handshake frames BEFORE
-        // launching the ingest loop: for families that auto-advertise,
-        // an early Identified would otherwise flip the state to Ready
-        // only to be overwritten by Handshaking (state regression), and
-        // telemetry could be processed before the handshake is issued.
-        _state.value = ConnectionState.Handshaking(family)
+        lifecycleMutex.withLock {
+            if (closed) return
+            _state.value = ConnectionState.Handshaking(family)
+            // Arm the watchdog before the ingest loop: an UNDISPATCHED
+            // ingest can decode a buffered reply synchronously, and its
+            // Identified branch must find a job here to cancel.
+            handshakeTimeoutJob = scope.launch {
+                delay(HANDSHAKE_TIMEOUT_MILLIS)
+                // Only a link that never said anything is a failed
+                // handshake (see [sawWheelData]). A wheel that streams
+                // telemetry without completing identification keeps its
+                // connection.
+                if (closed || sawWheelData) return@launch
+                if (_state.compareAndSet(
+                        ConnectionState.Handshaking(family),
+                        ConnectionState.Failed(ConnectionState.Failed.Reason.HANDSHAKE_TIMEOUT),
+                    )
+                ) {
+                    ingestJob?.cancel()
+                    keepAliveJob?.cancel()
+                    _telemetry.value = WheelTelemetry.EMPTY
+                    try { transport.disconnect() } catch (_: Throwable) { /* best-effort */ }
+                }
+            }
+            // Subscribe before writing: a wheel can reply before write()
+            // returns. Publishing Handshaking first avoids the state
+            // regression an early Identified would otherwise cause.
+            ingestJob = scope.launch(start = CoroutineStart.UNDISPATCHED) { runIngestLoop() }
+        }
         for (frame in handshake) {
+            if (closed || _state.value is ConnectionState.Failed) return
             try {
                 transport.write(frame)
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Throwable) {
-                // Best-effort: if the handshake write fails the ingest
-                // loop will surface the link failure on the next cycle.
+            } catch (e: Throwable) {
+                // A wheel that cannot be written to will never answer.
+                // Previously this was swallowed and the connection sat
+                // in Handshaking until something else happened to tear
+                // it down; make it terminal instead.
+                onLinkLost("Handshake write failed: ${e.message}")
+                ingestJob?.cancel()
+                try { transport.disconnect() } catch (_: Throwable) { /* best-effort */ }
+                return
             }
         }
 
-        // Atomically launch the ingest / keep-alive jobs. A concurrent
+        // Atomically launch the keep-alive job. A concurrent
         // close() that wins the lock first sets closed = true and we
         // bail out without launching anything (close() already
         // disconnected the transport); a close() that loses the race
@@ -236,8 +292,7 @@ class WheelConnectionImpl(
                 _state.value = ConnectionState.Disconnected
                 return
             }
-            ingestJob = scope.launch { runIngestLoop() }
-            if (keepAlivePeriodMillis != null) {
+            if (_state.value !is ConnectionState.Failed && keepAlivePeriodMillis != null) {
                 keepAliveJob = scope.launch { runKeepAliveLoop(keepAlivePeriodMillis) }
             }
         }
@@ -269,12 +324,15 @@ class WheelConnectionImpl(
      * dead transport every period until close() happens to be called.
      */
     private fun onLinkLost(message: String?) {
+        if (closed || _state.value is ConnectionState.Failed) return
         _state.value = ConnectionState.Failed(
             ConnectionState.Failed.Reason.BLE_LINK_LOST,
             message,
         )
         keepAliveJob?.cancel()
         keepAliveJob = null
+        handshakeTimeoutJob?.cancel()
+        _telemetry.value = WheelTelemetry.EMPTY
     }
 
     private suspend fun handleBytes(bytes: ByteArray) {
@@ -288,7 +346,10 @@ class WheelConnectionImpl(
             // suspending, so an in-flight handleBytes could otherwise
             // republish stale telemetry — or flip the state back to
             // Ready — after close() already reset everything.
-            if (closed) return
+            if (closed || _state.value is ConnectionState.Failed) return
+            // Anything the codec could make sense of proves the wheel is
+            // talking, which is what the handshake watchdog waits for.
+            if (event !is DecodeEvent.Malformed) sawWheelData = true
             when (event) {
                 is DecodeEvent.TelemetryUpdate -> {
                     _telemetry.update { current -> merge(current, event.snapshot) }
@@ -300,6 +361,7 @@ class WheelConnectionImpl(
                     _identity.value = event.identity
                     _capabilities.value = event.capabilities
                     _state.value = ConnectionState.Ready
+                    handshakeTimeoutJob?.cancel()
                 }
                 is DecodeEvent.Malformed -> Unit // discard; diagnostics elsewhere
             }
@@ -382,10 +444,12 @@ class WheelConnectionImpl(
         // the state back to Ready) on an already-closed connection.
         // NonCancellable so a cancelled caller cannot skip the join.
         withContext(NonCancellable) {
+            handshakeTimeoutJob?.cancelAndJoin()
             ingestJob?.cancelAndJoin()
             keepAliveJob?.cancelAndJoin()
         }
         ingestJob = null
+        handshakeTimeoutJob = null
         keepAliveJob = null
         // Stop the derived-flow sharing coroutines so nothing keeps
         // collecting _telemetry after teardown (the WheelConnection

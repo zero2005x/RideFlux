@@ -31,10 +31,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.rideflux.hud.R
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -107,19 +109,19 @@ fun BlePermissionGate(content: @Composable () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Bluetooth permission required",
+                text = stringResource(R.string.permission_bluetooth_title),
                 color = Color(0xFF00FF88),
                 fontSize = 22.sp,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    "RideFlux HUD needs Bluetooth scan and connect " +
-                        "permissions to reach your wheel."
-                } else {
-                    "RideFlux HUD needs location access to discover and " +
-                        "connect to your wheel over Bluetooth."
-                },
+                text = stringResource(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        R.string.permission_bluetooth_body
+                    } else {
+                        R.string.permission_location_body
+                    },
+                ),
                 color = Color.White,
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
@@ -141,7 +143,7 @@ fun BlePermissionGate(content: @Composable () -> Unit) {
                     contentColor = Color.Black,
                 ),
             ) {
-                Text("Open settings")
+                Text(stringResource(R.string.action_open_settings))
             }
         }
     }

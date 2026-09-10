@@ -13,6 +13,46 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BridgeCodecTest {
+    @Test
+    fun `invalid numeric payloads are rejected without throwing`() {
+        val badBattery = BridgeCodec.encode(fullFrame()).also { it[9] = 101 }
+        assertNull(BridgeCodec.decode(badBattery))
+        val badSpeed = BridgeCodec.encode(fullFrame()).also {
+            ByteBuffer.wrap(it).order(ByteOrder.LITTLE_ENDIAN).putShort(7, (-1).toShort())
+        }
+        assertNull(BridgeCodec.decode(badSpeed))
+        val badDuration = BridgeCodec.encode(fullFrame()).also {
+            ByteBuffer.wrap(it).order(ByteOrder.LITTLE_ENDIAN).putInt(16, -1)
+        }
+        assertNull(BridgeCodec.decode(badDuration))
+    }
+
+    @Test
+    fun `single byte corruption cannot escape either decoder`() {
+        val legacy = ByteArray(32).also { it[0] = BridgeProtocol.MAGIC; it[1] = 1 }
+        for (valid in listOf(BridgeCodec.encode(fullFrame()), legacy)) {
+            for (offset in valid.indices) {
+                for (value in 0..255) {
+                    BridgeCodec.decode(valid.copyOf().also { it[offset] = value.toByte() })
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `duration overflow becomes unknown rather than wrapping`() {
+        val original = fullFrame().copy(tripDurationSeconds = Long.MAX_VALUE)
+        val decoded = BridgeCodec.decode(BridgeCodec.encode(original))
+        assertTrue(decoded != null)
+        assertNull(decoded?.tripDurationSeconds)
+    }
+
+    @Test
+    fun `legacy millisecond remainder must be within one second`() {
+        val legacy = ByteArray(32).also { it[0] = BridgeProtocol.MAGIC; it[1] = 1 }
+        ByteBuffer.wrap(legacy).order(ByteOrder.LITTLE_ENDIAN).putInt(8, 1_000)
+        assertNull(BridgeCodec.decode(legacy))
+    }
 
     @Test
     fun `v2 frame is exactly 20 bytes and starts with magic and version`() {

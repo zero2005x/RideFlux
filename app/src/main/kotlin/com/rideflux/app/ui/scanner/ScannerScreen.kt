@@ -46,6 +46,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -140,13 +141,19 @@ fun ScannerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Scan for wheels") },
+                title = { Text(stringResource(R.string.scanner_title)) },
                 actions = {
                     IconButton(onClick = onOpenTripHistory) {
-                        Icon(Icons.Filled.History, contentDescription = "Trip history")
+                        Icon(
+                            Icons.Filled.History,
+                            contentDescription = stringResource(R.string.trip_history_title),
+                        )
                     }
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = stringResource(R.string.settings_title),
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -198,20 +205,24 @@ private fun BridgeControlCard(
     modifier: Modifier = Modifier,
 ) {
     val enabled = state != BridgeState.STOPPED
-    val status = when (state) {
-        BridgeState.STOPPED -> "Off"
-        BridgeState.STANDBY -> "Waiting for a wheel"
-        BridgeState.ATTACHING -> "Connecting to wheel"
-        BridgeState.RELAYING -> "Relaying telemetry"
-        BridgeState.DEGRADED -> "Wheel unavailable · still discoverable"
-    }
-    val transportStatus = when (linkState) {
-        GlassesLinkState.STOPPED -> "transport stopped"
-        GlassesLinkState.STARTING -> "starting glasses link"
-        GlassesLinkState.READY -> "waiting for glasses"
-        GlassesLinkState.CONNECTED -> "glasses connected"
-        GlassesLinkState.ERROR -> "glasses link error"
-    }
+    val status = stringResource(
+        when (state) {
+            BridgeState.STOPPED -> R.string.bridge_state_off
+            BridgeState.STANDBY -> R.string.bridge_state_standby
+            BridgeState.ATTACHING -> R.string.bridge_state_attaching
+            BridgeState.RELAYING -> R.string.bridge_state_relaying
+            BridgeState.DEGRADED -> R.string.bridge_state_degraded
+        },
+    )
+    val transportStatus = stringResource(
+        when (linkState) {
+            GlassesLinkState.STOPPED -> R.string.glasses_link_stopped
+            GlassesLinkState.STARTING -> R.string.glasses_link_starting
+            GlassesLinkState.READY -> R.string.glasses_link_ready
+            GlassesLinkState.CONNECTED -> R.string.glasses_link_connected
+            GlassesLinkState.ERROR -> R.string.glasses_link_error
+        },
+    )
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -231,9 +242,12 @@ private fun BridgeControlCard(
                 )
                 Spacer(Modifier.size(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("HUD bridge", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "$status · $transportStatus",
+                        stringResource(R.string.bridge_card_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        stringResource(R.string.bridge_status_combined, status, transportStatus),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -244,7 +258,7 @@ private fun BridgeControlCard(
                 )
             }
             Text(
-                text = "Glasses connection",
+                text = stringResource(R.string.glasses_connection),
                 modifier = Modifier.padding(horizontal = 16.dp),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -256,12 +270,12 @@ private fun BridgeControlCard(
                 FilterChip(
                     selected = linkMode == GlassesLinkMode.ANDROID_BLE,
                     onClick = { onSelectLinkMode(GlassesLinkMode.ANDROID_BLE) },
-                    label = { Text("Android BLE") },
+                    label = { Text(stringResource(R.string.link_mode_android_ble)) },
                 )
                 FilterChip(
                     selected = linkMode == GlassesLinkMode.ROKID_CXR,
                     onClick = { onSelectLinkMode(GlassesLinkMode.ROKID_CXR) },
-                    label = { Text("Rokid CXR") },
+                    label = { Text(stringResource(R.string.link_mode_rokid_cxr)) },
                 )
             }
         }
@@ -284,7 +298,11 @@ private fun ScanToggleFab(
                 contentDescription = null,
             )
         },
-        text = { Text(if (isScanning) "Stop" else "Scan") },
+        text = {
+            Text(
+                stringResource(if (isScanning) R.string.action_stop else R.string.action_scan),
+            )
+        },
     )
 }
 
@@ -314,7 +332,7 @@ private fun ScannerContent(
                 uiState.errorMessage?.let { message ->
                     item(key = "scan_error") {
                         Text(
-                            text = "Scan failed: $message",
+                            text = stringResource(R.string.scanner_scan_failed_reason, message),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
                         )
@@ -327,7 +345,7 @@ private fun ScannerContent(
 
         uiState.errorMessage != null ->
             CenteredMessage(
-                title = "Scan failed",
+                title = stringResource(R.string.scanner_scan_failed),
                 subtitle = uiState.errorMessage,
                 padding = contentPadding,
             )
@@ -349,7 +367,7 @@ private fun ScannerContent(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.size(16.dp))
                     Text(
-                        "Searching for wheels…",
+                        stringResource(R.string.scanner_searching),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -358,8 +376,8 @@ private fun ScannerContent(
 
         devices.isEmpty() ->
             CenteredMessage(
-                title = "No devices yet",
-                subtitle = "Tap Scan to search for nearby wheels.",
+                title = stringResource(R.string.scanner_no_devices),
+                subtitle = stringResource(R.string.scanner_no_devices_hint),
                 padding = contentPadding,
                 illustrationRes = R.drawable.illustration_no_devices,
             )
@@ -392,7 +410,7 @@ private fun DeviceCard(device: DiscoveredWheel, onClick: () -> Unit) {
             Spacer(Modifier.size(16.dp))
             Column(modifier = Modifier.fillMaxWidth(0.85f)) {
                 Text(
-                    text = device.displayName ?: "Unknown device",
+                    text = device.displayName ?: stringResource(R.string.scanner_unknown_device),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
@@ -412,9 +430,13 @@ private fun DeviceCard(device: DiscoveredWheel, onClick: () -> Unit) {
 
 @Composable
 private fun FamilyAndRssiRow(device: DiscoveredWheel) {
+    // Read both strings unconditionally: stringResource is a composable
+    // call and must not sit behind a data-dependent branch.
+    val familyLabel = stringResource(R.string.scanner_device_family, device.family?.name.orEmpty())
+    val rssiLabel = stringResource(R.string.unit_dbm, device.rssi ?: 0)
     val parts = buildList {
-        device.family?.let { add("Family: ${it.name}") }
-        device.rssi?.let { add("${it} dBm") }
+        device.family?.let { add(familyLabel) }
+        device.rssi?.let { add(rssiLabel) }
     }
     if (parts.isNotEmpty()) {
         Text(

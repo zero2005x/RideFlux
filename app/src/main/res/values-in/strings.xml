@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Indonesian (Bahasa Indonesia) translations for :app.
+  NOTE: the resource qualifier is the legacy ISO 639-1 code "in", not "id" —
+  Android resolves Indonesian resources only under values-in.
+-->
+<resources>
+
+    <string name="action_back">Kembali</string>
+    <string name="action_open">Buka</string>
+    <string name="action_scan">Pindai</string>
+    <string name="action_stop">Berhenti</string>
+    <string name="action_clear_all">Hapus semua</string>
+    <string name="action_export_csv">Ekspor CSV</string>
+    <string name="action_export_gpx">Ekspor GPX</string>
+    <string name="action_delete_trip">Hapus perjalanan</string>
+    <string name="action_beep">Klakson</string>
+    <string name="action_grant_permissions">Beri izin</string>
+    <string name="action_open_settings">Buka setelan</string>
+    <string name="filter_all">Semua</string>
+
+    <string name="scanner_title">Pindai roda</string>
+    <string name="scanner_searching">Mencari roda…</string>
+    <string name="scanner_no_devices">Belum ada perangkat</string>
+    <string name="scanner_no_devices_hint">Ketuk Pindai untuk mencari roda di sekitar.</string>
+    <string name="scanner_scan_failed">Pemindaian gagal</string>
+    <string name="scanner_scan_failed_reason">Pemindaian gagal: %1$s</string>
+    <string name="scanner_unknown_device">Perangkat tidak dikenal</string>
+    <string name="scanner_device_family">Famili: %1$s</string>
+
+    <string name="bridge_card_title">Jembatan HUD</string>
+    <string name="bridge_state_off">Nonaktif</string>
+    <string name="bridge_state_standby">Menunggu roda</string>
+    <string name="bridge_state_attaching">Menghubungkan ke roda</string>
+    <string name="bridge_state_relaying">Meneruskan telemetri</string>
+    <string name="bridge_state_degraded">Roda tidak tersedia · masih dapat ditemukan</string>
+    <string name="glasses_link_stopped">transport berhenti</string>
+    <string name="glasses_link_starting">memulai tautan kacamata</string>
+    <string name="glasses_link_ready">menunggu kacamata</string>
+    <string name="glasses_link_connected">kacamata terhubung</string>
+    <string name="glasses_link_error">galat tautan kacamata</string>
+    <string name="glasses_connection">Koneksi kacamata</string>
+
+    <string name="page_dashboard">Dasbor</string>
+    <string name="page_graph">Grafik</string>
+    <string name="page_parameters">Parameter</string>
+    <string name="page_battery">Baterai</string>
+    <string name="page_trips">Perjalanan</string>
+    <string name="page_events">Peristiwa</string>
+    <string name="page_map">Peta</string>
+    <string name="dashboard_bridge_remove">Lepaskan roda dari jembatan HUD</string>
+    <string name="dashboard_bridge_send">Kirim roda ke jembatan HUD</string>
+    <string name="dashboard_open_ar_hud">Buka HUD AR</string>
+    <string name="controls_headlight">Lampu depan</string>
+    <string name="pedals_soft">Lembut</string>
+    <string name="pedals_medium">Sedang</string>
+    <string name="pedals_hard">Keras</string>
+
+    <string name="alert_speed_limit_title">BATAS KECEPATAN</string>
+    <string name="alert_speed_limit_body">%1$s km/j melampaui %2$s km/j</string>
+    <string name="alert_mos_temperature_title">SUHU MOS</string>
+    <string name="alert_mos_temperature_body">%1$s°C melampaui %2$s°C</string>
+    <string name="alert_low_battery_title">BATERAI LEMAH</string>
+    <string name="alert_low_battery_body">%1$s%% di bawah %2$s%%</string>
+    <string name="alert_pwm_load_title">BEBAN PWM</string>
+    <string name="alert_pwm_load_body">%1$s%% melampaui %2$s%%</string>
+    <string name="alert_tilt_back_title">TILT-BACK</string>
+    <string name="alert_tilt_back_body">Kecepatan %1$s km/j · batas %2$s km/j</string>
+    <string name="alert_speed_cutoff_title">PEMUTUSAN MOTOR</string>
+    <string name="alert_speed_cutoff_body">Motor terputus pada %1$s km/j</string>
+    <string name="alert_wheel_low_battery_title">Baterai lemah</string>
+    <string name="alert_wheel_low_battery_body">Tegangan pak %1$s V</string>
+    <string name="alert_over_temperature_title">Suhu berlebih</string>
+    <string name="alert_fall_title">TERDETEKSI JATUH</string>
+    <string name="alert_fall_body">Roda melaporkan peristiwa jatuh</string>
+    <string name="alert_fault_set_title">Kumpulan gangguan berubah</string>
+    <string name="alert_faults_added">+%1$d gangguan</string>
+    <string name="alert_faults_cleared">-%1$d teratasi</string>
+    <string name="alert_updated">Diperbarui</string>
+    <string name="alert_raw_title">Peringatan %1$s 0x%2$s</string>
+    <string name="alert_raw_body">%1$d bita</string>
+
+    <string name="events_header">Peristiwa</string>
+    <string name="events_empty">Belum ada peristiwa</string>
+    <string name="event_speed_limit">Batas kecepatan</string>
+    <string name="event_mos_temperature">Suhu MOS</string>
+    <string name="event_low_battery_threshold">Ambang baterai lemah</string>
+    <string name="event_pwm_load">Beban PWM</string>
+    <string name="event_tilt_back">Tilt-back</string>
+    <string name="event_speed_cutoff">Pemutusan motor</string>
+    <string name="event_low_battery">Baterai lemah</string>
+    <string name="event_low_battery_body">Tegangan %1$s V</string>
+    <string name="event_over_temperature">Suhu berlebih</string>
+    <string name="event_fall_detected">Terdeteksi jatuh</string>
+    <string name="event_fault_set_changed">Kumpulan gangguan berubah</string>
+    <string name="event_raw_title">%1$s mentah 0x%2$s</string>
+
+    <string name="section_speed">Kecepatan</string>
+    <string name="section_power">Daya</string>
+    <string name="section_thermals">Suhu</string>
+    <string name="section_distance">Jarak</string>
+    <string name="section_device">Perangkat</string>
+    <string name="section_pack">Pak baterai</string>
+    <string name="section_cells">Sel</string>
+    <string name="section_current_ride">Perjalanan saat ini</string>
+    <string name="section_lifetime">Kumulatif</string>
+    <string name="section_saved_rides">Perjalanan tersimpan</string>
+    <string name="section_route">Rute</string>
+
+    <string name="metric_speed">Kecepatan</string>
+    <string name="metric_max">Maks</string>
+    <string name="metric_average">Rata-rata</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">Tegangan</string>
+    <string name="metric_current">Arus</string>
+    <string name="metric_phase_current">Arus fase</string>
+    <string name="metric_power">Daya</string>
+    <string name="metric_battery">Baterai</string>
+    <string name="metric_battery_voltage">Tegangan baterai</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">Suhu MOS</string>
+    <string name="metric_motor">Motor</string>
+    <string name="metric_battery_temp">Suhu baterai</string>
+    <string name="metric_board">Papan</string>
+    <string name="metric_trip">Perjalanan</string>
+    <string name="metric_total">Total</string>
+    <string name="metric_ride_time">Waktu berkendara</string>
+    <string name="metric_mode">Mode</string>
+    <string name="metric_model">Model</string>
+    <string name="metric_family">Famili</string>
+    <string name="metric_firmware">Firmware</string>
+    <string name="metric_address">Alamat</string>
+    <string name="metric_state_of_charge">Tingkat daya</string>
+    <string name="metric_trip_distance">Jarak perjalanan</string>
+    <string name="metric_max_speed">Kecepatan maks</string>
+    <string name="metric_avg_speed">Kecepatan rata-rata</string>
+    <string name="metric_total_distance">Jarak total</string>
+    <string name="metric_vehicle">Kendaraan</string>
+    <string name="unit_hms">j:m:d</string>
+
+    <string name="bms_per_cell_title">Data per sel</string>
+    <string name="bms_per_cell_body">Roda ini tidak mengirimkan tegangan tiap sel melalui tautan telemetri BLE-nya. Data BMS pintar hanya tersedia pada rakitan yang menyambungkan UART BMS ke kontroler — tidak ada famili yang didukung melakukannya.</string>
+
+    <string name="graph_header">TELEMETRI</string>
+    <string name="graph_waiting">Menunggu sampel telemetri…</string>
+    <string name="series_speed_kmh">Kecepatan (km/j)</string>
+    <string name="series_speed_mph">Kecepatan (mph)</string>
+    <string name="series_battery">Baterai (%%)</string>
+    <string name="series_current">Arus (A)</string>
+    <string name="series_mos">MOS (°C)</string>
+    <string name="series_voltage">Tegangan (V)</string>
+
+    <string name="map_no_location_permission">Izin lokasi belum diberikan</string>
+    <string name="map_waiting_fix">Menunggu sinyal GPS…</string>
+    <string name="map_track_preview">Pratinjau jalur luring • %1$d titik GPS</string>
+
+    <string name="trips_stop_recording">Hentikan perekaman</string>
+    <string name="trips_saved_empty">Perjalanan yang selesai akan muncul di sini dan tetap tersedia setelah aplikasi dimulai ulang.</string>
+    <string name="trip_history_title">Riwayat perjalanan</string>
+    <string name="trip_history_subtitle">Telusuri dan ekspor perjalanan yang tersimpan di perangkat</string>
+    <string name="trip_none_saved">Belum ada perjalanan tersimpan</string>
+    <string name="trip_details_title">Detail perjalanan</string>
+    <string name="trip_not_found">Perjalanan tidak ditemukan</string>
+    <string name="trip_summary_card">%1$s km  •  %2$s  •  maks %3$s km/j</string>
+    <string name="trip_summary_detail">%1$s km  •  %2$s  •  rata-rata %3$s km/j  •  maks %4$s km/j</string>
+
+    <string name="settings_title">Setelan</string>
+    <string name="settings_section_alerts">Peringatan</string>
+    <string name="settings_enable_alerts_title">Aktifkan peringatan ambang</string>
+    <string name="settings_enable_alerts_subtitle">Evaluasi batas keselamatan di sisi ponsel</string>
+    <string name="settings_speed_limit">Batas kecepatan</string>
+    <string name="settings_mos_temperature">Suhu MOS</string>
+    <string name="settings_low_battery">Baterai lemah</string>
+    <string name="settings_pwm_load">Beban PWM</string>
+    <string name="settings_section_display">Tampilan</string>
+    <string name="settings_metric_units_title">Satuan metrik</string>
+    <string name="settings_metric_units_subtitle">Nonaktifkan untuk mph dan mil</string>
+    <string name="settings_keep_awake_title">Biarkan dasbor menyala</string>
+    <string name="settings_keep_awake_subtitle">Cegah layar mati saat berkendara</string>
+    <string name="settings_section_hud_bridge">Jembatan HUD</string>
+    <string name="settings_bridge_autostart_title">Mulai jembatan otomatis</string>
+    <string name="settings_bridge_autostart_subtitle">Masuk siaga saat RideFlux dibuka atau ponsel dinyalakan</string>
+    <string name="settings_low_latency_title">Siaga latensi rendah</string>
+    <string name="settings_low_latency_subtitle">Menghabiskan lebih banyak baterai saat menunggu roda</string>
+    <string name="settings_paired_mac">MAC ponsel terpasangkan</string>
+    <string name="settings_paired_mac_unset">Diatur di HUD saat pemasangan</string>
+    <string name="settings_section_about">Tentang</string>
+    <string name="settings_about_subtitle">Telemetri roda dan jembatan HUD yang mengutamakan luring</string>
+
+    <string name="permission_bluetooth_title">Izin Bluetooth diperlukan</string>
+    <string name="permission_bluetooth_body">RideFlux memerlukan izin pindai dan sambung Bluetooth untuk menemukan serta berkomunikasi dengan roda Anda.</string>
+
+    <string name="hud_headlight_on">Lampu depan menyala</string>
+    <string name="hud_headlight_off">Lampu depan mati</string>
+    <string name="hud_pedals_mode">Mode pedal</string>
+    <string name="hud_label_on">NYALA</string>
+    <string name="hud_label_off">MATI</string>
+
+    <string name="notification_channel_bridge">Jembatan RideFlux</string>
+    <string name="notification_bridge_title">RideFlux → jembatan HUD</string>
+    <string name="notification_bridge_standby">Menunggu roda; kacamata sudah bisa tersambung</string>
+    <string name="notification_bridge_attaching">Menghubungkan ke roda yang dipilih</string>
+    <string name="notification_bridge_relaying">Meneruskan telemetri roda ke kacamata</string>
+    <string name="notification_bridge_degraded">Roda tidak tersedia; jembatan tetap dapat ditemukan</string>
+    <string name="notification_channel_recording">Perekaman perjalanan</string>
+    <string name="notification_recording_title">RideFlux sedang merekam</string>
+    <string name="notification_recording_text">Telemetri roda sedang disimpan di perangkat</string>
+
+</resources>
