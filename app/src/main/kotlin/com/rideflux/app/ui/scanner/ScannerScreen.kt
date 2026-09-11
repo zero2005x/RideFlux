@@ -312,7 +312,9 @@ private fun ScannerContent(
     onDeviceSelected: (DiscoveredWheel) -> Unit,
     contentPadding: PaddingValues,
 ) {
-    val devices = uiState.devices
+    val devices = uiState.devices.distinctBy { it.address }
+    val recognised = devices.filter { it.family != null }
+    val unrecognised = devices.filter { it.family == null }
     when {
         // Non-empty devices take precedence so a stale error (e.g. from
         // a failed flow AFTER devices were already discovered) doesn't
@@ -338,8 +340,29 @@ private fun ScannerContent(
                         )
                     }
                 }
-                items(devices.distinctBy { it.address }, key = { it.address }) { device ->
+                if (recognised.isNotEmpty()) {
+                    item(key = "recognised_header") {
+                        Text(
+                            text = "Recognised",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                items(recognised, key = { it.address }) { device ->
                     DeviceCard(device = device, onClick = { onDeviceSelected(device) })
+                }
+                if (unrecognised.isNotEmpty()) {
+                    item(key = "unrecognised_header") {
+                        Text(
+                            text = "Unrecognised (tap to try)",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    items(unrecognised, key = { it.address }) { device ->
+                        DeviceCard(device = device, onClick = { onDeviceSelected(device) })
+                    }
                 }
             }
 

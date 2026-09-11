@@ -14,10 +14,10 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.os.Build
 import android.os.ParcelUuid
 import android.os.SystemClock
 import android.util.Log
@@ -28,8 +28,9 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * AR-glasses-side BLE central. Scans for the bridge advertised by
@@ -49,15 +50,31 @@ import java.util.concurrent.atomic.AtomicLong
  * The service UUID alone is not an identity: anyone can advertise it
  * and inject fabricated telemetry into the HUD. [peerFilter] decides
  * which advertiser is acceptable and is enforced *before*
- * `connectGatt`. Production deployments should use
- * [BridgePeerFilter.Allowlist] (the paired phone's MAC) or
- * [BridgePeerFilter.Bonded]; [BridgePeerFilter.AcceptAny] is the
- * historical behaviour and is logged as insecure on every use.
+ * `connectGatt`. Production deployments use
+ * [BridgePeerFilter.PairingToken], which matches the token the phone
+ * publishes as service data and therefore survives BLE address
+ * rotation; [BridgePeerFilter.AcceptAny] is debug-only and is logged
+ * as insecure on every use.
+ *
+ * ### Scanning policy
+ * One `startScan` per connection attempt, unfiltered, with the service
+ * UUID matched in code. Two reasons, both learned the hard way: some
+ * vendor stacks (early RV101 firmware) mishandle hardware
+ * service-UUID filters and never report anything at all, and Android
+ * silently stops delivering results once an app exceeds five
+ * `startScan` calls in 30 seconds — see [BleScanThrottle], which every
+ * scan here books a slot with.
+ *
+ * Android 8.1+ ignores unfiltered scans while the screen is off. That
+ * is acceptable here because the HUD activity holds
+ * `FLAG_KEEP_SCREEN_ON` for the whole ride; a future background
+ * variant would need a filtered scan and its own budget.
  */
 @SuppressLint("MissingPermission")
 class BridgeClient(
     context: Context,
     private val peerFilter: BridgePeerFilter = BridgePeerFilter.AcceptAny,
+    private val scanThrottle: BleScanThrottle = BleScanThrottle.shared,
 ) {
 
     // Normalise to the application context: this class retains it for
@@ -88,9 +105,10 @@ class BridgeClient(
         // skip disconnect()/close(), leaking a live GATT link. An
         // AtomicReference publishes it safely across both threads.
         val gattRef = AtomicReference<BluetoothGatt?>(null)
-        val lifecycleLock = Any()
-        val disposed = AtomicBoolean(false)
-        val lastFrameMillis = AtomicLong(0L)
+        // Elapsed-realtime instant at which startScan was actually
+        // issued, or 0 while it is still queued behind the throttle.
+        // The watchdog times the scan from here, not from subscription.
+        val scanStartedElapsed = AtomicLong(0L)
         // Guard against duplicate onScanResult deliveries opening a
         // second BluetoothGatt: each delivery would otherwise overwrite
         // the reference without closing the previous one, leaking the
@@ -105,29 +123,54 @@ class BridgeClient(
         // once per connection.
         val mtuResolved = AtomicBoolean(false)
         val mtuFallbackJob = AtomicReference<Job?>(null)
+        val connectRetriesUsed = AtomicInteger(0)
+        lateinit var gattCallback: BluetoothGattCallback
 
         // Single funnel for service discovery so every code path (MTU
         // callback, MTU fallback, requestMtu rejection) exercises the
         // same guard-and-close behaviour instead of a bare call that
         // could throw SecurityException onto the BLE callback thread.
         fun startDiscovery(g: BluetoothGatt) {
-            if (disposed.get()) return
             try {
-                if (!g.discoverServices()) close(IllegalStateException("discoverServices rejected"))
+                g.discoverServices()
             } catch (t: Throwable) {
                 close(IllegalStateException("discoverServices failed: ${t.message}"))
             }
         }
 
-        val gattCallback = object : BluetoothGattCallback() {
+        fun closeGatt(g: BluetoothGatt?) {
+            if (g == null) return
+            runCatching { g.disconnect() }
+            runCatching { g.close() }
+        }
+
+        fun connectGattLe(device: BluetoothDevice): BluetoothGatt? = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                device.connectGatt(
+                    context,
+                    /* autoConnect = */ false,
+                    gattCallback,
+                    BluetoothDevice.TRANSPORT_LE,
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                device.connectGatt(context, false, gattCallback)
+            }
+        } catch (t: Throwable) {
+            close(IllegalStateException("connectGatt failed: ${t.message}"))
+            null
+        }?.also { /* non-null */ } ?: run {
+            close(IllegalStateException("connectGatt returned null"))
+            null
+        }
+
+        gattCallback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
-                if (disposed.get()) return
                 Log.i(TAG, "conn status=$status newState=$newState")
-                if (status != BluetoothGatt.GATT_SUCCESS) {
-                    close(IllegalStateException("GATT connection failed status=$status"))
-                    return
-                }
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    connectRetriesUsed.set(0)
+                    runCatching { g.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH) }
+                        .onFailure { Log.w(TAG, "requestConnectionPriority failed", it) }
                     // requestMtu's Boolean result matters: if it returns
                     // false the peer never sends an MTU response,
                     // onMtuChanged never fires, and the flow would hang
@@ -163,12 +206,27 @@ class BridgeClient(
                         })
                     }
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    val retrying = status == GATT_ERROR_133 &&
+                        connectRetriesUsed.get() < MAX_CONNECT_RETRIES &&
+                        !subscribed.get()
+                    if (retrying) {
+                        val attempt = connectRetriesUsed.incrementAndGet()
+                        Log.w(TAG, "status=133; retrying $attempt/$MAX_CONNECT_RETRIES")
+                        gattRef.compareAndSet(g, null)
+                        closeGatt(g)
+                        launch {
+                            delay(RECONNECT_DELAY_MILLIS)
+                            val retried = connectGattLe(g.device)
+                            if (retried == null) return@launch
+                            gattRef.set(retried)
+                        }
+                        return
+                    }
                     close(IllegalStateException("disconnected status=$status"))
                 }
             }
 
             override fun onMtuChanged(g: BluetoothGatt, mtu: Int, status: Int) {
-                if (disposed.get()) return
                 Log.i(TAG, "mtu=$mtu status=$status")
                 if (!mtuResolved.getAndSet(true)) {
                     // Even a failed MTU exchange must not block the
@@ -184,7 +242,6 @@ class BridgeClient(
             }
 
             override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
-                if (disposed.get()) return
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     close(IllegalStateException("discoverServices status=$status"))
                     return
@@ -217,15 +274,24 @@ class BridgeClient(
                     }
                     val cccd = ch.getDescriptor(BridgeProtocol.CCCD_UUID)
                     if (cccd == null) {
-                        // A cached service can contain the characteristic but
-                        // omit its descriptor after the phone rebuilds GATT.
-                        refreshGattCache(g)
                         close(IllegalStateException("CCCD missing"))
                         return
                     }
-                    cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                    if (!g.writeDescriptor(cccd)) {
-                        close(IllegalStateException("writeDescriptor failed"))
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val rc = g.writeDescriptor(
+                            cccd,
+                            BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
+                        )
+                        if (rc != BluetoothGatt.GATT_SUCCESS) {
+                            close(IllegalStateException("writeDescriptor returned $rc"))
+                        }
+                    } else {
+                        @Suppress("DEPRECATION")
+                        cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                        @Suppress("DEPRECATION")
+                        if (!g.writeDescriptor(cccd)) {
+                            close(IllegalStateException("writeDescriptor failed"))
+                        }
                     }
                 } catch (t: Throwable) {
                     close(IllegalStateException("CCCD subscribe failed: ${t.message}"))
@@ -237,7 +303,6 @@ class BridgeClient(
                 descriptor: BluetoothGattDescriptor,
                 status: Int,
             ) {
-                if (disposed.get()) return
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     // The CCCD write result is the signal that the server
                     // will start sending notifications. If it failed the
@@ -245,29 +310,52 @@ class BridgeClient(
                     // so callers' retryWhen can recover.
                     close(IllegalStateException("CCCD write failed status=$status"))
                 } else {
-                    lastFrameMillis.set(SystemClock.elapsedRealtime())
                     subscribed.set(true)
                 }
             }
 
+            /**
+             * API 33+ delivery path. The platform hands the payload in
+             * directly here and no longer refreshes
+             * `BluetoothGattCharacteristic.getValue()` on the way, so a
+             * client that only overrode the deprecated two-argument
+             * overload below saw a null or stale buffer and dropped
+             * every notification.
+             */
+            override fun onCharacteristicChanged(
+                g: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic,
+                value: ByteArray,
+            ) {
+                handleNotification(characteristic, value)
+            }
+
+            /**
+             * Pre-33 delivery path. Guarded by an SDK check because on
+             * API 33+ the platform's default three-argument
+             * implementation forwards here as well, which would emit
+             * every frame twice.
+             */
+            @Suppress("DEPRECATION")
             override fun onCharacteristicChanged(
                 g: BluetoothGatt,
                 characteristic: BluetoothGattCharacteristic,
             ) {
-                if (disposed.get()) return
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) return
+                handleNotification(characteristic, characteristic.value)
+            }
+
+            private fun handleNotification(
+                characteristic: BluetoothGattCharacteristic,
+                bytes: ByteArray?,
+            ) {
                 if (characteristic.uuid != BridgeProtocol.TELEMETRY_CHAR_UUID) return
-                val bytes = characteristic.value
                 if (bytes == null) {
                     Log.w(TAG, "bridge notification arrived with null value; dropping")
                     return
                 }
                 val frame = BridgeCodec.decode(bytes)
                 if (frame == null) {
-                    // Previously dropped silently, which made "connected
-                    // but no data" impossible to diagnose. Log length and
-                    // a hex prefix so a truncated notification (e.g. a
-                    // stale v1 32-byte frame under a small MTU) is
-                    // visible in a bug report.
                     Log.w(
                         TAG,
                         "discarding undecodable bridge notification: " +
@@ -275,113 +363,58 @@ class BridgeClient(
                     )
                     return
                 }
-                lastFrameMillis.set(SystemClock.elapsedRealtime())
-                // Log (rather than silently dropping) when the channel
-                // buffer is full so lossy behaviour stays visible.
                 if (!trySend(frame).isSuccess) {
                     Log.w(TAG, "frame dropped: trySend buffer full")
                 }
             }
         }
 
-        // Some vendor stacks (early RV101 firmware) mishandle
-        // service-UUID scan filters and simply never report results.
-        // The wheel scanner already learned this lesson ("unfiltered
-        // scan, classify in process") — mirror it here: start filtered,
-        // and after a short silence restart without a filter, matching
-        // the advertised UUID in code instead.
-        val filterExpired = AtomicBoolean(false)
-
         val scanCallback = object : ScanCallback() {
-            // Serialised against awaitClose and the filter fallback:
-            // without the lock a scan hit delivered while the flow is
-            // being torn down can publish a fresh BluetoothGatt into
-            // gattRef *after* the cleanup already read and cleared it,
-            // leaking a live link with no owner.
             override fun onScanResult(callbackType: Int, result: ScanResult) {
-                synchronized(lifecycleLock) {
-                    if (disposed.get()) return
-                    val device = result.device ?: return
-                    if (
-                        filterExpired.get() &&
-                        result.scanRecord?.serviceUuids
-                            ?.any { it.uuid == BridgeProtocol.SERVICE_UUID } != true
-                    ) {
-                        return
-                    }
-                    if (!peerFilter.accepts(device)) return
-                    if (!connectStarted.compareAndSet(false, true)) return
-                    Log.i(TAG, "scan hit: ${device.address} rssi=${result.rssi}")
-                    // Stop scanning immediately and connect.
-                    try {
-                        scanner.stopScan(this)
-                    } catch (_: Throwable) { /* already stopped */ }
-                    // connectGatt can throw SecurityException if
-                    // BLUETOOTH_CONNECT was revoked at runtime, and can
-                    // return null on failure — both must surface through
-                    // close(...) instead of crashing the callback thread
-                    // or hanging the flow.
-                    val newGatt = try {
-                        device.connectGatt(context, /* autoConnect = */ false, gattCallback)
-                    } catch (t: Throwable) {
-                        close(IllegalStateException("connectGatt failed: ${t.message}"))
-                        return
-                    }
-                    if (newGatt == null) {
-                        close(IllegalStateException("connectGatt returned null"))
-                        return
-                    }
-                    gattRef.set(newGatt)
-                }
+                val device = result.device ?: return
+                if (!result.advertisesBridgeService()) return
+                if (!peerFilter.accepts(device, result.bridgePairingToken())) return
+                if (!connectStarted.compareAndSet(false, true)) return
+                Log.i(TAG, "scan hit: ${device.address} rssi=${result.rssi}")
+                // Stop scanning immediately and connect.
+                try {
+                    scanner.stopScan(this)
+                } catch (_: Throwable) { /* already stopped */ }
+                // connectGatt can throw SecurityException if
+                // BLUETOOTH_CONNECT was revoked at runtime, and can
+                // return null on failure — both must surface through
+                // close(...) instead of crashing the callback thread
+                // or hanging the flow.
+                val newGatt = connectGattLe(device)
+                if (newGatt == null) return
+                gattRef.set(newGatt)
             }
 
             override fun onScanFailed(errorCode: Int) {
-                if (disposed.get()) return
                 close(IllegalStateException("scan failed: $errorCode"))
             }
         }
 
-        val filter = ScanFilter.Builder()
-            .setServiceUuid(ParcelUuid(BridgeProtocol.SERVICE_UUID))
-            .build()
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
 
-        try {
-            Log.i(TAG, "scan start service=${BridgeProtocol.SERVICE_UUID}")
-            scanner.startScan(listOf(filter), settings, scanCallback)
-        } catch (t: Throwable) {
-            close(t)
-        }
-
-        // Vendor-stack fallback: if the hardware UUID filter produced
-        // nothing for a few seconds, restart the same scan unfiltered
-        // and rely on the in-code serviceUuids check in onScanResult.
-        // The overall watchdog still bounds the attempt so a dead scan
-        // cannot hang the outer retry loop forever.
-        val filterFallbackJob = launch {
-            delay(SCAN_FILTER_FALLBACK_MILLIS)
-            // Same lock as onScanResult/awaitClose: restarting the scan
-            // after the flow has been disposed would re-register a
-            // callback nobody stops.
-            synchronized(lifecycleLock) {
-                if (disposed.get()) return@launch
-                if (!connectStarted.get() && !filterExpired.getAndSet(true)) {
-                    Log.w(
-                        TAG,
-                        "no hits with service-UUID filter after ${SCAN_FILTER_FALLBACK_MILLIS}ms — " +
-                            "restarting unfiltered",
-                    )
-                    try {
-                        scanner.stopScan(scanCallback)
-                    } catch (_: Throwable) { /* already stopped */ }
-                    try {
-                        scanner.startScan(emptyList(), settings, scanCallback)
-                    } catch (t: Throwable) {
-                        close(t)
-                    }
-                }
+        // Exactly one startScan per attempt, unfiltered, matched in
+        // code. See the class doc: hardware filters are unreliable on
+        // the target firmware, and every extra start eats into the
+        // platform's five-per-30-seconds budget.
+        launch {
+            val holdMillis = scanThrottle.reserve()
+            if (holdMillis > 0L) {
+                Log.w(TAG, "scan budget exhausted; holding startScan for ${holdMillis}ms")
+                delay(holdMillis)
+            }
+            try {
+                Log.i(TAG, "scan start (unfiltered) service=${BridgeProtocol.SERVICE_UUID}")
+                scanner.startScan(emptyList(), settings, scanCallback)
+                scanStartedElapsed.set(SystemClock.elapsedRealtime())
+            } catch (t: Throwable) {
+                close(t)
             }
         }
 
@@ -390,8 +423,19 @@ class BridgeClient(
         // onScanFailed/onConnectionStateChange. Close this collection so
         // the HUD's outer retry loop re-registers a fresh scan.
         val watchdog = launch {
-            val scanDeadline = SystemClock.elapsedRealtime() + SCAN_TIMEOUT_MILLIS
-            while (!connectStarted.get() && SystemClock.elapsedRealtime() < scanDeadline) {
+            // The scan may be held back by the throttle, so its deadline
+            // runs from the moment it actually started rather than from
+            // flow subscription; a hold that never resolves is bounded
+            // separately by SCAN_START_TIMEOUT_MILLIS.
+            val startDeadline = SystemClock.elapsedRealtime() + SCAN_START_TIMEOUT_MILLIS
+            while (!connectStarted.get()) {
+                val startedAt = scanStartedElapsed.get()
+                val expired = if (startedAt == 0L) {
+                    SystemClock.elapsedRealtime() >= startDeadline
+                } else {
+                    SystemClock.elapsedRealtime() - startedAt >= SCAN_TIMEOUT_MILLIS
+                }
+                if (expired) break
                 delay(WATCHDOG_POLL_MILLIS)
             }
             if (!connectStarted.get()) {
@@ -406,30 +450,31 @@ class BridgeClient(
             if (!subscribed.get()) {
                 Log.w(TAG, "GATT subscribe timeout; restarting")
                 close(IllegalStateException("bridge subscribe timeout"))
-                return@launch
-            }
-            while (true) {
-                delay(WATCHDOG_POLL_MILLIS)
-                if (SystemClock.elapsedRealtime() - lastFrameMillis.get() > FRAME_TIMEOUT_MILLIS) {
-                    close(IllegalStateException("bridge telemetry timeout"))
-                    return@launch
-                }
             }
         }
 
+        // Teardown must not throw — the flow is already closing and an
+        // escaping exception would mask the original failure. Each step
+        // is logged rather than swallowed: a stack that refuses to stop
+        // a scan or close a GATT client is exactly the state that makes
+        // the next connection attempt fail for no visible reason.
         awaitClose {
-            synchronized(lifecycleLock) {
-                // disposed first: every callback and timer checks it
-                // under this lock, so nothing can hand us a new scan
-                // result or GATT instance after this point.
-                disposed.set(true)
-                watchdog.cancel()
-                filterFallbackJob.cancel()
-                mtuFallbackJob.getAndSet(null)?.cancel()
-                try { scanner.stopScan(scanCallback) } catch (_: Throwable) { }
-                val activeGatt = gattRef.getAndSet(null)
-                try { activeGatt?.disconnect() } catch (_: Throwable) { }
-                try { activeGatt?.close() } catch (_: Throwable) { }
+            watchdog.cancel()
+            try {
+                scanner.stopScan(scanCallback)
+            } catch (t: Throwable) {
+                Log.w(TAG, "stopScan during teardown threw", t)
+            }
+            val activeGatt = gattRef.getAndSet(null)
+            try {
+                activeGatt?.disconnect()
+            } catch (t: Throwable) {
+                Log.w(TAG, "gatt.disconnect during teardown threw", t)
+            }
+            try {
+                activeGatt?.close()
+            } catch (t: Throwable) {
+                Log.w(TAG, "gatt.close during teardown threw", t)
             }
         }
     }
@@ -447,13 +492,37 @@ class BridgeClient(
     private companion object {
         const val TAG = "BridgeClient"
         const val SCAN_TIMEOUT_MILLIS = 12_000L
+
+        /**
+         * Upper bound on how long a scan may sit behind
+         * [BleScanThrottle] before the attempt is abandoned. One full
+         * throttle window plus margin: any longer and something other
+         * than the budget is wrong.
+         */
+        const val SCAN_START_TIMEOUT_MILLIS = BleScanThrottle.WINDOW_MILLIS + 5_000L
         const val SUBSCRIBE_TIMEOUT_MILLIS = 10_000L
         const val WATCHDOG_POLL_MILLIS = 250L
-        const val SCAN_FILTER_FALLBACK_MILLIS = 4_000L
         const val MTU_FALLBACK_MILLIS = 1_500L
-        const val FRAME_TIMEOUT_MILLIS = 5_000L
+        const val GATT_ERROR_133 = 133
+        const val MAX_CONNECT_RETRIES = 2
+        const val RECONNECT_DELAY_MILLIS = 600L
     }
 }
+
+/** True when the advertiser published the bridge service UUID. */
+private fun ScanResult.advertisesBridgeService(): Boolean =
+    scanRecord?.serviceUuids?.any { it.uuid == BridgeProtocol.SERVICE_UUID } == true
+
+/**
+ * The phone's pairing token, or `null` when the advertiser published
+ * none. Android merges the advertisement and the scan response into a
+ * single `ScanRecord` for legacy advertising, so this reads the token
+ * regardless of which PDU carried it.
+ */
+private fun ScanResult.bridgePairingToken(): ByteArray? =
+    scanRecord
+        ?.getServiceData(ParcelUuid(BridgeProtocol.SERVICE_UUID))
+        ?.takeIf { it.size == BridgeProtocol.PAIRING_TOKEN_SIZE }
 
 private const val HEX_PREFIX_LENGTH = 16
 

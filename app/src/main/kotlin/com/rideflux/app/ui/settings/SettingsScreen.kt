@@ -43,8 +43,10 @@ fun SettingsRoute(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val pairingCode by viewModel.pairingCode.collectAsStateWithLifecycle()
     SettingsScreen(
         settings = settings,
+        pairingCode = pairingCode,
         onNavigateUp = onNavigateUp,
         onOpenTripHistory = onOpenTripHistory,
         onSpeedLimit = viewModel::setSpeedLimit,
@@ -63,6 +65,7 @@ fun SettingsRoute(
 @Composable
 fun SettingsScreen(
     settings: com.rideflux.domain.settings.AppSettings,
+    pairingCode: String? = null,
     onNavigateUp: () -> Unit,
     onOpenTripHistory: () -> Unit,
     onSpeedLimit: (Float) -> Unit,
@@ -156,6 +159,15 @@ fun SettingsScreen(
                 stringResource(R.string.settings_low_latency_subtitle),
                 settings.bridgeStandbyAdvertiseLowLatency,
                 onStandbyLowLatency,
+            )
+            ListItem(
+                headlineContent = { Text("This phone's pairing code") },
+                supportingContent = {
+                    Text(
+                        pairingCode?.let { "$it\nSelect this code on the glasses to pair" }
+                            ?: "Preparing…",
+                    )
+                },
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_paired_mac)) },

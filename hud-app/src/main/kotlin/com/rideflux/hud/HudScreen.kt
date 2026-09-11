@@ -121,7 +121,7 @@ fun HudRoute(
         onCloseSettings = { settingsOpen = false; viewModel.stopPhonePairing() },
         onStartPairing = viewModel::startPhonePairing,
         // The ViewModel rebuilds the bridge source in place with the new
-        // allowlist MAC, so no activity restart is needed for pairing to
+        // pairing token, so no activity restart is needed for pairing to
         // take effect.
         onPairPhone = viewModel::pairPhone,
         onSpeedLimit = viewModel::setSpeedLimit,
@@ -143,7 +143,7 @@ fun HudScreen(
     onOpenSettings: () -> Unit = {},
     onCloseSettings: () -> Unit = {},
     onStartPairing: () -> Unit = {},
-    onPairPhone: (String) -> Unit = {},
+    onPairPhone: (BridgePeerCandidate) -> Unit = {},
     onSpeedLimit: (Float) -> Unit = {},
     onTemperatureLimit: (Float) -> Unit = {},
     onLowBatteryLimit: (Float) -> Unit = {},
@@ -210,7 +210,7 @@ private fun HudSettingsOverlay(
     onClose: () -> Unit,
     onExit: () -> Unit,
     onStartPairing: () -> Unit,
-    onPairPhone: (String) -> Unit,
+    onPairPhone: (BridgePeerCandidate) -> Unit,
     onSpeedLimit: (Float) -> Unit,
     onTemperatureLimit: (Float) -> Unit,
     onLowBatteryLimit: (Float) -> Unit,
@@ -265,11 +265,14 @@ private fun HudSettingsOverlay(
         )
         ActionText(stringResource(R.string.hud_settings_pair_with_phone), onStartPairing)
         candidates.take(4).forEach { peer ->
+            val label = peer.shortCode?.let { "CODE $it" }
+                ?: peer.name
+                ?: peer.address
             Text(
-                stringResource(R.string.hud_peer_row, peer.name ?: peer.address, peer.rssi),
-                color = Color.White,
+                stringResource(R.string.hud_peer_row, label, peer.rssi),
+                color = if (peer.shortCode != null) HudGreen else Color.White,
                 fontSize = 12.sp,
-                modifier = Modifier.fillMaxWidth().clickable { onPairPhone(peer.address) }.padding(5.dp),
+                modifier = Modifier.fillMaxWidth().clickable { onPairPhone(peer) }.padding(5.dp),
             )
         }
     }

@@ -150,7 +150,11 @@ class HudViewModel @Inject constructor(
     private val isBridge: Boolean = sourceKind.equals(SOURCE_BRIDGE, ignoreCase = true)
 
     private val source: HudTelemetrySource? = when {
-        isBridge -> BridgeTelemetrySource(appContext, macStore.readPairedPhoneMac())
+        isBridge -> BridgeTelemetrySource(
+            appContext,
+            macStore.readPairedPhoneToken(),
+            macStore.readPairedPhoneMac(),
+        )
         targetAddress != null -> DirectWheelTelemetrySource(
             wheelRepository = wheelRepository,
             mac = targetAddress,
@@ -303,16 +307,33 @@ class HudViewModel @Inject constructor(
         _pairingCandidates.value = emptyList()
     }
 
-    fun pairPhone(address: String) {
-        macStore.writePairedPhoneMac(address)
-        viewModelScope.launch { settingsRepository.setHudPeerMac(address) }
+    /**
+     * Remember [candidate] as the phone allowed to feed this HUD.
+     *
+     * The pairing token is what actually gets matched afterwards; the
+     * MAC is stored alongside it purely so the phone's settings screen
+     * has something to show, and as the fallback identity for a phone
+     * still running a build from before tokens existed.
+     */
+    fun pairPhone(candidate: BridgePeerCandidate) {
+        candidate.tokenHex?.let { token ->
+            runCatching { macStore.writePairedPhoneToken(token) }
+                .onFailure { Log.w(TAG, "ignoring malformed pairing token from peer", it) }
+        }
+        runCatching { macStore.writePairedPhoneMac(candidate.address) }
+            .onFailure { Log.w(TAG, "ignoring malformed peer address", it) }
+        viewModelScope.launch { settingsRepository.setHudPeerMac(candidate.address) }
         stopPhonePairing()
         if (isBridge) {
             // Rebuild the bridge source immediately so the freshly
-            // stored phone MAC is honoured without an activity restart.
+            // stored identity is honoured without an activity restart.
             // flatMapLatest cancels the old BridgeClient collection,
             // whose awaitClose releases the scan/GATT resources first.
-            activeSource.value = BridgeTelemetrySource(appContext, macStore.readPairedPhoneMac())
+            activeSource.value = BridgeTelemetrySource(
+                appContext,
+                macStore.readPairedPhoneToken(),
+                macStore.readPairedPhoneMac(),
+            )
         }
     }
 

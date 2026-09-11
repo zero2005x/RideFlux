@@ -17,6 +17,7 @@ import com.rideflux.protocol.familyn.NinebotN1WheelCodec
 import com.rideflux.protocol.familyn.NinebotN2WheelCodec
 import com.rideflux.protocol.familyv.VeteranWheelCodec
 import java.util.Locale
+import java.util.UUID
 
 /**
  * Default [WheelCodecFactory] for the app process.
@@ -122,6 +123,38 @@ class WheelCodecFactoryImpl : BleWheelCodecFactory {
         WheelFamily.V -> GattTopology.SINGLE_CHAR // V uses the same FFE0/FFE1 single-char link.
     }
 
+    override fun inferFromGattTable(
+        services: Map<UUID, List<UUID>>,
+        name: String?,
+    ): WheelFamily? {
+        val table = services.mapKeys { canonicaliseUuid(it.key.toString()) }
+            .mapValues { (_, chars) -> chars.map { canonicaliseUuid(it.toString()) }.toSet() }
+        val nameHint = WheelNameClassifier.classify(name)
+
+        val ffe0Chars = table[FFE0].orEmpty()
+        val ffe5Chars = table[FFE5].orEmpty()
+        val hasSplitI1 = FFE4 in ffe0Chars && FFE9 in ffe5Chars
+        if (hasSplitI1) return WheelFamily.I1
+
+        val nusChars = table[NUS].orEmpty()
+        val hasNus = NUS_RX in nusChars && NUS_TX in nusChars
+        if (hasNus) {
+            return if (nameHint == WheelFamily.I2) WheelFamily.I2 else WheelFamily.N2
+        }
+
+        val hasSingle = FFE1 in ffe0Chars
+        if (hasSingle) {
+            return when (nameHint) {
+                WheelFamily.K -> WheelFamily.K
+                WheelFamily.V -> WheelFamily.V
+                WheelFamily.N1, WheelFamily.N2 -> WheelFamily.N1
+                WheelFamily.G, WheelFamily.GX -> WheelFamily.G
+                else -> WheelFamily.G
+            }
+        }
+        return null
+    }
+
     private companion object {
         // Canonical, lower-cased 128-bit forms computed once. The
         // constant side needs normalising too: java.util.UUID.toString()
@@ -129,8 +162,13 @@ class WheelCodecFactoryImpl : BleWheelCodecFactory {
         // lowercase, Android has historically emitted uppercase), so a
         // case-sensitive comparison would silently fail on-device.
         val FFE0: String = canonicaliseUuid(GattUuids.SERVICE_FFE0.toString())
+        val FFE1: String = canonicaliseUuid(GattUuids.CHAR_FFE1.toString())
+        val FFE4: String = canonicaliseUuid(GattUuids.CHAR_FFE4.toString())
         val FFE5: String = canonicaliseUuid(GattUuids.SERVICE_FFE5.toString())
+        val FFE9: String = canonicaliseUuid(GattUuids.CHAR_FFE9.toString())
         val NUS: String = canonicaliseUuid(GattUuids.SERVICE_NUS.toString())
+        val NUS_RX: String = canonicaliseUuid(GattUuids.CHAR_NUS_RX.toString())
+        val NUS_TX: String = canonicaliseUuid(GattUuids.CHAR_NUS_TX.toString())
 
         /** Bluetooth SIG base UUID; 16- and 32-bit forms expand into it. */
         private const val BASE_SUFFIX = "-0000-1000-8000-00805f9b34fb"

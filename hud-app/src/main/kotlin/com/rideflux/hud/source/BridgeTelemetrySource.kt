@@ -16,7 +16,6 @@ import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.hud.BridgeLinkState
 import com.rideflux.hud.SignalQuality
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
@@ -24,7 +23,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
 /**
@@ -37,14 +35,10 @@ class BridgeTelemetrySource private constructor(
     private val rokidFrames: (() -> Flow<BridgeFrame>)?,
 ) : HudTelemetrySource {
 
-    constructor(context: Context, pairedPhoneMac: String?) : this(
+    constructor(context: Context, pairedPhoneToken: ByteArray?, pairedPhoneMac: String?) : this(
         clientFrames = BridgeClient(
             context.applicationContext,
-            when {
-                pairedPhoneMac != null -> BridgePeerFilter.Allowlist(setOf(pairedPhoneMac))
-                com.rideflux.hud.BuildConfig.DEBUG -> BridgePeerFilter.AcceptAny
-                else -> BridgePeerFilter.RejectAll
-            },
+            peerFilterFor(pairedPhoneToken, pairedPhoneMac),
         )
             .let { client -> { client.frames() } },
         rokidFrames = { RokidCxrBridgeClient.frames() },
@@ -61,7 +55,6 @@ class BridgeTelemetrySource private constructor(
         testOnly: Unit,
     ) : this(clientFrames = clientFrames, rokidFrames = rokidFrames)
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun frames(): Flow<HudTelemetryFrame> = channelFlow {
         // Give the preferred CXR path an exclusive startup window. Once a
         // CXR frame arrives, collectLatest below cancels BridgeClient, whose
@@ -119,22 +112,14 @@ class BridgeTelemetrySource private constructor(
                     if (!cxrPreferred.value) {
                         send(noPhoneFrame())
                     }
-                    val delayMs = (250L * (1L shl attempt.coerceAtMost(5)))
-                        .coerceAtMost(5_000L)
+                    val delayMs = (NATIVE_RETRY_BASE_MILLIS shl (attempt - 1).coerceAtMost(NATIVE_RETRY_MAX_SHIFT))
+                        .coerceAtMost(NATIVE_RETRY_MAX_MILLIS)
                     delay(delayMs)
                 }
             }
         }
 
         awaitCancellation()
-    }.transformLatest { frame ->
-        emit(frame)
-        // Radio state alone is not proof of a live phone. Expire the
-        // displayed snapshot even if a transport stops delivering callbacks.
-        if (frame.bridgeLinkState != BridgeLinkState.NO_PHONE) {
-            delay(PHONE_FRESHNESS_MILLIS)
-            emit(noPhoneFrame())
-        }
     }
 
     private fun noPhoneFrame() = HudTelemetryFrame(
@@ -151,8 +136,40 @@ class BridgeTelemetrySource private constructor(
         const val CXR_RECONNECT_DELAY_MILLIS = 1_000L
         const val CXR_FRESHNESS_MILLIS = 2_500L
         const val CXR_STARTUP_GRACE_MILLIS = 3_000L
-        const val PHONE_FRESHNESS_MILLIS = 3_500L
+
+        /**
+         * First native-BLE retry delay. Each attempt runs one BLE scan,
+         * and the platform silently mutes an app that starts more than
+         * five scans in 30 seconds, so retries start a full second apart
+         * rather than the 250 ms that used to exhaust the budget within
+         * half a minute. BleScanThrottle enforces the hard limit;
+         * this backoff keeps the loop from leaning on it.
+         */
+        const val NATIVE_RETRY_BASE_MILLIS = 1_000L
+        const val NATIVE_RETRY_MAX_MILLIS = 15_000L
+        const val NATIVE_RETRY_MAX_SHIFT = 4
     }
+}
+
+/**
+ * Identity check for the phone bridge, in order of preference.
+ *
+ * A stored pairing token is the only thing that keeps matching once
+ * Android rotates the advertising address, so it wins whenever one
+ * exists. A stored MAC means the rider paired before tokens shipped:
+ * honour it so the HUD keeps working until they re-pair, but it will
+ * stop matching on the next address rotation. Failing both, a debug
+ * build stays permissive for bring-up and a release build refuses —
+ * an unverified peer can feed the HUD fabricated telemetry.
+ */
+internal fun peerFilterFor(
+    pairedPhoneToken: ByteArray?,
+    pairedPhoneMac: String?,
+): BridgePeerFilter = when {
+    pairedPhoneToken != null -> BridgePeerFilter.PairingToken(pairedPhoneToken)
+    pairedPhoneMac != null -> BridgePeerFilter.Allowlist(setOf(pairedPhoneMac))
+    com.rideflux.hud.BuildConfig.DEBUG -> BridgePeerFilter.AcceptAny
+    else -> BridgePeerFilter.RejectAll
 }
 
 internal fun BridgeFrame.toHudTelemetryFrame(): HudTelemetryFrame {
@@ -177,7 +194,6 @@ internal fun BridgeFrame.toHudTelemetryFrame(): HudTelemetryFrame {
         },
         staleHint = stale,
         phoneBatteryPercent = phoneBatteryPercent,
-        tripDurationSeconds = tripDurationSeconds,
         bridgeLinkState = if (state == ConnectionState.Ready) {
             BridgeLinkState.WHEEL_LIVE
         } else {
