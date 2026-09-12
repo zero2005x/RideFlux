@@ -37,6 +37,52 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WheelConnectionImplTest {
+    @Test
+    fun `silent wheel fails handshake and releases transport`() = runTest {
+        val transport = FakeBleTransport()
+        val conn = connection(transport, FakeWheelCodec(), backgroundScope)
+        conn.start()
+        advanceTimeBy(15_001L)
+        runCurrent()
+        assertEquals(ConnectionState.Failed.Reason.HANDSHAKE_TIMEOUT,
+            (conn.state.value as ConnectionState.Failed).reason)
+        assertEquals(1, transport.disconnectCount)
+    }
+
+    @Test
+    fun `streaming but unidentified wheel survives the handshake timeout`() = runTest {
+        // Inmotion I2 only reports Identified once model, serial AND
+        // firmware have all arrived; a variant that never answers one of
+        // them streams telemetry forever from Handshaking. The watchdog
+        // must not tear that working link down.
+        val transport = FakeBleTransport()
+        val codec = FakeWheelCodec()
+        codec.onDecode = {
+            listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(timestampMillis = 100L, speedKmh = 9f)))
+        }
+        val conn = connection(transport, codec, backgroundScope)
+
+        conn.start()
+        runCurrent()
+        transport.emit(byteArrayOf(0x01))
+        runCurrent()
+        advanceTimeBy(15_001L)
+        runCurrent()
+
+        assertEquals(ConnectionState.Handshaking(WheelFamily.G), conn.state.value)
+        assertEquals(0, transport.disconnectCount)
+        assertEquals(9f, conn.telemetry.value.speedKmh!!, 0.0001f)
+    }
+
+    @Test
+    fun `failed handshake write is terminal instead of waiting forever`() = runTest {
+        val transport = FakeBleTransport().apply { writeFailure = java.io.IOException("write failed") }
+        val conn = connection(transport, FakeWheelCodec(handshake = listOf(byteArrayOf(1))), backgroundScope)
+        conn.start()
+        runCurrent()
+        assertTrue(conn.state.value is ConnectionState.Failed)
+        assertEquals(1, transport.disconnectCount)
+    }
 
     private fun connection(
         transport: FakeBleTransport,

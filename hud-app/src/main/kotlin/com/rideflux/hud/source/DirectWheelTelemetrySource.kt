@@ -35,11 +35,15 @@ class DirectWheelTelemetrySource(
 
     override fun frames(): Flow<HudTelemetryFrame> {
         return flow {
-            val conn = withContext(Dispatchers.IO) {
-                wheelRepository.connect(address = mac, expectedFamily = family)
-            }
+            var acquired: com.rideflux.domain.connection.WheelConnection? = null
             var reachedActiveState = false
             try {
+                // Capture ownership inside withContext: prompt cancellation on
+                // dispatch back can otherwise discard an acquired reference.
+                withContext(Dispatchers.IO) {
+                    acquired = wheelRepository.connect(address = mac, expectedFamily = family)
+                }
+                val conn = checkNotNull(acquired)
                 combine(conn.state, conn.telemetry) { state, telemetry ->
                     HudTelemetryFrame(
                         state = state,
@@ -65,7 +69,7 @@ class DirectWheelTelemetrySource(
                 error("direct wheel link ended")
             } finally {
                 withContext(NonCancellable) {
-                    try { conn.close() } catch (_: Throwable) { /* best-effort */ }
+                    try { acquired?.close() } catch (_: Throwable) { /* best-effort */ }
                 }
             }
         }.retryWhen { cause, attempt ->

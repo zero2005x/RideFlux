@@ -31,10 +31,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.rideflux.app.R
 
 /**
  * Runtime-permission gate for BLE features.
@@ -102,19 +104,18 @@ fun BlePermissionGate(content: @Composable () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Bluetooth permission required",
+                text = stringResource(R.string.permission_bluetooth_title),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "RideFlux needs Bluetooth scan and connect permissions " +
-                    "to find and talk to your wheel.",
+                text = stringResource(R.string.permission_bluetooth_body),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
             )
             Button(onClick = { launcher.launch(required) }) {
-                Text("Grant permissions")
+                Text(stringResource(R.string.action_grant_permissions))
             }
             // If the user permanently denied the prompt ("Don't ask
             // again"), re-launching it is a no-op — offer the system
@@ -130,7 +131,7 @@ fun BlePermissionGate(content: @Composable () -> Unit) {
                 },
                 modifier = Modifier.padding(top = 4.dp),
             ) {
-                Text("Open settings")
+                Text(stringResource(R.string.action_open_settings))
             }
         }
     }

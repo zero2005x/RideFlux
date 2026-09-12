@@ -17,8 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.rideflux.app.R
 import com.rideflux.app.ui.dashboard.TelemetrySample
 import com.rideflux.app.ui.dashboard.components.ChartLegend
 import com.rideflux.app.ui.dashboard.components.ChartSeries
@@ -53,7 +55,7 @@ fun GraphPage(history: List<TelemetrySample>, useMetric: Boolean = true, modifie
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = "TELEMETRY",
+            text = stringResource(R.string.graph_header),
             color = RideFluxColors.Cyan,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
@@ -61,7 +63,7 @@ fun GraphPage(history: List<TelemetrySample>, useMetric: Boolean = true, modifie
 
         if (history.isEmpty()) {
             Text(
-                text = "Waiting for telemetry samples…",
+                text = stringResource(R.string.graph_waiting),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -71,14 +73,16 @@ fun GraphPage(history: List<TelemetrySample>, useMetric: Boolean = true, modifie
         // ---- Chart A: speed + battery -----------------------------------
         val seriesA = listOf(
             ChartSeries(
-                label = if (useMetric) "Speed (km/h)" else "Speed (mph)",
+                label = stringResource(
+                    if (useMetric) R.string.series_speed_kmh else R.string.series_speed_mph,
+                ),
                 color = RideFluxColors.Cyan,
                 values = speed,
                 fixedMin = 0f,
                 fixedMax = speedAxisMax,
             ),
             ChartSeries(
-                label = "Battery (%)",
+                label = stringResource(R.string.series_battery),
                 color = RideFluxColors.Neon,
                 values = battery,
                 fixedMin = 0f,
@@ -98,17 +102,17 @@ fun GraphPage(history: List<TelemetrySample>, useMetric: Boolean = true, modifie
         // ---- Chart B: current + MOS temperature + voltage ----------------
         val seriesB = listOf(
             ChartSeries(
-                label = "Current (A)",
+                label = stringResource(R.string.series_current),
                 color = RideFluxColors.Warning,
                 values = current,
             ),
             ChartSeries(
-                label = "MOS (°C)",
+                label = stringResource(R.string.series_mos),
                 color = RideFluxColors.Danger,
                 values = mos,
             ),
             ChartSeries(
-                label = "Voltage (V)",
+                label = stringResource(R.string.series_voltage),
                 color = RideFluxColors.DeepBlue,
                 values = voltage,
             ),

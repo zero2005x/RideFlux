@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Vietnamese (Tiếng Việt) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">CHỜ\nĐIỆN THOẠI</string>
+    <string name="hud_waiting_phone_subtitle">Đang tìm RideFlux…</string>
+    <string name="hud_phone_connected_title">ĐIỆN THOẠI\nĐÃ KẾT NỐI</string>
+    <string name="hud_phone_standby_subtitle">Điện thoại %1$s  ·  Kính %2$s</string>
+    <string name="hud_scanning_title">ĐANG QUÉT</string>
+    <string name="hud_scanning_subtitle">Đang tìm xe…</string>
+    <string name="hud_connecting_title">ĐANG KẾT NỐI</string>
+    <string name="hud_offline">NGOẠI TUYẾN</string>
+    <string name="hud_offline_reason">NGOẠI TUYẾN · %1$s</string>
+    <string name="hud_action_retry">THỬ LẠI</string>
+    <string name="hud_action_scan">QUÉT</string>
+    <string name="hud_action_pair_phone">GHÉP NỐI</string>
+    <string name="hud_stale">DỮ LIỆU CŨ</string>
+    <string name="hud_signal_good">TỐT</string>
+    <string name="hud_signal_weak">YẾU</string>
+    <string name="hud_signal_none">NGOẠI TUYẾN</string>
+    <string name="hud_settings_title">CÀI ĐẶT HUD</string>
+    <string name="hud_settings_close">ĐÓNG</string>
+    <string name="hud_settings_exit">THOÁT</string>
+    <string name="hud_settings_pair_with_phone">GHÉP VỚI ĐIỆN THOẠI</string>
+    <string name="hud_limit_speed">Tốc độ</string>
+    <string name="hud_limit_mos_temp">Nhiệt độ MOS</string>
+    <string name="hud_limit_low_battery">Pin yếu</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">Cần quyền Bluetooth</string>
+    <string name="permission_bluetooth_body">RideFlux HUD cần quyền quét và kết nối Bluetooth để liên lạc với xe của bạn.</string>
+    <string name="permission_location_body">RideFlux HUD cần quyền vị trí để phát hiện và kết nối với xe của bạn qua Bluetooth.</string>
+    <string name="action_open_settings">Mở cài đặt</string>
+</resources>

@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Portuguese (Português) translations for :app.
+-->
+<resources>
+
+    <string name="action_back">Voltar</string>
+    <string name="action_open">Abrir</string>
+    <string name="action_scan">Procurar</string>
+    <string name="action_stop">Parar</string>
+    <string name="action_clear_all">Limpar tudo</string>
+    <string name="action_export_csv">Exportar CSV</string>
+    <string name="action_export_gpx">Exportar GPX</string>
+    <string name="action_delete_trip">Eliminar percurso</string>
+    <string name="action_beep">Buzina</string>
+    <string name="action_grant_permissions">Conceder permissões</string>
+    <string name="action_open_settings">Abrir definições</string>
+    <string name="filter_all">Todos</string>
+
+    <string name="scanner_title">Procurar monociclos</string>
+    <string name="scanner_searching">A procurar monociclos…</string>
+    <string name="scanner_no_devices">Ainda sem dispositivos</string>
+    <string name="scanner_no_devices_hint">Toque em Procurar para encontrar monociclos por perto.</string>
+    <string name="scanner_scan_failed">Falha na procura</string>
+    <string name="scanner_scan_failed_reason">Falha na procura: %1$s</string>
+    <string name="scanner_unknown_device">Dispositivo desconhecido</string>
+    <string name="scanner_device_family">Família: %1$s</string>
+
+    <string name="bridge_card_title">Ponte HUD</string>
+    <string name="bridge_state_off">Desligada</string>
+    <string name="bridge_state_standby">À espera de um monociclo</string>
+    <string name="bridge_state_attaching">A ligar ao monociclo</string>
+    <string name="bridge_state_relaying">A retransmitir telemetria</string>
+    <string name="bridge_state_degraded">Monociclo indisponível · ainda detetável</string>
+    <string name="glasses_link_stopped">transporte parado</string>
+    <string name="glasses_link_starting">a iniciar ligação aos óculos</string>
+    <string name="glasses_link_ready">à espera dos óculos</string>
+    <string name="glasses_link_connected">óculos ligados</string>
+    <string name="glasses_link_error">erro na ligação aos óculos</string>
+    <string name="glasses_connection">Ligação aos óculos</string>
+
+    <string name="page_dashboard">Painel</string>
+    <string name="page_graph">Gráfico</string>
+    <string name="page_parameters">Parâmetros</string>
+    <string name="page_battery">Bateria</string>
+    <string name="page_trips">Percursos</string>
+    <string name="page_events">Eventos</string>
+    <string name="page_map">Mapa</string>
+    <string name="dashboard_bridge_remove">Remover o monociclo da ponte HUD</string>
+    <string name="dashboard_bridge_send">Enviar o monociclo para a ponte HUD</string>
+    <string name="dashboard_open_ar_hud">Abrir HUD de RA</string>
+    <string name="controls_headlight">Farol</string>
+    <string name="pedals_soft">Suave</string>
+    <string name="pedals_medium">Médio</string>
+    <string name="pedals_hard">Firme</string>
+
+    <string name="alert_speed_limit_title">LIMITE DE VELOCIDADE</string>
+    <string name="alert_speed_limit_body">%1$s km/h excede %2$s km/h</string>
+    <string name="alert_mos_temperature_title">TEMPERATURA MOS</string>
+    <string name="alert_mos_temperature_body">%1$s°C excede %2$s°C</string>
+    <string name="alert_low_battery_title">BATERIA FRACA</string>
+    <string name="alert_low_battery_body">%1$s%% está abaixo de %2$s%%</string>
+    <string name="alert_pwm_load_title">CARGA PWM</string>
+    <string name="alert_pwm_load_body">%1$s%% excede %2$s%%</string>
+    <string name="alert_tilt_back_title">TILT-BACK</string>
+    <string name="alert_tilt_back_body">Velocidade %1$s km/h · limite %2$s km/h</string>
+    <string name="alert_speed_cutoff_title">CORTE DE VELOCIDADE</string>
+    <string name="alert_speed_cutoff_body">Motor cortado a %1$s km/h</string>
+    <string name="alert_wheel_low_battery_title">Bateria fraca</string>
+    <string name="alert_wheel_low_battery_body">Tensão do pack %1$s V</string>
+    <string name="alert_over_temperature_title">Sobreaquecimento</string>
+    <string name="alert_fall_title">QUEDA DETETADA</string>
+    <string name="alert_fall_body">O monociclo comunicou uma queda</string>
+    <string name="alert_fault_set_title">Conjunto de falhas alterado</string>
+    <string name="alert_faults_added">+%1$d falhas</string>
+    <string name="alert_faults_cleared">-%1$d resolvidas</string>
+    <string name="alert_updated">Atualizado</string>
+    <string name="alert_raw_title">Alerta %1$s 0x%2$s</string>
+    <string name="alert_raw_body">%1$d bytes</string>
+
+    <string name="events_header">Eventos</string>
+    <string name="events_empty">Ainda sem eventos</string>
+    <string name="event_speed_limit">Limite de velocidade</string>
+    <string name="event_mos_temperature">Temperatura MOS</string>
+    <string name="event_low_battery_threshold">Limiar de bateria fraca</string>
+    <string name="event_pwm_load">Carga PWM</string>
+    <string name="event_tilt_back">Tilt-back</string>
+    <string name="event_speed_cutoff">Corte de velocidade</string>
+    <string name="event_low_battery">Bateria fraca</string>
+    <string name="event_low_battery_body">Tensão %1$s V</string>
+    <string name="event_over_temperature">Sobreaquecimento</string>
+    <string name="event_fall_detected">Queda detetada</string>
+    <string name="event_fault_set_changed">Conjunto de falhas alterado</string>
+    <string name="event_raw_title">%1$s bruto 0x%2$s</string>
+
+    <string name="section_speed">Velocidade</string>
+    <string name="section_power">Potência</string>
+    <string name="section_thermals">Temperaturas</string>
+    <string name="section_distance">Distância</string>
+    <string name="section_device">Dispositivo</string>
+    <string name="section_pack">Pack</string>
+    <string name="section_cells">Células</string>
+    <string name="section_current_ride">Percurso atual</string>
+    <string name="section_lifetime">Acumulado</string>
+    <string name="section_saved_rides">Percursos guardados</string>
+    <string name="section_route">Rota</string>
+
+    <string name="metric_speed">Velocidade</string>
+    <string name="metric_max">Máx.</string>
+    <string name="metric_average">Média</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">Tensão</string>
+    <string name="metric_current">Corrente</string>
+    <string name="metric_phase_current">Corrente de fase</string>
+    <string name="metric_power">Potência</string>
+    <string name="metric_battery">Bateria</string>
+    <string name="metric_battery_voltage">Tensão da bateria</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">Temp. MOS</string>
+    <string name="metric_motor">Motor</string>
+    <string name="metric_battery_temp">Temp. bateria</string>
+    <string name="metric_board">Placa</string>
+    <string name="metric_trip">Percurso</string>
+    <string name="metric_total">Total</string>
+    <string name="metric_ride_time">Tempo de marcha</string>
+    <string name="metric_mode">Modo</string>
+    <string name="metric_model">Modelo</string>
+    <string name="metric_family">Família</string>
+    <string name="metric_firmware">Firmware</string>
+    <string name="metric_address">Endereço</string>
+    <string name="metric_state_of_charge">Estado de carga</string>
+    <string name="metric_trip_distance">Distância do percurso</string>
+    <string name="metric_max_speed">Velocidade máx.</string>
+    <string name="metric_avg_speed">Velocidade média</string>
+    <string name="metric_total_distance">Distância total</string>
+    <string name="metric_vehicle">Veículo</string>
+    <string name="unit_hms">h:m:s</string>
+
+    <string name="bms_per_cell_title">Dados por célula</string>
+    <string name="bms_per_cell_body">Este monociclo não disponibiliza as tensões de cada célula pela ligação de telemetria BLE. Os dados do BMS inteligente só existem em montagens que ligam a UART do BMS ao controlador, e nenhuma das famílias suportadas o faz.</string>
+
+    <string name="graph_header">TELEMETRIA</string>
+    <string name="graph_waiting">À espera de amostras de telemetria…</string>
+    <string name="series_speed_kmh">Velocidade (km/h)</string>
+    <string name="series_speed_mph">Velocidade (mph)</string>
+    <string name="series_battery">Bateria (%%)</string>
+    <string name="series_current">Corrente (A)</string>
+    <string name="series_mos">MOS (°C)</string>
+    <string name="series_voltage">Tensão (V)</string>
+
+    <string name="map_no_location_permission">Permissão de localização não concedida</string>
+    <string name="map_waiting_fix">À espera de sinal GPS…</string>
+    <string name="map_track_preview">Pré-visualização offline • %1$d pontos GPS</string>
+
+    <string name="trips_stop_recording">Parar gravação</string>
+    <string name="trips_saved_empty">Os percursos concluídos aparecerão aqui e permanecem disponíveis após reiniciar.</string>
+    <string name="trip_history_title">Histórico de percursos</string>
+    <string name="trip_history_subtitle">Consulte e exporte os percursos guardados localmente</string>
+    <string name="trip_none_saved">Ainda sem percursos guardados</string>
+    <string name="trip_details_title">Detalhes do percurso</string>
+    <string name="trip_not_found">Percurso não encontrado</string>
+    <string name="trip_summary_card">%1$s km  •  %2$s  •  máx %3$s km/h</string>
+    <string name="trip_summary_detail">%1$s km  •  %2$s  •  média %3$s km/h  •  máx %4$s km/h</string>
+
+    <string name="settings_title">Definições</string>
+    <string name="settings_section_alerts">Alertas</string>
+    <string name="settings_enable_alerts_title">Ativar alertas de limiar</string>
+    <string name="settings_enable_alerts_subtitle">Avaliar os limites de segurança no telemóvel</string>
+    <string name="settings_speed_limit">Limite de velocidade</string>
+    <string name="settings_mos_temperature">Temperatura MOS</string>
+    <string name="settings_low_battery">Bateria fraca</string>
+    <string name="settings_pwm_load">Carga PWM</string>
+    <string name="settings_section_display">Visualização</string>
+    <string name="settings_metric_units_title">Unidades métricas</string>
+    <string name="settings_metric_units_subtitle">Desative para usar mph e milhas</string>
+    <string name="settings_keep_awake_title">Manter o painel aceso</string>
+    <string name="settings_keep_awake_subtitle">Impede que o ecrã adormeça durante a condução</string>
+    <string name="settings_section_hud_bridge">Ponte HUD</string>
+    <string name="settings_bridge_autostart_title">Iniciar a ponte automaticamente</string>
+    <string name="settings_bridge_autostart_subtitle">Entrar em espera ao abrir o RideFlux ou ao arrancar o telemóvel</string>
+    <string name="settings_low_latency_title">Espera de baixa latência</string>
+    <string name="settings_low_latency_subtitle">Consome mais bateria enquanto espera por um monociclo</string>
+    <string name="settings_paired_mac">MAC do telemóvel emparelhado</string>
+    <string name="settings_paired_mac_unset">Configurado no HUD durante o emparelhamento</string>
+    <string name="settings_section_about">Sobre</string>
+    <string name="settings_about_subtitle">Telemetria e ponte HUD que funcionam offline</string>
+
+    <string name="permission_bluetooth_title">É necessária permissão de Bluetooth</string>
+    <string name="permission_bluetooth_body">O RideFlux precisa de permissões de procura e ligação Bluetooth para encontrar o seu monociclo e comunicar com ele.</string>
+
+    <string name="hud_headlight_on">Farol ligado</string>
+    <string name="hud_headlight_off">Farol desligado</string>
+    <string name="hud_pedals_mode">Modo de pedais</string>
+    <string name="hud_label_on">LIG</string>
+    <string name="hud_label_off">DESL</string>
+
+    <string name="notification_channel_bridge">Ponte RideFlux</string>
+    <string name="notification_bridge_title">Ponte RideFlux → HUD</string>
+    <string name="notification_bridge_standby">À espera de um monociclo; os óculos já podem ligar-se</string>
+    <string name="notification_bridge_attaching">A ligar ao monociclo selecionado</string>
+    <string name="notification_bridge_relaying">A retransmitir a telemetria para os óculos</string>
+    <string name="notification_bridge_degraded">Monociclo indisponível; a ponte continua detetável</string>
+    <string name="notification_channel_recording">Gravação de percursos</string>
+    <string name="notification_recording_title">O RideFlux está a gravar</string>
+    <string name="notification_recording_text">A telemetria está a ser guardada localmente</string>
+
+</resources>

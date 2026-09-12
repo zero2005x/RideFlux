@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Dutch (Nederlands) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">WACHT OP\nTELEFOON</string>
+    <string name="hud_waiting_phone_subtitle">Zoeken naar RideFlux…</string>
+    <string name="hud_phone_connected_title">TELEFOON\nVERBONDEN</string>
+    <string name="hud_phone_standby_subtitle">Telefoon %1$s  ·  Bril %2$s</string>
+    <string name="hud_scanning_title">ZOEKEN</string>
+    <string name="hud_scanning_subtitle">Zoeken naar het voertuig…</string>
+    <string name="hud_connecting_title">VERBINDEN</string>
+    <string name="hud_offline">OFFLINE</string>
+    <string name="hud_offline_reason">OFFLINE · %1$s</string>
+    <string name="hud_action_retry">OPNIEUW</string>
+    <string name="hud_action_scan">SCANNEN</string>
+    <string name="hud_action_pair_phone">KOPPELEN</string>
+    <string name="hud_stale">VEROUDERD</string>
+    <string name="hud_signal_good">GOED</string>
+    <string name="hud_signal_weak">ZWAK</string>
+    <string name="hud_signal_none">OFFLINE</string>
+    <string name="hud_settings_title">HUD-INSTELLINGEN</string>
+    <string name="hud_settings_close">SLUITEN</string>
+    <string name="hud_settings_exit">AFSLUITEN</string>
+    <string name="hud_settings_pair_with_phone">KOPPELEN MET TELEFOON</string>
+    <string name="hud_limit_speed">Snelheid</string>
+    <string name="hud_limit_mos_temp">MOS-temp.</string>
+    <string name="hud_limit_low_battery">Accu bijna leeg</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">Bluetooth-recht vereist</string>
+    <string name="permission_bluetooth_body">RideFlux HUD heeft de Bluetooth-rechten voor scannen en verbinden nodig om je wheel te bereiken.</string>
+    <string name="permission_location_body">RideFlux HUD heeft locatietoegang nodig om je wheel via Bluetooth te vinden en ermee te verbinden.</string>
+    <string name="action_open_settings">Instellingen openen</string>
+</resources>

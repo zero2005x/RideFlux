@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Russian (Русский) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">ЖДЁМ\nТЕЛЕФОН</string>
+    <string name="hud_waiting_phone_subtitle">Поиск RideFlux…</string>
+    <string name="hud_phone_connected_title">ТЕЛЕФОН\nПОДКЛЮЧЁН</string>
+    <string name="hud_phone_standby_subtitle">Телефон %1$s  ·  Очки %2$s</string>
+    <string name="hud_scanning_title">ПОИСК</string>
+    <string name="hud_scanning_subtitle">Поиск транспорта…</string>
+    <string name="hud_connecting_title">ПОДКЛЮЧЕНИЕ</string>
+    <string name="hud_offline">НЕТ СВЯЗИ</string>
+    <string name="hud_offline_reason">НЕТ СВЯЗИ · %1$s</string>
+    <string name="hud_action_retry">ПОВТОР</string>
+    <string name="hud_action_scan">ПОИСК</string>
+    <string name="hud_action_pair_phone">СОПРЯЖЕНИЕ</string>
+    <string name="hud_stale">УСТАРЕЛО</string>
+    <string name="hud_signal_good">ХОРОШИЙ</string>
+    <string name="hud_signal_weak">СЛАБЫЙ</string>
+    <string name="hud_signal_none">НЕТ СВЯЗИ</string>
+    <string name="hud_settings_title">НАСТРОЙКИ HUD</string>
+    <string name="hud_settings_close">ЗАКРЫТЬ</string>
+    <string name="hud_settings_exit">ВЫХОД</string>
+    <string name="hud_settings_pair_with_phone">СОПРЯЖЕНИЕ С ТЕЛЕФОНОМ</string>
+    <string name="hud_limit_speed">Скорость</string>
+    <string name="hud_limit_mos_temp">Темп. MOS</string>
+    <string name="hud_limit_low_battery">Низкий заряд</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">Требуется разрешение Bluetooth</string>
+    <string name="permission_bluetooth_body">RideFlux HUD нужны разрешения на поиск и подключение по Bluetooth, чтобы связаться с моноколесом.</string>
+    <string name="permission_location_body">RideFlux HUD нужен доступ к геолокации, чтобы обнаружить моноколесо и подключиться к нему по Bluetooth.</string>
+    <string name="action_open_settings">Открыть настройки</string>
+</resources>

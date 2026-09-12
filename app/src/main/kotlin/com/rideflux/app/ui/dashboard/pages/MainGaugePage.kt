@@ -26,8 +26,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.rideflux.app.R
 import com.rideflux.app.ui.dashboard.DashboardUiState
 import com.rideflux.app.ui.dashboard.displayDistance
 import com.rideflux.app.ui.dashboard.displaySpeed
@@ -56,6 +58,8 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun MainGaugePage(state: DashboardUiState, modifier: Modifier = Modifier) {
+    val dash = stringResource(R.string.value_unavailable)
+    val volt = stringResource(R.string.unit_volt)
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -77,8 +81,8 @@ fun MainGaugePage(state: DashboardUiState, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = state.batteryPercent
-                        ?.let { "${it.roundToInt()}%" } ?: "--%",
+                    text = (state.batteryPercent?.let { "${it.roundToInt()}" } ?: dash) +
+                        stringResource(R.string.unit_percent),
                     style = MaterialTheme.typography.titleLarge,
                     color = stoplight(
                         value = state.batteryPercent?.let { 100f - it },
@@ -90,7 +94,7 @@ fun MainGaugePage(state: DashboardUiState, modifier: Modifier = Modifier) {
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    text = state.voltageV?.let { "%.1f V".format(Locale.US, it) } ?: "-- V",
+                    text = (state.voltageV?.let { "%.1f".format(Locale.US, it) } ?: dash) + " " + volt,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -103,10 +107,10 @@ fun MainGaugePage(state: DashboardUiState, modifier: Modifier = Modifier) {
         MetricRow(
             left = {
                 MetricCard(
-                    label = "Current",
+                    label = stringResource(R.string.metric_current),
                     icon = Icons.Filled.Bolt,
-                    value = state.currentA?.let { "%.1f".format(Locale.US, it) } ?: "--",
-                    unit = "A",
+                    value = state.currentA?.let { "%.1f".format(Locale.US, it) } ?: dash,
+                    unit = stringResource(R.string.unit_ampere),
                     valueColor = stoplight(
                         value = state.currentA?.let { kotlin.math.abs(it) },
                         warn = 30f,
@@ -117,10 +121,10 @@ fun MainGaugePage(state: DashboardUiState, modifier: Modifier = Modifier) {
             },
             right = {
                 MetricCard(
-                    label = "Power",
+                    label = stringResource(R.string.metric_power),
                     icon = Icons.Filled.ElectricBolt,
-                    value = state.powerW?.let { "%.0f".format(Locale.US, it) } ?: "--",
-                    unit = "W",
+                    value = state.powerW?.let { "%.0f".format(Locale.US, it) } ?: dash,
+                    unit = stringResource(R.string.unit_watt),
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
@@ -128,10 +132,10 @@ fun MainGaugePage(state: DashboardUiState, modifier: Modifier = Modifier) {
         MetricRow(
             left = {
                 MetricCard(
-                    label = "MOS Temp",
+                    label = stringResource(R.string.metric_mos_temp),
                     icon = Icons.Filled.Thermostat,
-                    value = state.mosTemperatureC?.let { "%.0f".format(Locale.US, it) } ?: "--",
-                    unit = "°C",
+                    value = state.mosTemperatureC?.let { "%.0f".format(Locale.US, it) } ?: dash,
+                    unit = stringResource(R.string.unit_celsius),
                     valueColor = stoplight(
                         value = state.mosTemperatureC,
                         warn = 60f,
@@ -142,10 +146,10 @@ fun MainGaugePage(state: DashboardUiState, modifier: Modifier = Modifier) {
             },
             right = {
                 MetricCard(
-                    label = "Trip",
+                    label = stringResource(R.string.metric_trip),
                     icon = Icons.Filled.Speed,
                     value = state.displayDistance(state.tripDistanceMetres)
-                        ?.let { "%.2f".format(Locale.US, it) } ?: "--",
+                        ?.let { "%.2f".format(Locale.US, it) } ?: dash,
                     unit = state.distanceUnit,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -154,20 +158,20 @@ fun MainGaugePage(state: DashboardUiState, modifier: Modifier = Modifier) {
         MetricRow(
             left = {
                 MetricCard(
-                    label = "Total",
+                    label = stringResource(R.string.metric_total),
                     icon = Icons.Filled.Speed,
                     value = state.displayDistance(state.totalDistanceMetres)
-                        ?.let { "%.1f".format(Locale.US, it) } ?: "--",
+                        ?.let { "%.1f".format(Locale.US, it) } ?: dash,
                     unit = state.distanceUnit,
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
             right = {
                 MetricCard(
-                    label = "Battery",
+                    label = stringResource(R.string.metric_battery),
                     icon = Icons.Filled.BatteryFull,
-                    value = state.batteryPercent?.let { "${it.roundToInt()}" } ?: "--",
-                    unit = "%",
+                    value = state.batteryPercent?.let { "${it.roundToInt()}" } ?: dash,
+                    unit = stringResource(R.string.unit_percent),
                     modifier = Modifier.fillMaxWidth(),
                 )
             },

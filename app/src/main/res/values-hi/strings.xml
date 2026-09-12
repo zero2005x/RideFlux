@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Hindi (हिन्दी) translations for :app.
+-->
+<resources>
+
+    <string name="action_back">वापस</string>
+    <string name="action_open">खोलें</string>
+    <string name="action_scan">स्कैन</string>
+    <string name="action_stop">रोकें</string>
+    <string name="action_clear_all">सब मिटाएँ</string>
+    <string name="action_export_csv">CSV निर्यात करें</string>
+    <string name="action_export_gpx">GPX निर्यात करें</string>
+    <string name="action_delete_trip">यात्रा हटाएँ</string>
+    <string name="action_beep">हॉर्न</string>
+    <string name="action_grant_permissions">अनुमतियाँ दें</string>
+    <string name="action_open_settings">सेटिंग्स खोलें</string>
+    <string name="filter_all">सभी</string>
+
+    <string name="scanner_title">व्हील खोजें</string>
+    <string name="scanner_searching">व्हील खोजे जा रहे हैं…</string>
+    <string name="scanner_no_devices">अभी कोई डिवाइस नहीं</string>
+    <string name="scanner_no_devices_hint">आस-पास के व्हील खोजने के लिए स्कैन दबाएँ।</string>
+    <string name="scanner_scan_failed">स्कैन विफल</string>
+    <string name="scanner_scan_failed_reason">स्कैन विफल: %1$s</string>
+    <string name="scanner_unknown_device">अज्ञात डिवाइस</string>
+    <string name="scanner_device_family">फ़ैमिली: %1$s</string>
+
+    <string name="bridge_card_title">HUD ब्रिज</string>
+    <string name="bridge_state_off">बंद</string>
+    <string name="bridge_state_standby">व्हील की प्रतीक्षा</string>
+    <string name="bridge_state_attaching">व्हील से जुड़ रहा है</string>
+    <string name="bridge_state_relaying">टेलीमेट्री भेजी जा रही है</string>
+    <string name="bridge_state_degraded">व्हील उपलब्ध नहीं · फिर भी खोजा जा सकता है</string>
+    <string name="glasses_link_stopped">ट्रांसपोर्ट रुका</string>
+    <string name="glasses_link_starting">ग्लासेज़ लिंक शुरू हो रहा है</string>
+    <string name="glasses_link_ready">ग्लासेज़ की प्रतीक्षा</string>
+    <string name="glasses_link_connected">ग्लासेज़ जुड़े</string>
+    <string name="glasses_link_error">ग्लासेज़ लिंक त्रुटि</string>
+    <string name="glasses_connection">ग्लासेज़ कनेक्शन</string>
+
+    <string name="page_dashboard">डैशबोर्ड</string>
+    <string name="page_graph">ग्राफ़</string>
+    <string name="page_parameters">पैरामीटर</string>
+    <string name="page_battery">बैटरी</string>
+    <string name="page_trips">यात्राएँ</string>
+    <string name="page_events">घटनाएँ</string>
+    <string name="page_map">मानचित्र</string>
+    <string name="dashboard_bridge_remove">HUD ब्रिज से व्हील हटाएँ</string>
+    <string name="dashboard_bridge_send">व्हील को HUD ब्रिज पर भेजें</string>
+    <string name="dashboard_open_ar_hud">AR HUD खोलें</string>
+    <string name="controls_headlight">हेडलाइट</string>
+    <string name="pedals_soft">सॉफ़्ट</string>
+    <string name="pedals_medium">मीडियम</string>
+    <string name="pedals_hard">हार्ड</string>
+
+    <string name="alert_speed_limit_title">गति सीमा</string>
+    <string name="alert_speed_limit_body">%1$s km/h, %2$s km/h से अधिक है</string>
+    <string name="alert_mos_temperature_title">MOS तापमान</string>
+    <string name="alert_mos_temperature_body">%1$s°C, %2$s°C से अधिक है</string>
+    <string name="alert_low_battery_title">बैटरी कम</string>
+    <string name="alert_low_battery_body">%1$s%%, %2$s%% से कम है</string>
+    <string name="alert_pwm_load_title">PWM लोड</string>
+    <string name="alert_pwm_load_body">%1$s%%, %2$s%% से अधिक है</string>
+    <string name="alert_tilt_back_title">टिल्ट-बैक</string>
+    <string name="alert_tilt_back_body">गति %1$s km/h · सीमा %2$s km/h</string>
+    <string name="alert_speed_cutoff_title">स्पीड कटऑफ़</string>
+    <string name="alert_speed_cutoff_body">मोटर %1$s km/h पर बंद हुई</string>
+    <string name="alert_wheel_low_battery_title">बैटरी कम</string>
+    <string name="alert_wheel_low_battery_body">पैक वोल्टेज %1$s V</string>
+    <string name="alert_over_temperature_title">अत्यधिक तापमान</string>
+    <string name="alert_fall_title">गिरावट का पता चला</string>
+    <string name="alert_fall_body">व्हील ने गिरने की घटना बताई</string>
+    <string name="alert_fault_set_title">फ़ॉल्ट सेट बदला</string>
+    <string name="alert_faults_added">+%1$d फ़ॉल्ट</string>
+    <string name="alert_faults_cleared">-%1$d हटे</string>
+    <string name="alert_updated">अपडेट हुआ</string>
+    <string name="alert_raw_title">%1$s अलर्ट 0x%2$s</string>
+    <string name="alert_raw_body">%1$d बाइट</string>
+
+    <string name="events_header">घटनाएँ</string>
+    <string name="events_empty">अभी कोई घटना नहीं</string>
+    <string name="event_speed_limit">गति सीमा</string>
+    <string name="event_mos_temperature">MOS तापमान</string>
+    <string name="event_low_battery_threshold">कम बैटरी सीमा</string>
+    <string name="event_pwm_load">PWM लोड</string>
+    <string name="event_tilt_back">टिल्ट-बैक</string>
+    <string name="event_speed_cutoff">स्पीड कटऑफ़</string>
+    <string name="event_low_battery">बैटरी कम</string>
+    <string name="event_low_battery_body">वोल्टेज %1$s V</string>
+    <string name="event_over_temperature">अत्यधिक तापमान</string>
+    <string name="event_fall_detected">गिरावट का पता चला</string>
+    <string name="event_fault_set_changed">फ़ॉल्ट सेट बदला</string>
+    <string name="event_raw_title">%1$s रॉ 0x%2$s</string>
+
+    <string name="section_speed">गति</string>
+    <string name="section_power">पावर</string>
+    <string name="section_thermals">तापमान</string>
+    <string name="section_distance">दूरी</string>
+    <string name="section_device">डिवाइस</string>
+    <string name="section_pack">पैक</string>
+    <string name="section_cells">सेल</string>
+    <string name="section_current_ride">मौजूदा राइड</string>
+    <string name="section_lifetime">कुल</string>
+    <string name="section_saved_rides">सहेजी गई राइड</string>
+    <string name="section_route">मार्ग</string>
+
+    <string name="metric_speed">गति</string>
+    <string name="metric_max">अधिकतम</string>
+    <string name="metric_average">औसत</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">वोल्टेज</string>
+    <string name="metric_current">करंट</string>
+    <string name="metric_phase_current">फ़ेज़ करंट</string>
+    <string name="metric_power">पावर</string>
+    <string name="metric_battery">बैटरी</string>
+    <string name="metric_battery_voltage">बैटरी वोल्टेज</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">MOS तापमान</string>
+    <string name="metric_motor">मोटर</string>
+    <string name="metric_battery_temp">बैटरी तापमान</string>
+    <string name="metric_board">बोर्ड</string>
+    <string name="metric_trip">ट्रिप</string>
+    <string name="metric_total">कुल</string>
+    <string name="metric_ride_time">राइड समय</string>
+    <string name="metric_mode">मोड</string>
+    <string name="metric_model">मॉडल</string>
+    <string name="metric_family">फ़ैमिली</string>
+    <string name="metric_firmware">फ़र्मवेयर</string>
+    <string name="metric_address">पता</string>
+    <string name="metric_state_of_charge">चार्ज स्तर</string>
+    <string name="metric_trip_distance">ट्रिप दूरी</string>
+    <string name="metric_max_speed">अधिकतम गति</string>
+    <string name="metric_avg_speed">औसत गति</string>
+    <string name="metric_total_distance">कुल दूरी</string>
+    <string name="metric_vehicle">वाहन</string>
+    <string name="unit_hms">घं:मि:से</string>
+
+    <string name="bms_per_cell_title">प्रति-सेल डेटा</string>
+    <string name="bms_per_cell_body">यह व्हील अपने BLE टेलीमेट्री लिंक पर अलग-अलग सेल वोल्टेज नहीं भेजता। स्मार्ट-BMS डेटा केवल उन बिल्ड्स पर मिलता है जहाँ BMS UART कंट्रोलर से जुड़ा हो — जुड़ी हुई किसी भी फ़ैमिली में ऐसा नहीं है।</string>
+
+    <string name="graph_header">टेलीमेट्री</string>
+    <string name="graph_waiting">टेलीमेट्री सैंपल की प्रतीक्षा…</string>
+    <string name="series_speed_kmh">गति (km/h)</string>
+    <string name="series_speed_mph">गति (mph)</string>
+    <string name="series_battery">बैटरी (%%)</string>
+    <string name="series_current">करंट (A)</string>
+    <string name="series_mos">MOS (°C)</string>
+    <string name="series_voltage">वोल्टेज (V)</string>
+
+    <string name="map_no_location_permission">स्थान अनुमति नहीं दी गई</string>
+    <string name="map_waiting_fix">GPS फ़िक्स की प्रतीक्षा…</string>
+    <string name="map_track_preview">ऑफ़लाइन ट्रैक पूर्वावलोकन • %1$d GPS बिंदु</string>
+
+    <string name="trips_stop_recording">रिकॉर्डिंग रोकें</string>
+    <string name="trips_saved_empty">पूरी हुई राइड यहाँ दिखेंगी और रीस्टार्ट के बाद भी बनी रहेंगी।</string>
+    <string name="trip_history_title">यात्रा इतिहास</string>
+    <string name="trip_history_subtitle">स्थानीय रूप से सहेजी गई राइड देखें और निर्यात करें</string>
+    <string name="trip_none_saved">अभी कोई सहेजी गई राइड नहीं</string>
+    <string name="trip_details_title">यात्रा विवरण</string>
+    <string name="trip_not_found">यात्रा नहीं मिली</string>
+    <string name="trip_summary_card">%1$s km  •  %2$s  •  अधिकतम %3$s km/h</string>
+    <string name="trip_summary_detail">%1$s km  •  %2$s  •  औसत %3$s km/h  •  अधिकतम %4$s km/h</string>
+
+    <string name="settings_title">सेटिंग्स</string>
+    <string name="settings_section_alerts">अलर्ट</string>
+    <string name="settings_enable_alerts_title">थ्रेशोल्ड अलर्ट चालू करें</string>
+    <string name="settings_enable_alerts_subtitle">फ़ोन की ओर से सुरक्षा सीमाएँ जाँचें</string>
+    <string name="settings_speed_limit">गति सीमा</string>
+    <string name="settings_mos_temperature">MOS तापमान</string>
+    <string name="settings_low_battery">कम बैटरी</string>
+    <string name="settings_pwm_load">PWM लोड</string>
+    <string name="settings_section_display">प्रदर्शन</string>
+    <string name="settings_metric_units_title">मीट्रिक इकाइयाँ</string>
+    <string name="settings_metric_units_subtitle">mph और मील के लिए बंद करें</string>
+    <string name="settings_keep_awake_title">डैशबोर्ड जगाए रखें</string>
+    <string name="settings_keep_awake_subtitle">राइड के दौरान स्क्रीन बंद न होने दें</string>
+    <string name="settings_section_hud_bridge">HUD ब्रिज</string>
+    <string name="settings_bridge_autostart_title">ब्रिज अपने-आप शुरू करें</string>
+    <string name="settings_bridge_autostart_subtitle">RideFlux शुरू होने या फ़ोन बूट होने पर स्टैंडबाय में जाएँ</string>
+    <string name="settings_low_latency_title">कम-विलंब स्टैंडबाय</string>
+    <string name="settings_low_latency_subtitle">व्हील की प्रतीक्षा में अधिक बैटरी खर्च होती है</string>
+    <string name="settings_paired_mac">पेयर किए फ़ोन का MAC</string>
+    <string name="settings_paired_mac_unset">पेयरिंग के दौरान HUD पर सेट होता है</string>
+    <string name="settings_section_about">परिचय</string>
+    <string name="settings_about_subtitle">ऑफ़लाइन-प्रथम व्हील टेलीमेट्री और HUD ब्रिज</string>
+
+    <string name="permission_bluetooth_title">ब्लूटूथ अनुमति आवश्यक</string>
+    <string name="permission_bluetooth_body">आपके व्हील को खोजने और उससे बात करने के लिए RideFlux को ब्लूटूथ स्कैन और कनेक्ट अनुमति चाहिए।</string>
+
+    <string name="hud_headlight_on">हेडलाइट चालू</string>
+    <string name="hud_headlight_off">हेडलाइट बंद</string>
+    <string name="hud_pedals_mode">पैडल मोड</string>
+    <string name="hud_label_on">चालू</string>
+    <string name="hud_label_off">बंद</string>
+
+    <string name="notification_channel_bridge">RideFlux ब्रिज</string>
+    <string name="notification_bridge_title">RideFlux → HUD ब्रिज</string>
+    <string name="notification_bridge_standby">व्हील की प्रतीक्षा; ग्लासेज़ जुड़ सकते हैं</string>
+    <string name="notification_bridge_attaching">चुने गए व्हील से जुड़ रहा है</string>
+    <string name="notification_bridge_relaying">व्हील टेलीमेट्री ग्लासेज़ को भेजी जा रही है</string>
+    <string name="notification_bridge_degraded">व्हील उपलब्ध नहीं; ब्रिज अब भी खोजा जा सकता है</string>
+    <string name="notification_channel_recording">यात्रा रिकॉर्डिंग</string>
+    <string name="notification_recording_title">RideFlux रिकॉर्ड कर रहा है</string>
+    <string name="notification_recording_text">व्हील टेलीमेट्री स्थानीय रूप से सहेजी जा रही है</string>
+
+</resources>

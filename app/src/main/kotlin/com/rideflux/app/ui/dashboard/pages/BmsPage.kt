@@ -18,8 +18,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.rideflux.app.R
 import com.rideflux.app.ui.dashboard.DashboardUiState
 import com.rideflux.app.ui.dashboard.components.MetricCard
 import com.rideflux.app.ui.dashboard.components.MetricRow
@@ -40,6 +42,8 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun BmsPage(state: DashboardUiState, modifier: Modifier = Modifier) {
+    val dash = stringResource(R.string.value_unavailable)
+    val celsius = stringResource(R.string.unit_celsius)
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -47,25 +51,25 @@ fun BmsPage(state: DashboardUiState, modifier: Modifier = Modifier) {
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionHeader("Pack", accent = RideFluxColors.Neon)
+        SectionHeader(stringResource(R.string.section_pack), accent = RideFluxColors.Neon)
         MetricRow(
             left = {
                 MetricCard(
-                    label = "State of Charge",
+                    label = stringResource(R.string.metric_state_of_charge),
                     // Guard non-finite telemetry before roundToInt(),
                     // which throws IllegalArgumentException for NaN / ±∞.
-                    value = state.batteryPercent?.takeIf { it.isFinite() }?.let { "${it.roundToInt()}" } ?: "--",
-                    unit = "%",
+                    value = state.batteryPercent?.takeIf { it.isFinite() }?.let { "${it.roundToInt()}" } ?: dash,
+                    unit = stringResource(R.string.unit_percent),
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
             right = {
                 MetricCard(
-                    label = "Voltage",
+                    label = stringResource(R.string.metric_voltage),
                     // Filter NaN/Infinity so the tile shows "--" instead
                     // of the literal strings "NaN V" / "Infinity V".
-                    value = state.voltageV?.takeIf { it.isFinite() }?.let { "%.1f".format(Locale.US, it) } ?: "--",
-                    unit = "V",
+                    value = state.voltageV?.takeIf { it.isFinite() }?.let { "%.1f".format(Locale.US, it) } ?: dash,
+                    unit = stringResource(R.string.unit_volt),
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
@@ -73,45 +77,45 @@ fun BmsPage(state: DashboardUiState, modifier: Modifier = Modifier) {
         MetricRow(
             left = {
                 MetricCard(
-                    label = "Current",
-                    value = state.currentA?.takeIf { it.isFinite() }?.let { "%.1f".format(Locale.US, it) } ?: "--",
-                    unit = "A",
+                    label = stringResource(R.string.metric_current),
+                    value = state.currentA?.takeIf { it.isFinite() }?.let { "%.1f".format(Locale.US, it) } ?: dash,
+                    unit = stringResource(R.string.unit_ampere),
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
             right = {
                 MetricCard(
-                    label = "Power",
-                    value = state.powerW?.takeIf { it.isFinite() }?.let { "%.0f".format(Locale.US, it) } ?: "--",
-                    unit = "W",
+                    label = stringResource(R.string.metric_power),
+                    value = state.powerW?.takeIf { it.isFinite() }?.let { "%.0f".format(Locale.US, it) } ?: dash,
+                    unit = stringResource(R.string.unit_watt),
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
         )
 
-        SectionHeader("Thermals", accent = RideFluxColors.Danger)
+        SectionHeader(stringResource(R.string.section_thermals), accent = RideFluxColors.Danger)
         MetricRow(
             left = {
                 MetricCard(
-                    label = "Battery Temp",
-                    value = state.batteryTemperatureC?.takeIf { it.isFinite() }?.let { "%.0f".format(Locale.US, it) } ?: "--",
-                    unit = "°C",
+                    label = stringResource(R.string.metric_battery_temp),
+                    value = state.batteryTemperatureC?.takeIf { it.isFinite() }?.let { "%.0f".format(Locale.US, it) } ?: dash,
+                    unit = celsius,
                     valueColor = stoplight(state.batteryTemperatureC, warn = 50f, danger = 60f),
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
             right = {
                 MetricCard(
-                    label = "MOS Temp",
-                    value = state.mosTemperatureC?.takeIf { it.isFinite() }?.let { "%.0f".format(Locale.US, it) } ?: "--",
-                    unit = "°C",
+                    label = stringResource(R.string.metric_mos_temp),
+                    value = state.mosTemperatureC?.takeIf { it.isFinite() }?.let { "%.0f".format(Locale.US, it) } ?: dash,
+                    unit = celsius,
                     valueColor = stoplight(state.mosTemperatureC, warn = 60f, danger = 75f),
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
         )
 
-        SectionHeader("Cells", accent = RideFluxColors.Cyan)
+        SectionHeader(stringResource(R.string.section_cells), accent = RideFluxColors.Cyan)
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -120,16 +124,13 @@ fun BmsPage(state: DashboardUiState, modifier: Modifier = Modifier) {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Per-cell data",
+                    stringResource(R.string.bms_per_cell_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    "This wheel does not expose individual cell voltages over " +
-                        "its BLE telemetry link. Smart-BMS data is only " +
-                        "available on builds that wire the BMS UART through " +
-                        "the controller — none of the connected family does.",
+                    stringResource(R.string.bms_per_cell_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
@@ -166,7 +167,10 @@ fun HudScreen(
     ) {
         when (val phase = phaseOf(uiState)) {
             HudPhase.AwaitingTarget -> AwaitingTargetMessage(onRetry = currentOnRetry)
-            HudPhase.WaitingPhone -> WaitingPhoneMessage()
+            HudPhase.WaitingPhone -> WaitingPhoneMessage(onPair = {
+                currentOnOpenSettings()
+                onStartPairing()
+            })
             HudPhase.PhoneStandby -> PhoneStandbyMessage(
                 phoneBatteryPercent = uiState.phoneBatteryPercent,
                 glassesBatteryPercent = uiState.glassesBatteryPercent,
@@ -217,25 +221,55 @@ private fun HudSettingsOverlay(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            ActionText("CLOSE", onClose)
-            Text("HUD SETTINGS", color = HudGreen, fontWeight = FontWeight.Bold)
-            ActionText("EXIT", onExit)
+            ActionText(stringResource(R.string.hud_settings_close), onClose)
+            Text(
+                stringResource(R.string.hud_settings_title),
+                color = HudGreen,
+                fontWeight = FontWeight.Bold,
+            )
+            ActionText(stringResource(R.string.hud_settings_exit), onExit)
         }
-        LimitRow("Speed", thresholds.speedLimitKmh, "km/h", 5f, onSpeedLimit)
-        LimitRow("MOS temp", thresholds.temperatureLimitC, "°C", 5f, onTemperatureLimit)
-        LimitRow("Low battery", thresholds.lowBatteryPercent, "%", 5f, onLowBatteryLimit)
-        LimitRow("PWM", thresholds.pwmAlertPercent, "%", 5f, onPwmLimit)
-        ActionText("PAIR WITH PHONE", onStartPairing)
-        // Show the phone's pairing code rather than its address: the
-        // address is a rotating random value and means nothing to the
-        // rider, while the code is printed on the phone's settings
-        // screen so the right row is unambiguous.
+        val celsius = stringResource(R.string.unit_celsius)
+        val percent = stringResource(R.string.unit_percent)
+        LimitRow(
+            stringResource(R.string.hud_limit_speed),
+            thresholds.speedLimitKmh,
+            stringResource(R.string.unit_kmh),
+            5f,
+            SPEED_AND_PERCENT_MAX,
+            onSpeedLimit,
+        )
+        LimitRow(
+            stringResource(R.string.hud_limit_mos_temp),
+            thresholds.temperatureLimitC,
+            celsius,
+            5f,
+            TEMPERATURE_MAX,
+            onTemperatureLimit,
+        )
+        LimitRow(
+            stringResource(R.string.hud_limit_low_battery),
+            thresholds.lowBatteryPercent,
+            percent,
+            5f,
+            SPEED_AND_PERCENT_MAX,
+            onLowBatteryLimit,
+        )
+        LimitRow(
+            stringResource(R.string.hud_limit_pwm),
+            thresholds.pwmAlertPercent,
+            percent,
+            5f,
+            SPEED_AND_PERCENT_MAX,
+            onPwmLimit,
+        )
+        ActionText(stringResource(R.string.hud_settings_pair_with_phone), onStartPairing)
         candidates.take(4).forEach { peer ->
             val label = peer.shortCode?.let { "CODE $it" }
                 ?: peer.name
                 ?: peer.address
             Text(
-                "$label  ${peer.rssi} dBm",
+                stringResource(R.string.hud_peer_row, label, peer.rssi),
                 color = if (peer.shortCode != null) HudGreen else Color.White,
                 fontSize = 12.sp,
                 modifier = Modifier.fillMaxWidth().clickable { onPairPhone(peer) }.padding(5.dp),
@@ -244,19 +278,38 @@ private fun HudSettingsOverlay(
     }
 }
 
+/** Upper bound for speed (km/h) and percentage limits. */
+private const val SPEED_AND_PERCENT_MAX = 100f
+
+/** Upper bound for the MOS temperature limit, in °C. */
+private const val TEMPERATURE_MAX = 150f
+
 @Composable
 private fun LimitRow(
     label: String,
     value: Float,
     unit: String,
     step: Float,
+    // Passed explicitly rather than inferred from `unit`: the unit label is
+    // display text, and inferring a safety bound from it would silently
+    // change behaviour if that text ever moved.
+    max: Float,
     onChange: (Float) -> Unit,
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = Color.White, modifier = Modifier.weight(1f), fontSize = 13.sp)
-        ActionText("−", { onChange((value - step).coerceAtLeast(1f)) })
-        Text("${value.roundToInt()} $unit", color = HudGreen, modifier = Modifier.width(82.dp), textAlign = TextAlign.Center)
-        ActionText("+", { onChange((value + step).coerceAtMost(if (unit == "°C") 150f else 100f)) })
+        ActionText(stringResource(R.string.hud_step_decrement)) {
+            onChange((value - step).coerceAtLeast(1f))
+        }
+        Text(
+            stringResource(R.string.hud_limit_value, value.roundToInt(), unit),
+            color = HudGreen,
+            modifier = Modifier.width(82.dp),
+            textAlign = TextAlign.Center,
+        )
+        ActionText(stringResource(R.string.hud_step_increment)) {
+            onChange((value + step).coerceAtMost(max))
+        }
     }
 }
 
@@ -301,14 +354,16 @@ private fun phaseOf(s: HudUiState): HudPhase {
 }
 
 @Composable
-private fun WaitingPhoneMessage() {
+private fun WaitingPhoneMessage(onPair: () -> Unit) {
     val pulse by rememberPulse()
     CenteredStatus(
-        title = "WAITING\nPHONE",
+        title = stringResource(R.string.hud_waiting_phone_title),
         titleColor = HudGreen,
         titleAlpha = pulse,
-        subtitle = "Searching for RideFlux…",
-        onRetry = {},
+        subtitle = stringResource(R.string.hud_waiting_phone_subtitle),
+        showRetry = true,
+        retryLabel = stringResource(R.string.hud_action_pair_phone),
+        onRetry = onPair,
     )
 }
 
@@ -318,9 +373,13 @@ private fun PhoneStandbyMessage(
     glassesBatteryPercent: Int?,
 ) {
     CenteredStatus(
-        title = "PHONE\nCONNECTED",
+        title = stringResource(R.string.hud_phone_connected_title),
         titleColor = HudGreen,
-        subtitle = "Phone ${formatPercent(phoneBatteryPercent?.toFloat())}  ·  Glasses ${formatPercent(glassesBatteryPercent?.toFloat())}",
+        subtitle = stringResource(
+            R.string.hud_phone_standby_subtitle,
+            formatPercent(phoneBatteryPercent?.toFloat()),
+            formatPercent(glassesBatteryPercent?.toFloat()),
+        ),
         onRetry = {},
     )
 }
@@ -334,11 +393,11 @@ private fun AwaitingTargetMessage(onRetry: () -> Unit) {
         // narrow viewport, "RIDEFLUX HUD" wraps mid-word and the
         // glyphs collide vertically. Explicit `\n` keeps the brand
         // mark stable across screen widths.
-        title = "RIDEFLUX\nHUD",
+        title = stringResource(R.string.hud_brand_title),
         titleColor = HudGreen,
-        subtitle = "Launch with --es mac <BLE-ADDRESS>",
+        subtitle = stringResource(R.string.hud_awaiting_target_subtitle),
         showRetry = true,
-        retryLabel = "SCAN",
+        retryLabel = stringResource(R.string.hud_action_scan),
         onRetry = onRetry,
     )
 }
@@ -347,10 +406,10 @@ private fun AwaitingTargetMessage(onRetry: () -> Unit) {
 private fun ScanningMessage() {
     val pulse by rememberPulse()
     CenteredStatus(
-        title = "SCANNING",
+        title = stringResource(R.string.hud_scanning_title),
         titleColor = HudGreen,
         titleAlpha = pulse,
-        subtitle = "Looking for vehicle…",
+        subtitle = stringResource(R.string.hud_scanning_subtitle),
         onRetry = {},
     )
 }
@@ -359,7 +418,7 @@ private fun ScanningMessage() {
 private fun ConnectingMessage(targetMac: String?) {
     val pulse by rememberPulse()
     CenteredStatus(
-        title = "CONNECTING",
+        title = stringResource(R.string.hud_connecting_title),
         titleColor = HudGreen,
         titleAlpha = pulse,
         subtitle = targetMac.orEmpty(),
@@ -369,13 +428,17 @@ private fun ConnectingMessage(targetMac: String?) {
 
 @Composable
 private fun DisconnectedMessage(reason: String?, onRetry: () -> Unit) {
+    // Both variants are resolved unconditionally: stringResource is a
+    // composable call and must not sit behind a data-dependent branch.
+    val offline = stringResource(R.string.hud_offline)
+    val offlineWithReason = stringResource(R.string.hud_offline_reason, reason.orEmpty())
     CenteredStatus(
-        title = "RIDEFLUX\nHUD",
+        title = stringResource(R.string.hud_brand_title),
         titleColor = HudGreen,
-        subtitle = reason?.let { "OFFLINE · $it" } ?: "OFFLINE",
+        subtitle = if (reason != null) offlineWithReason else offline,
         subtitleColor = HudRed,
         showRetry = true,
-        retryLabel = "RETRY",
+        retryLabel = stringResource(R.string.hud_action_retry),
         onRetry = onRetry,
     )
 }
@@ -388,7 +451,8 @@ private fun CenteredStatus(
     subtitle: String,
     subtitleColor: Color = HudWhiteSoft,
     showRetry: Boolean = false,
-    retryLabel: String = "RETRY",
+    // Only read when showRetry is true; every such caller supplies it.
+    retryLabel: String = "",
     onRetry: () -> Unit,
 ) {
     Column(
@@ -510,7 +574,7 @@ private fun ReadyHud(uiState: HudUiState) {
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = "STALE",
+                    text = stringResource(R.string.hud_stale),
                     color = HudAmber,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
@@ -569,11 +633,15 @@ private fun LeftColumn(
 
 @Composable
 private fun SignalRow(signal: SignalQuality) {
-    val (icon, tint, label) = when (signal) {
-        SignalQuality.GOOD -> Triple(Icons.Filled.BluetoothConnected, HudGreen, "GOOD")
-        SignalQuality.WEAK -> Triple(Icons.AutoMirrored.Filled.BluetoothSearching, HudAmber, "WEAK")
-        SignalQuality.NONE -> Triple(Icons.Filled.BluetoothDisabled, HudRed, "OFFLINE")
+    val (icon, tint, labelRes) = when (signal) {
+        SignalQuality.GOOD ->
+            Triple(Icons.Filled.BluetoothConnected, HudGreen, R.string.hud_signal_good)
+        SignalQuality.WEAK ->
+            Triple(Icons.AutoMirrored.Filled.BluetoothSearching, HudAmber, R.string.hud_signal_weak)
+        SignalQuality.NONE ->
+            Triple(Icons.Filled.BluetoothDisabled, HudRed, R.string.hud_signal_none)
     }
+    val label = stringResource(labelRes)
     IconLabelRow(
         icon = icon,
         iconTint = tint,
@@ -610,7 +678,7 @@ private fun CenterSpeed(modifier: Modifier = Modifier, speedKmh: Float?) {
             letterSpacing = (-1).sp,
         )
         Text(
-            text = "km/h",
+            text = stringResource(R.string.unit_kmh),
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
             color = HudWhiteSoft,

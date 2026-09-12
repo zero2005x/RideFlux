@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  French (Français) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">ATTENTE\nTÉLÉPHONE</string>
+    <string name="hud_waiting_phone_subtitle">Recherche de RideFlux…</string>
+    <string name="hud_phone_connected_title">TÉLÉPHONE\nCONNECTÉ</string>
+    <string name="hud_phone_standby_subtitle">Téléphone %1$s  ·  Lunettes %2$s</string>
+    <string name="hud_scanning_title">RECHERCHE</string>
+    <string name="hud_scanning_subtitle">Recherche du véhicule…</string>
+    <string name="hud_connecting_title">CONNEXION</string>
+    <string name="hud_offline">HORS LIGNE</string>
+    <string name="hud_offline_reason">HORS LIGNE · %1$s</string>
+    <string name="hud_action_retry">RÉESSAYER</string>
+    <string name="hud_action_scan">SCANNER</string>
+    <string name="hud_action_pair_phone">APPAIRER</string>
+    <string name="hud_stale">OBSOLÈTE</string>
+    <string name="hud_signal_good">BON</string>
+    <string name="hud_signal_weak">FAIBLE</string>
+    <string name="hud_signal_none">HORS LIGNE</string>
+    <string name="hud_settings_title">RÉGLAGES HUD</string>
+    <string name="hud_settings_close">FERMER</string>
+    <string name="hud_settings_exit">QUITTER</string>
+    <string name="hud_settings_pair_with_phone">APPAIRER AU TÉLÉPHONE</string>
+    <string name="hud_limit_speed">Vitesse</string>
+    <string name="hud_limit_mos_temp">Temp. MOS</string>
+    <string name="hud_limit_low_battery">Batterie faible</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">Autorisation Bluetooth requise</string>
+    <string name="permission_bluetooth_body">RideFlux HUD a besoin des autorisations de scan et de connexion Bluetooth pour atteindre votre roue.</string>
+    <string name="permission_location_body">RideFlux HUD a besoin de l\'accès à la localisation pour détecter votre roue et s\'y connecter en Bluetooth.</string>
+    <string name="action_open_settings">Ouvrir les paramètres</string>
+</resources>

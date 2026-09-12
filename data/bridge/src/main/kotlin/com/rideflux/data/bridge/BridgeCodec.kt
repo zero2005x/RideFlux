@@ -95,7 +95,9 @@ object BridgeCodec {
 
         putU24(buf, frame.tripDistanceMetres)
 
-        buf.putInt(frame.tripDurationSeconds?.toInt() ?: BridgeProtocol.INT32_NULL)
+        buf.putInt(frame.tripDurationSeconds
+            ?.takeIf { it <= Int.MAX_VALUE.toLong() }
+            ?.toInt() ?: BridgeProtocol.INT32_NULL)
         return out
     }
 
@@ -104,14 +106,21 @@ object BridgeCodec {
      * match a known layout (wrong size, magic, version, signal value,
      * or non-zero v1 reserved bytes).
      */
-    fun decode(bytes: ByteArray): BridgeFrame? = when {
-        bytes.size == BridgeProtocol.FRAME_SIZE_V2 && bytes[0] == BridgeProtocol.MAGIC &&
-            bytes[1] == PROTOCOL_VERSION_V2 -> decodeV2(bytes)
+    fun decode(bytes: ByteArray): BridgeFrame? = try {
+        when {
+            bytes.size == BridgeProtocol.FRAME_SIZE_V2 && bytes[0] == BridgeProtocol.MAGIC &&
+                bytes[1] == PROTOCOL_VERSION_V2 -> decodeV2(bytes)
 
-        bytes.size == BridgeProtocol.FRAME_SIZE_V1 && bytes[0] == BridgeProtocol.MAGIC &&
-            bytes[1] == PROTOCOL_VERSION_V1 -> decodeV1(bytes)
+            bytes.size == BridgeProtocol.FRAME_SIZE_V1 && bytes[0] == BridgeProtocol.MAGIC &&
+                bytes[1] == PROTOCOL_VERSION_V1 -> decodeV1(bytes)
 
-        else -> null
+            else -> null
+        }
+    } catch (_: IllegalArgumentException) {
+        // Correct framing does not make the payload valid. BridgeFrame
+        // rejects negative measurements and invalid percentages; malformed
+        // radio data must be dropped, never thrown onto a BLE/CXR callback.
+        null
     }
 
     private fun decodeV2(bytes: ByteArray): BridgeFrame? {
@@ -163,6 +172,7 @@ object BridgeCodec {
         val signal = SignalLevel.fromWire(buf.get().toInt() and 0xFF) ?: return null
         val sec = buf.int
         val ms = buf.int
+        if (ms !in 0..999) return null
         val timestampMillis = Integer.toUnsignedLong(sec) * 1000L + ms.toLong()
 
         val sx10 = buf.short

@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Japanese (日本語) translations for :app.
+-->
+<resources>
+
+    <string name="action_back">戻る</string>
+    <string name="action_open">開く</string>
+    <string name="action_scan">スキャン</string>
+    <string name="action_stop">停止</string>
+    <string name="action_clear_all">すべて消去</string>
+    <string name="action_export_csv">CSV をエクスポート</string>
+    <string name="action_export_gpx">GPX をエクスポート</string>
+    <string name="action_delete_trip">走行を削除</string>
+    <string name="action_beep">ホーン</string>
+    <string name="action_grant_permissions">権限を許可</string>
+    <string name="action_open_settings">設定を開く</string>
+    <string name="filter_all">すべて</string>
+
+    <string name="scanner_title">ホイールを検索</string>
+    <string name="scanner_searching">ホイールを検索中…</string>
+    <string name="scanner_no_devices">デバイスがまだありません</string>
+    <string name="scanner_no_devices_hint">「スキャン」をタップして近くのホイールを探します。</string>
+    <string name="scanner_scan_failed">スキャンに失敗しました</string>
+    <string name="scanner_scan_failed_reason">スキャンに失敗しました: %1$s</string>
+    <string name="scanner_unknown_device">不明なデバイス</string>
+    <string name="scanner_device_family">ファミリー: %1$s</string>
+
+    <string name="bridge_card_title">HUD ブリッジ</string>
+    <string name="bridge_state_off">オフ</string>
+    <string name="bridge_state_standby">ホイールを待機中</string>
+    <string name="bridge_state_attaching">ホイールに接続中</string>
+    <string name="bridge_state_relaying">テレメトリを中継中</string>
+    <string name="bridge_state_degraded">ホイール利用不可 · ブリッジは検出可能</string>
+    <string name="glasses_link_stopped">トランスポート停止</string>
+    <string name="glasses_link_starting">グラス接続を開始中</string>
+    <string name="glasses_link_ready">グラスを待機中</string>
+    <string name="glasses_link_connected">グラス接続済み</string>
+    <string name="glasses_link_error">グラス接続エラー</string>
+    <string name="glasses_connection">グラス接続方式</string>
+
+    <string name="page_dashboard">ダッシュボード</string>
+    <string name="page_graph">グラフ</string>
+    <string name="page_parameters">パラメータ</string>
+    <string name="page_battery">バッテリー</string>
+    <string name="page_trips">走行</string>
+    <string name="page_events">イベント</string>
+    <string name="page_map">マップ</string>
+    <string name="dashboard_bridge_remove">HUD ブリッジからホイールを外す</string>
+    <string name="dashboard_bridge_send">ホイールを HUD ブリッジへ送る</string>
+    <string name="dashboard_open_ar_hud">AR HUD を開く</string>
+    <string name="controls_headlight">ヘッドライト</string>
+    <string name="pedals_soft">ソフト</string>
+    <string name="pedals_medium">ミディアム</string>
+    <string name="pedals_hard">ハード</string>
+
+    <string name="alert_speed_limit_title">速度超過</string>
+    <string name="alert_speed_limit_body">%1$s km/h が %2$s km/h を超えています</string>
+    <string name="alert_mos_temperature_title">MOS 温度</string>
+    <string name="alert_mos_temperature_body">%1$s°C が %2$s°C を超えています</string>
+    <string name="alert_low_battery_title">バッテリー低下</string>
+    <string name="alert_low_battery_body">%1$s%% が %2$s%% を下回っています</string>
+    <string name="alert_pwm_load_title">PWM 負荷</string>
+    <string name="alert_pwm_load_body">%1$s%% が %2$s%% を超えています</string>
+    <string name="alert_tilt_back_title">チルトバック</string>
+    <string name="alert_tilt_back_body">速度 %1$s km/h · 上限 %2$s km/h</string>
+    <string name="alert_speed_cutoff_title">モーター遮断</string>
+    <string name="alert_speed_cutoff_body">%1$s km/h でモーターが遮断されました</string>
+    <string name="alert_wheel_low_battery_title">バッテリー低下</string>
+    <string name="alert_wheel_low_battery_body">パック電圧 %1$s V</string>
+    <string name="alert_over_temperature_title">高温異常</string>
+    <string name="alert_fall_title">転倒を検知</string>
+    <string name="alert_fall_body">ホイールが転倒イベントを報告しました</string>
+    <string name="alert_fault_set_title">故障状態が変化</string>
+    <string name="alert_faults_added">+%1$d 件の故障</string>
+    <string name="alert_faults_cleared">-%1$d 件解消</string>
+    <string name="alert_updated">更新済み</string>
+    <string name="alert_raw_title">%1$s アラート 0x%2$s</string>
+    <string name="alert_raw_body">%1$d バイト</string>
+
+    <string name="events_header">イベント</string>
+    <string name="events_empty">イベントはまだありません</string>
+    <string name="event_speed_limit">速度超過</string>
+    <string name="event_mos_temperature">MOS 温度</string>
+    <string name="event_low_battery_threshold">バッテリー低下しきい値</string>
+    <string name="event_pwm_load">PWM 負荷</string>
+    <string name="event_tilt_back">チルトバック</string>
+    <string name="event_speed_cutoff">モーター遮断</string>
+    <string name="event_low_battery">バッテリー低下</string>
+    <string name="event_low_battery_body">電圧 %1$s V</string>
+    <string name="event_over_temperature">高温異常</string>
+    <string name="event_fall_detected">転倒を検知</string>
+    <string name="event_fault_set_changed">故障状態が変化</string>
+    <string name="event_raw_title">%1$s 生データ 0x%2$s</string>
+
+    <string name="section_speed">速度</string>
+    <string name="section_power">電力</string>
+    <string name="section_thermals">温度</string>
+    <string name="section_distance">距離</string>
+    <string name="section_device">デバイス</string>
+    <string name="section_pack">バッテリーパック</string>
+    <string name="section_cells">セル</string>
+    <string name="section_current_ride">現在の走行</string>
+    <string name="section_lifetime">累計</string>
+    <string name="section_saved_rides">保存済みの走行</string>
+    <string name="section_route">ルート</string>
+
+    <string name="metric_speed">速度</string>
+    <string name="metric_max">最高</string>
+    <string name="metric_average">平均</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">電圧</string>
+    <string name="metric_current">電流</string>
+    <string name="metric_phase_current">相電流</string>
+    <string name="metric_power">出力</string>
+    <string name="metric_battery">バッテリー</string>
+    <string name="metric_battery_voltage">バッテリー電圧</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">MOS 温度</string>
+    <string name="metric_motor">モーター</string>
+    <string name="metric_battery_temp">バッテリー温度</string>
+    <string name="metric_board">基板</string>
+    <string name="metric_trip">走行距離</string>
+    <string name="metric_total">総距離</string>
+    <string name="metric_ride_time">走行時間</string>
+    <string name="metric_mode">モード</string>
+    <string name="metric_model">モデル</string>
+    <string name="metric_family">ファミリー</string>
+    <string name="metric_firmware">ファームウェア</string>
+    <string name="metric_address">アドレス</string>
+    <string name="metric_state_of_charge">充電残量</string>
+    <string name="metric_trip_distance">走行距離</string>
+    <string name="metric_max_speed">最高速度</string>
+    <string name="metric_avg_speed">平均速度</string>
+    <string name="metric_total_distance">総走行距離</string>
+    <string name="metric_vehicle">車両</string>
+    <string name="unit_hms">時:分:秒</string>
+
+    <string name="bms_per_cell_title">セル別データ</string>
+    <string name="bms_per_cell_body">このホイールは BLE テレメトリ経由でセルごとの電圧を公開していません。スマート BMS のデータは BMS の UART をコントローラーに配線した構成でのみ取得でき、対応ファミリーのいずれも該当しません。</string>
+
+    <string name="graph_header">テレメトリ</string>
+    <string name="graph_waiting">テレメトリのサンプルを待機中…</string>
+    <string name="series_speed_kmh">速度 (km/h)</string>
+    <string name="series_speed_mph">速度 (mph)</string>
+    <string name="series_battery">バッテリー (%%)</string>
+    <string name="series_current">電流 (A)</string>
+    <string name="series_mos">MOS (°C)</string>
+    <string name="series_voltage">電圧 (V)</string>
+
+    <string name="map_no_location_permission">位置情報の権限が許可されていません</string>
+    <string name="map_waiting_fix">GPS 測位を待機中…</string>
+    <string name="map_track_preview">オフライン軌跡プレビュー • GPS %1$d 点</string>
+
+    <string name="trips_stop_recording">記録を停止</string>
+    <string name="trips_saved_empty">完了した走行はここに表示され、再起動後も残ります。</string>
+    <string name="trip_history_title">走行履歴</string>
+    <string name="trip_history_subtitle">端末に保存した走行を閲覧・エクスポート</string>
+    <string name="trip_none_saved">保存された走行はまだありません</string>
+    <string name="trip_details_title">走行の詳細</string>
+    <string name="trip_not_found">走行が見つかりません</string>
+    <string name="trip_summary_card">%1$s km  •  %2$s  •  最高 %3$s km/h</string>
+    <string name="trip_summary_detail">%1$s km  •  %2$s  •  平均 %3$s km/h  •  最高 %4$s km/h</string>
+
+    <string name="settings_title">設定</string>
+    <string name="settings_section_alerts">警告</string>
+    <string name="settings_enable_alerts_title">しきい値警告を有効にする</string>
+    <string name="settings_enable_alerts_subtitle">安全上限をスマートフォン側で判定します</string>
+    <string name="settings_speed_limit">速度上限</string>
+    <string name="settings_mos_temperature">MOS 温度</string>
+    <string name="settings_low_battery">バッテリー低下</string>
+    <string name="settings_pwm_load">PWM 負荷</string>
+    <string name="settings_section_display">表示</string>
+    <string name="settings_metric_units_title">メートル法</string>
+    <string name="settings_metric_units_subtitle">オフにすると mph とマイル表示</string>
+    <string name="settings_keep_awake_title">ダッシュボードを表示し続ける</string>
+    <string name="settings_keep_awake_subtitle">走行中に画面を消灯させません</string>
+    <string name="settings_section_hud_bridge">HUD ブリッジ</string>
+    <string name="settings_bridge_autostart_title">ブリッジを自動開始</string>
+    <string name="settings_bridge_autostart_subtitle">RideFlux の起動時または端末の起動時に待機状態へ入ります</string>
+    <string name="settings_low_latency_title">低遅延スタンバイ</string>
+    <string name="settings_low_latency_subtitle">ホイールを待つ間の消費電力が増えます</string>
+    <string name="settings_paired_mac">ペア設定済み端末の MAC</string>
+    <string name="settings_paired_mac_unset">ペアリング時に HUD 側で設定されます</string>
+    <string name="settings_section_about">アプリについて</string>
+    <string name="settings_about_subtitle">オフライン優先のホイールテレメトリと HUD ブリッジ</string>
+
+    <string name="permission_bluetooth_title">Bluetooth の権限が必要です</string>
+    <string name="permission_bluetooth_body">ホイールを検出して通信するために、RideFlux には Bluetooth のスキャンと接続の権限が必要です。</string>
+
+    <string name="hud_headlight_on">ヘッドライト オン</string>
+    <string name="hud_headlight_off">ヘッドライト オフ</string>
+    <string name="hud_pedals_mode">ペダルモード</string>
+    <string name="hud_label_on">オン</string>
+    <string name="hud_label_off">オフ</string>
+
+    <string name="notification_channel_bridge">RideFlux ブリッジ</string>
+    <string name="notification_bridge_title">RideFlux → HUD ブリッジ</string>
+    <string name="notification_bridge_standby">ホイールを待機中。グラスは接続できます</string>
+    <string name="notification_bridge_attaching">選択したホイールに接続中</string>
+    <string name="notification_bridge_relaying">ホイールのテレメトリをグラスへ中継中</string>
+    <string name="notification_bridge_degraded">ホイールは利用できません。ブリッジは検出可能なままです</string>
+    <string name="notification_channel_recording">走行記録</string>
+    <string name="notification_recording_title">RideFlux が記録中です</string>
+    <string name="notification_recording_text">ホイールのテレメトリを端末に保存しています</string>
+
+</resources>

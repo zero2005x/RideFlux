@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Standard German (Deutsch) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">WARTE AUF\nTELEFON</string>
+    <string name="hud_waiting_phone_subtitle">Suche nach RideFlux…</string>
+    <string name="hud_phone_connected_title">TELEFON\nVERBUNDEN</string>
+    <string name="hud_phone_standby_subtitle">Telefon %1$s  ·  Brille %2$s</string>
+    <string name="hud_scanning_title">SUCHE</string>
+    <string name="hud_scanning_subtitle">Suche nach dem Fahrzeug…</string>
+    <string name="hud_connecting_title">VERBINDE</string>
+    <string name="hud_offline">OFFLINE</string>
+    <string name="hud_offline_reason">OFFLINE · %1$s</string>
+    <string name="hud_action_retry">ERNEUT</string>
+    <string name="hud_action_scan">SUCHEN</string>
+    <string name="hud_action_pair_phone">KOPPELN</string>
+    <string name="hud_stale">VERALTET</string>
+    <string name="hud_signal_good">GUT</string>
+    <string name="hud_signal_weak">SCHWACH</string>
+    <string name="hud_signal_none">OFFLINE</string>
+    <string name="hud_settings_title">HUD-OPTIONEN</string>
+    <string name="hud_settings_close">SCHLIESSEN</string>
+    <string name="hud_settings_exit">BEENDEN</string>
+    <string name="hud_settings_pair_with_phone">MIT TELEFON KOPPELN</string>
+    <string name="hud_limit_speed">Geschwindigkeit</string>
+    <string name="hud_limit_mos_temp">MOS-Temp.</string>
+    <string name="hud_limit_low_battery">Akku schwach</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">Bluetooth-Berechtigung erforderlich</string>
+    <string name="permission_bluetooth_body">RideFlux HUD benötigt die Bluetooth-Berechtigungen zum Suchen und Verbinden, um dein Wheel zu erreichen.</string>
+    <string name="permission_location_body">RideFlux HUD benötigt Standortzugriff, um dein Wheel per Bluetooth zu finden und sich zu verbinden.</string>
+    <string name="action_open_settings">Einstellungen öffnen</string>
+</resources>

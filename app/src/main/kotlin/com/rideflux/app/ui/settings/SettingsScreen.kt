@@ -28,9 +28,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rideflux.app.R
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -80,10 +82,13 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
             )
@@ -92,20 +97,69 @@ fun SettingsScreen(
         Column(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()),
         ) {
-            SectionTitle("Alerts")
-            ToggleItem("Enable threshold alerts", "Evaluate phone-side safety limits", thresholds.enabled, onAlertsEnabled)
-            SliderItem("Speed limit", thresholds.speedLimitKmh, 5f..100f, "km/h", onSpeedLimit)
-            SliderItem("MOS temperature", thresholds.temperatureLimitC, 40f..120f, "°C", onTemperatureLimit)
-            SliderItem("Low battery", thresholds.lowBatteryPercent, 5f..50f, "%", onLowBattery)
-            SliderItem("PWM load", thresholds.pwmAlertPercent, 50f..100f, "%", onPwmAlert)
+            SectionTitle(stringResource(R.string.settings_section_alerts))
+            ToggleItem(
+                stringResource(R.string.settings_enable_alerts_title),
+                stringResource(R.string.settings_enable_alerts_subtitle),
+                thresholds.enabled,
+                onAlertsEnabled,
+            )
+            SliderItem(
+                stringResource(R.string.settings_speed_limit),
+                thresholds.speedLimitKmh,
+                5f..100f,
+                stringResource(R.string.unit_kmh),
+                onSpeedLimit,
+            )
+            SliderItem(
+                stringResource(R.string.settings_mos_temperature),
+                thresholds.temperatureLimitC,
+                40f..120f,
+                stringResource(R.string.unit_celsius),
+                onTemperatureLimit,
+            )
+            SliderItem(
+                stringResource(R.string.settings_low_battery),
+                thresholds.lowBatteryPercent,
+                5f..50f,
+                stringResource(R.string.unit_percent),
+                onLowBattery,
+            )
+            SliderItem(
+                stringResource(R.string.settings_pwm_load),
+                thresholds.pwmAlertPercent,
+                50f..100f,
+                stringResource(R.string.unit_percent),
+                onPwmAlert,
+            )
             HorizontalDivider()
-            SectionTitle("Display")
-            ToggleItem("Metric units", "Disable for mph and miles", settings.useMetric, onUseMetric)
-            ToggleItem("Keep dashboard awake", "Prevent screen sleep while riding", settings.keepScreenOnDashboard, onKeepScreenOn)
+            SectionTitle(stringResource(R.string.settings_section_display))
+            ToggleItem(
+                stringResource(R.string.settings_metric_units_title),
+                stringResource(R.string.settings_metric_units_subtitle),
+                settings.useMetric,
+                onUseMetric,
+            )
+            ToggleItem(
+                stringResource(R.string.settings_keep_awake_title),
+                stringResource(R.string.settings_keep_awake_subtitle),
+                settings.keepScreenOnDashboard,
+                onKeepScreenOn,
+            )
             HorizontalDivider()
-            SectionTitle("HUD Bridge")
-            ToggleItem("Start bridge automatically", "Enter standby when RideFlux starts or the phone boots", settings.bridgeAutostart, onBridgeAutostart)
-            ToggleItem("Low-latency standby", "Uses more battery while waiting for a wheel", settings.bridgeStandbyAdvertiseLowLatency, onStandbyLowLatency)
+            SectionTitle(stringResource(R.string.settings_section_hud_bridge))
+            ToggleItem(
+                stringResource(R.string.settings_bridge_autostart_title),
+                stringResource(R.string.settings_bridge_autostart_subtitle),
+                settings.bridgeAutostart,
+                onBridgeAutostart,
+            )
+            ToggleItem(
+                stringResource(R.string.settings_low_latency_title),
+                stringResource(R.string.settings_low_latency_subtitle),
+                settings.bridgeStandbyAdvertiseLowLatency,
+                onStandbyLowLatency,
+            )
             ListItem(
                 headlineContent = { Text("This phone's pairing code") },
                 supportingContent = {
@@ -116,22 +170,26 @@ fun SettingsScreen(
                 },
             )
             ListItem(
-                headlineContent = { Text("Paired glasses") },
+                headlineContent = { Text(stringResource(R.string.settings_paired_mac)) },
                 supportingContent = {
-                    Text(settings.hudPeerMac ?: "No glasses have paired with this phone yet")
+                    Text(settings.hudPeerMac ?: stringResource(R.string.settings_paired_mac_unset))
                 },
             )
             HorizontalDivider()
-            SectionTitle("About")
+            SectionTitle(stringResource(R.string.settings_section_about))
             ListItem(
-                headlineContent = { Text("Trip history") },
-                supportingContent = { Text("Browse and export locally saved rides") },
+                headlineContent = { Text(stringResource(R.string.trip_history_title)) },
+                supportingContent = { Text(stringResource(R.string.trip_history_subtitle)) },
                 leadingContent = { Icon(Icons.Filled.History, contentDescription = null) },
-                trailingContent = { TextButton(onClick = onOpenTripHistory) { Text("Open") } },
+                trailingContent = {
+                    TextButton(onClick = onOpenTripHistory) {
+                        Text(stringResource(R.string.action_open))
+                    }
+                },
             )
             ListItem(
-                headlineContent = { Text("RideFlux") },
-                supportingContent = { Text("Offline-first wheel telemetry and HUD bridge") },
+                headlineContent = { Text(stringResource(R.string.app_name)) },
+                supportingContent = { Text(stringResource(R.string.settings_about_subtitle)) },
             )
         }
     }
@@ -140,7 +198,9 @@ fun SettingsScreen(
 @Composable
 private fun SectionTitle(text: String) {
     Text(
-        text = text.uppercase(Locale.US),
+        // Locale.getDefault(), not Locale.US: the section titles are now
+        // translated, and casing rules are language-specific.
+        text = text.uppercase(Locale.getDefault()),
         modifier = Modifier.padding(start = 16.dp, top = 18.dp, bottom = 4.dp),
         color = MaterialTheme.colorScheme.primary,
         style = MaterialTheme.typography.labelLarge,
@@ -174,6 +234,8 @@ private fun SliderItem(
                 modifier = Modifier.fillMaxWidth(),
             )
         },
-        trailingContent = { Text("${value.roundToInt()} $unit") },
+        trailingContent = {
+            Text(stringResource(R.string.slider_value, value.roundToInt(), unit))
+        },
     )
 }

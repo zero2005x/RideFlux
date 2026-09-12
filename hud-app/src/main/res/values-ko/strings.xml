@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Korean (한국어) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">휴대전화\n대기 중</string>
+    <string name="hud_waiting_phone_subtitle">RideFlux 검색 중…</string>
+    <string name="hud_phone_connected_title">휴대전화\n연결됨</string>
+    <string name="hud_phone_standby_subtitle">휴대전화 %1$s  ·  글래스 %2$s</string>
+    <string name="hud_scanning_title">검색 중</string>
+    <string name="hud_scanning_subtitle">차량을 찾는 중…</string>
+    <string name="hud_connecting_title">연결 중</string>
+    <string name="hud_offline">오프라인</string>
+    <string name="hud_offline_reason">오프라인 · %1$s</string>
+    <string name="hud_action_retry">다시 시도</string>
+    <string name="hud_action_scan">검색</string>
+    <string name="hud_action_pair_phone">기기 연결</string>
+    <string name="hud_stale">오래된 데이터</string>
+    <string name="hud_signal_good">양호</string>
+    <string name="hud_signal_weak">약함</string>
+    <string name="hud_signal_none">오프라인</string>
+    <string name="hud_settings_title">HUD 설정</string>
+    <string name="hud_settings_close">닫기</string>
+    <string name="hud_settings_exit">종료</string>
+    <string name="hud_settings_pair_with_phone">휴대전화와 연결</string>
+    <string name="hud_limit_speed">속도</string>
+    <string name="hud_limit_mos_temp">MOS 온도</string>
+    <string name="hud_limit_low_battery">배터리 부족</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">블루투스 권한이 필요합니다</string>
+    <string name="permission_bluetooth_body">RideFlux HUD가 휠에 연결하려면 블루투스 검색 및 연결 권한이 필요합니다.</string>
+    <string name="permission_location_body">블루투스로 휠을 찾아 연결하려면 RideFlux HUD에 위치 권한이 필요합니다.</string>
+    <string name="action_open_settings">설정 열기</string>
+</resources>

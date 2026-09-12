@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Portuguese (Português) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">À ESPERA\nDO TELEMÓVEL</string>
+    <string name="hud_waiting_phone_subtitle">A procurar o RideFlux…</string>
+    <string name="hud_phone_connected_title">TELEMÓVEL\nLIGADO</string>
+    <string name="hud_phone_standby_subtitle">Telemóvel %1$s  ·  Óculos %2$s</string>
+    <string name="hud_scanning_title">A PROCURAR</string>
+    <string name="hud_scanning_subtitle">A procurar o veículo…</string>
+    <string name="hud_connecting_title">A LIGAR</string>
+    <string name="hud_offline">OFFLINE</string>
+    <string name="hud_offline_reason">OFFLINE · %1$s</string>
+    <string name="hud_action_retry">TENTAR DE NOVO</string>
+    <string name="hud_action_scan">PROCURAR</string>
+    <string name="hud_action_pair_phone">EMPARELHAR</string>
+    <string name="hud_stale">DESATUALIZADO</string>
+    <string name="hud_signal_good">BOM</string>
+    <string name="hud_signal_weak">FRACO</string>
+    <string name="hud_signal_none">SEM SINAL</string>
+    <string name="hud_settings_title">DEFINIÇÕES HUD</string>
+    <string name="hud_settings_close">FECHAR</string>
+    <string name="hud_settings_exit">SAIR</string>
+    <string name="hud_settings_pair_with_phone">EMPARELHAR COM O TELEMÓVEL</string>
+    <string name="hud_limit_speed">Velocidade</string>
+    <string name="hud_limit_mos_temp">Temp. MOS</string>
+    <string name="hud_limit_low_battery">Bateria fraca</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">É necessária permissão de Bluetooth</string>
+    <string name="permission_bluetooth_body">O RideFlux HUD precisa de permissões de procura e ligação Bluetooth para chegar ao seu monociclo.</string>
+    <string name="permission_location_body">O RideFlux HUD precisa de acesso à localização para detetar o seu monociclo e ligar-se a ele por Bluetooth.</string>
+    <string name="action_open_settings">Abrir definições</string>
+</resources>

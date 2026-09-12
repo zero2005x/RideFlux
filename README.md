@@ -13,6 +13,7 @@
 | Language | Kotlin 2.0.21 · Jetpack Compose |
 | Min / Target / Compile SDK | 28 / 36 / 36 |
 | Modules | 9 Gradle modules (2 apps, 1 domain, 5 data, 1 core) |
+| Languages | 17 (English + 16 translations) |
 
 ---
 
@@ -70,6 +71,14 @@ The project ships **two installable apps** that coexist on separate devices:
 - The glasses stay fully passive: the frame carries phone battery, a coarse signal bucket
   and a staleness flag so the HUD never has to talk to the wheel itself.
 - Optional autostart on boot via `BridgeBootReceiver`.
+
+**Localization**
+
+- Both apps ship in **17 languages** and follow the device language automatically; there is
+  no in-app language picker.
+- Arabic and Urdu render right-to-left — both manifests set `android:supportsRtl="true"`.
+- Numeric readouts stay on `Locale.US` / `Locale.ROOT` on purpose, so the decimal separator
+  always matches the ASCII unit beside it and the dashboard columns keep a stable width.
 
 ### Supported wheel families
 
@@ -222,6 +231,47 @@ is retained decode-only so a glasses APK updated ahead of the phone still reads
 frames during a mixed-install window. Any breaking change must bump
 `PROTOCOL_VERSION`.
 
+### Localization
+
+Both apps carry a full translation set. `values/strings.xml` is the source of truth; every
+`values-<qualifier>/strings.xml` mirrors its translatable key set exactly.
+
+| Language | Qualifier | Language | Qualifier |
+|---|---|---|---|
+| English (default) | `values` | Urdu | `values-ur` |
+| Mandarin, Simplified | `values-zh-rCN` | German | `values-de` |
+| Mandarin, Traditional | `values-zh-rTW` | Japanese | `values-ja` |
+| Hindi | `values-hi` | Vietnamese | `values-vi` |
+| Spanish | `values-es` | Korean | `values-ko` |
+| Modern Standard Arabic | `values-ar` | Italian | `values-it` |
+| French | `values-fr` | Ukrainian | `values-uk` |
+| Portuguese | `values-pt` | Dutch | `values-nl` |
+| Russian | `values-ru` | Indonesian | `values-in` |
+
+Two qualifier traps worth knowing before you add a locale:
+
+- **Indonesian is `in`**, the legacy ISO 639-1 code. Android does not resolve `values-id`.
+- **Mandarin needs both `zh-rCN` and `zh-rTW`.** Neither is a fallback for the other.
+
+`LocalizationCoverageTest` (one per app) runs as part of `./gradlew test` and fails the
+build when a locale is missing, has an unknown or absent key, carries a blank value, or
+whose format specifiers (`%1$s`, `%2$d`, …) do not match the default — a mismatch there is
+an `IllegalFormatException` waiting to happen at runtime. The `:hud-app` copy additionally
+bounds placard line length, because the glasses viewport is 320 dp wide and the placards
+render at 40 sp.
+
+**Adding a string**
+
+1. Add it to `app/src/main/res/values/strings.xml` (or the `hud-app` equivalent).
+2. Add the same key to all 17 `values-*/strings.xml` siblings.
+3. Mark it `translatable="false"` instead if it is a brand name, an SI unit or pure
+   punctuation — those are deliberately not duplicated per locale, and the test skips them.
+4. Run `./gradlew test`.
+
+**Adding a language** additionally means appending the qualifier to
+`SUPPORTED_LOCALE_QUALIFIERS` in both apps' `i18n/StringResources.kt`, which is what the
+coverage test iterates.
+
 ### Getting started
 
 **Requirements**
@@ -280,7 +330,7 @@ sensitive.
 ### Testing & code quality
 
 ```bash
-./gradlew test                 # all JVM unit tests (24 test classes)
+./gradlew test                 # all JVM unit tests (34 test classes)
 ./gradlew :data:protocol:test  # codec round-trip tests only
 ./gradlew jacocoTestReport     # aggregate coverage XML + HTML across every module
 ./gradlew sonar                # SonarCloud analysis (project zero2005x_RideFlux)
@@ -338,17 +388,12 @@ RideFlux/
 ├── gradle/
 │   ├── libs.versions.toml   # single source of truth for all versions
 │   └── verification-metadata.xml
-├── tools/                   # verify-v5f.ps1 and captured scan artifacts
 ├── secrets/                 # gitignored — never committed
 └── build.gradle.kts         # root: JaCoCo aggregate, Sonar, BouncyCastle pin
 ```
 
-### Tooling
-
-`tools/verify-v5f.ps1` is an end-to-end Windows verification script: it runs the scan-path
-unit tests, builds and installs the debug APK, launches the app, drives the Scan button via
-`uiautomator`, records logcat, and dumps a screenshot plus the view hierarchy into `tools/`.
-Target the **phone** — the glasses run `:hud-app` and have no wheel to find.
+Each app module also carries `src/main/res/values/` plus 17 `values-<locale>/` siblings —
+see [Localization](#localization).
 
 ### Known build-level workarounds
 
@@ -422,6 +467,13 @@ RideFlux 透過藍牙低功耗（BLE）連線至電動獨輪車（EUC），解�
 - 眼鏡端完全被動：封包內已帶有手機電量、粗略訊號等級與資料過期旗標，HUD 完全不需要直接
   與車輛通訊。
 - 可透過 `BridgeBootReceiver` 選擇開機自動啟動。
+
+**多國語系**
+
+- 兩個應用程式皆提供 **17 種語言**，並自動跟隨裝置語言；App 內不另設語言選單。
+- 阿拉伯語與烏爾都語為由右至左排版——兩份 manifest 皆已設定 `android:supportsRtl="true"`。
+- 數值讀數刻意固定使用 `Locale.US`／`Locale.ROOT`，讓小數點符號與其旁的 ASCII 單位一致，
+  並使儀表板欄位寬度在各語系下保持穩定。
 
 ### 支援的車輛協定家族
 
@@ -552,6 +604,44 @@ PDU 合併成單一 `ScanRecord`，因此接收端透過 `ScanRecord.getServiceD
 32 位元組 v1 版面保留為「僅解碼」，讓比手機先更新的眼鏡 APK 在混合安裝期間仍讀得懂。任何
 破壞性變更都必須遞增 `PROTOCOL_VERSION`。
 
+### 多國語系
+
+兩個應用程式都備有完整翻譯。`values/strings.xml` 是唯一真實來源；每個
+`values-<語系>/strings.xml` 都與它的可翻譯鍵集合完全一致。
+
+| 語言 | 目錄限定符 | 語言 | 目錄限定符 |
+|---|---|---|---|
+| 英語（預設） | `values` | 烏爾都語 | `values-ur` |
+| 華語（簡體） | `values-zh-rCN` | 德語 | `values-de` |
+| 華語（繁體） | `values-zh-rTW` | 日語 | `values-ja` |
+| 印地語 | `values-hi` | 越南語 | `values-vi` |
+| 西班牙語 | `values-es` | 韓語 | `values-ko` |
+| 現代標準阿拉伯語 | `values-ar` | 義大利語 | `values-it` |
+| 法語 | `values-fr` | 烏克蘭語 | `values-uk` |
+| 葡萄牙語 | `values-pt` | 荷蘭語 | `values-nl` |
+| 俄語 | `values-ru` | 印尼語 | `values-in` |
+
+新增語系前，有兩個容易踩到的限定符陷阱：
+
+- **印尼語是 `in`**，即舊版 ISO 639-1 代碼。Android 不會解析 `values-id`。
+- **華語需要 `zh-rCN` 與 `zh-rTW` 兩者。** 兩者互不作為對方的後備。
+
+`LocalizationCoverageTest`（每個 app 各一份）會隨 `./gradlew test` 執行；當某個語系檔缺漏、
+出現未知或缺少的鍵、含有空白值，或格式化參數（`%1$s`、`%2$d` …）與預設值不一致時即讓建置
+失敗——最後這一項若放過，執行期就會拋出 `IllegalFormatException`。`:hud-app` 的版本另外
+限制字卡的行長，因為眼鏡可視區僅 320 dp 寬，而字卡以 40 sp 繪製。
+
+**新增字串**
+
+1. 加入 `app/src/main/res/values/strings.xml`（或 `hud-app` 的對應檔案）。
+2. 在全部 17 個 `values-*/strings.xml` 中加入相同的鍵。
+3. 若屬品牌名稱、SI 單位或純標點，請改標記 `translatable="false"`——這類字串刻意不逐語系
+   複製，測試也會略過它們。
+4. 執行 `./gradlew test`。
+
+**新增語言**還需要把該限定符加進兩個 app 的 `i18n/StringResources.kt` 中的
+`SUPPORTED_LOCALE_QUALIFIERS`，覆蓋率測試正是依此列表逐一檢查。
+
 ### 開始使用
 
 **環境需求**
@@ -606,7 +696,7 @@ keystore 副檔名——因為 `.lc` 的檔名本身就是 Client ID，連檔名
 ### 測試與程式碼品質
 
 ```bash
-./gradlew test                 # 所有 JVM 單元測試（24 個測試類別）
+./gradlew test                 # 所有 JVM 單元測試（34 個測試類別）
 ./gradlew :data:protocol:test  # 僅執行 codec 來回編解碼測試
 ./gradlew jacocoTestReport     # 跨所有模組的彙整覆蓋率 XML + HTML
 ./gradlew sonar                # SonarCloud 分析（專案 zero2005x_RideFlux）
@@ -662,17 +752,12 @@ RideFlux/
 ├── gradle/
 │   ├── libs.versions.toml   # 所有版本號的唯一真實來源
 │   └── verification-metadata.xml
-├── tools/                   # verify-v5f.ps1 與擷取到的掃描產物
 ├── secrets/                 # 已 gitignore——絕不提交
 └── build.gradle.kts         # 根建置檔：JaCoCo 彙整、Sonar、BouncyCastle 版本鎖定
 ```
 
-### 開發工具
-
-`tools/verify-v5f.ps1` 是端對端的 Windows 驗證腳本：它會執行掃描路徑相關的單元測試、
-建置並安裝 debug APK、啟動應用程式、透過 `uiautomator` 找到並點擊「掃描」按鈕、錄製
-logcat，最後把螢幕截圖與畫面階層匯出到 `tools/`。請以**手機**為目標——眼鏡執行的是
-`:hud-app`，上面沒有車可以掃。
+兩個 app 模組另外各自帶有 `src/main/res/values/` 以及 17 個 `values-<語系>/` 目錄——
+詳見[多國語系](#多國語系)。
 
 ### 已知的建置層變通做法
 

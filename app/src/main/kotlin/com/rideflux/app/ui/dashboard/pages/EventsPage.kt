@@ -28,11 +28,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.rideflux.app.R
 import com.rideflux.app.ui.dashboard.TimedAlert
 import com.rideflux.app.ui.dashboard.DashboardAlert
+import com.rideflux.app.ui.dashboard.faultSetSummary
 import com.rideflux.app.ui.dashboard.components.RideFluxColors
 import com.rideflux.app.ui.dashboard.components.SectionHeader
 import com.rideflux.domain.telemetry.WheelAlert
@@ -57,7 +60,7 @@ fun EventsPage(events: List<TimedAlert>, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        SectionHeader("Events", accent = RideFluxColors.Warning)
+        SectionHeader(stringResource(R.string.events_header), accent = RideFluxColors.Warning)
         if (events.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -66,7 +69,7 @@ fun EventsPage(events: List<TimedAlert>, modifier: Modifier = Modifier) {
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "No events yet",
+                    text = stringResource(R.string.events_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -149,69 +152,96 @@ private enum class Severity { Severe, Warn, Info }
 
 private data class EventDescription(val title: String, val body: String, val severity: Severity)
 
+/**
+ * Numbers stay on [Locale.US] so the decimal separator matches the ASCII
+ * units they sit beside; the sentence around them is translated.
+ */
+private fun Float.fmt1(): String = "%.1f".format(Locale.US, this)
+private fun Float.fmt0(): String = "%.0f".format(Locale.US, this)
+
+@Composable
 private fun describe(alert: DashboardAlert): EventDescription = when (alert) {
     is DashboardAlert.Wheel -> describeWheel(alert.value)
     is DashboardAlert.Threshold -> when (val threshold = alert.value) {
         is ThresholdAlert.Overspeed -> EventDescription(
-            "Speed limit",
-            "${threshold.speedKmh} km/h exceeds ${threshold.limitKmh} km/h",
+            stringResource(R.string.event_speed_limit),
+            stringResource(
+                R.string.alert_speed_limit_body,
+                threshold.speedKmh.fmt1(),
+                threshold.limitKmh.fmt1(),
+            ),
             Severity.Severe,
         )
         is ThresholdAlert.OverTemperature -> EventDescription(
-            "MOS temperature",
-            "${threshold.temperatureC}°C exceeds ${threshold.limitC}°C",
+            stringResource(R.string.event_mos_temperature),
+            stringResource(
+                R.string.alert_mos_temperature_body,
+                threshold.temperatureC.fmt1(),
+                threshold.limitC.fmt1(),
+            ),
             Severity.Severe,
         )
         is ThresholdAlert.LowBattery -> EventDescription(
-            "Low battery threshold",
-            "${threshold.percent}% is below ${threshold.limitPercent}%",
+            stringResource(R.string.event_low_battery_threshold),
+            stringResource(
+                R.string.alert_low_battery_body,
+                threshold.percent.fmt0(),
+                threshold.limitPercent.fmt0(),
+            ),
             Severity.Warn,
         )
         is ThresholdAlert.PwmLoad -> EventDescription(
-            "PWM load",
-            "${threshold.pwmPercent}% exceeds ${threshold.limitPercent}%",
+            stringResource(R.string.event_pwm_load),
+            stringResource(
+                R.string.alert_pwm_load_body,
+                threshold.pwmPercent.fmt0(),
+                threshold.limitPercent.fmt0(),
+            ),
             Severity.Severe,
         )
     }
 }
 
+@Composable
 private fun describeWheel(alert: WheelAlert): EventDescription = when (alert) {
     is WheelAlert.TiltBack -> EventDescription(
-        "Tilt-back",
-        "Speed ${"%.0f".format(Locale.US, alert.speedKmh)} km/h · limit ${"%.0f".format(Locale.US, alert.limit)} km/h",
+        stringResource(R.string.event_tilt_back),
+        stringResource(R.string.alert_tilt_back_body, alert.speedKmh.fmt0(), alert.limit.fmt0()),
         Severity.Severe,
     )
     is WheelAlert.SpeedCutoff -> EventDescription(
-        "Speed cutoff",
-        "Motor cut at ${"%.0f".format(Locale.US, alert.speedKmh)} km/h",
+        stringResource(R.string.event_speed_cutoff),
+        stringResource(R.string.alert_speed_cutoff_body, alert.speedKmh.fmt0()),
         Severity.Severe,
     )
     is WheelAlert.LowBattery -> EventDescription(
-        "Low battery",
-        "Voltage ${"%.1f".format(Locale.US, alert.voltageV)} V",
+        stringResource(R.string.event_low_battery),
+        stringResource(R.string.event_low_battery_body, alert.voltageV.fmt1()),
         Severity.Warn,
     )
     is WheelAlert.OverTemperature -> EventDescription(
-        "Over temperature",
-        "${alert.source.name}" + (alert.temperatureC?.let { " · ${"%.0f".format(Locale.US, it)}°C" } ?: ""),
+        stringResource(R.string.event_over_temperature),
+        // The source is a protocol enum name — deliberately untranslated.
+        alert.source.name + (alert.temperatureC?.let { " · ${it.fmt0()}°C" } ?: ""),
         Severity.Severe,
     )
     is WheelAlert.FallDown -> EventDescription(
-        "Fall detected",
-        "Wheel reports a fall event",
+        stringResource(R.string.event_fall_detected),
+        stringResource(R.string.alert_fall_body),
         Severity.Severe,
     )
     is WheelAlert.FaultSetChanged -> EventDescription(
-        "Fault set changed",
-        buildString {
-            if (alert.added.isNotEmpty()) append("+${alert.added.size} faults ")
-            if (alert.removed.isNotEmpty()) append("-${alert.removed.size} cleared")
-        }.trim(),
+        stringResource(R.string.event_fault_set_changed),
+        faultSetSummary(alert),
         if (alert.added.isNotEmpty()) Severity.Warn else Severity.Info,
     )
     is WheelAlert.Raw -> EventDescription(
-        "${alert.domain} raw 0x${alert.code.toString(16).uppercase()}",
-        "${alert.payload.size} bytes",
+        stringResource(
+            R.string.event_raw_title,
+            alert.domain,
+            alert.code.toString(16).uppercase(Locale.ROOT),
+        ),
+        stringResource(R.string.alert_raw_body, alert.payload.size),
         Severity.Info,
     )
 }

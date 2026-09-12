@@ -29,6 +29,85 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class BridgeTelemetrySourceTest {
     @Test
+    fun freshNativeFrameRestartsDisplayedTelemetryExpiry() = runTest {
+        val frames = MutableSharedFlow<BridgeFrame>()
+        val source = BridgeTelemetrySource(clientFrames = { frames }, testOnly = Unit)
+        val states = mutableListOf<HudTelemetryFrame>()
+        backgroundScope.launch { source.frames().collect { states += it } }
+        runCurrent()
+
+        frames.emit(bridgeFrame(true, false, SignalLevel.GOOD))
+        advanceTimeBy(3_000)
+        frames.emit(bridgeFrame(true, false, SignalLevel.GOOD))
+        advanceTimeBy(501)
+        runCurrent()
+        assertEquals(BridgeLinkState.WHEEL_LIVE, states.last().bridgeLinkState)
+
+        advanceTimeBy(3_000)
+        runCurrent()
+        assertEquals(BridgeLinkState.NO_PHONE, states.last().bridgeLinkState)
+    }
+
+    @Test
+    fun nativeFallbackFrameReplacesCxrExpiry() = runTest {
+        val native = MutableSharedFlow<BridgeFrame>()
+        val cxr = MutableSharedFlow<BridgeFrame>()
+        val source = BridgeTelemetrySource(
+            clientFrames = { native }, rokidFrames = { cxr }, testOnly = Unit,
+        )
+        val states = mutableListOf<HudTelemetryFrame>()
+        backgroundScope.launch { source.frames().collect { states += it } }
+        runCurrent()
+
+        cxr.emit(bridgeFrame(true, false, SignalLevel.GOOD))
+        advanceTimeBy(2_501)
+        runCurrent()
+        native.emit(bridgeFrame(true, false, SignalLevel.WEAK))
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertEquals(BridgeLinkState.WHEEL_LIVE, states.last().bridgeLinkState)
+
+        advanceTimeBy(2_501)
+        runCurrent()
+        assertEquals(BridgeLinkState.NO_PHONE, states.last().bridgeLinkState)
+    }
+
+    @Test
+    fun silentNativeConnectionExpiresDisplayedTelemetryAndCanRecover() = runTest {
+        val frames = MutableSharedFlow<BridgeFrame>()
+        val source = BridgeTelemetrySource(clientFrames = { frames }, testOnly = Unit)
+        val states = mutableListOf<HudTelemetryFrame>()
+        backgroundScope.launch { source.frames().collect { states += it } }
+        runCurrent()
+        frames.emit(bridgeFrame(true, false, SignalLevel.GOOD))
+        runCurrent()
+        assertEquals(BridgeLinkState.WHEEL_LIVE, states.last().bridgeLinkState)
+        advanceTimeBy(3_501)
+        runCurrent()
+        assertEquals(BridgeLinkState.NO_PHONE, states.last().bridgeLinkState)
+        assertEquals(null, states.last().telemetry.speedKmh)
+        frames.emit(bridgeFrame(false, true, SignalLevel.NONE))
+        runCurrent()
+        assertEquals(BridgeLinkState.PHONE_STANDBY, states.last().bridgeLinkState)
+    }
+
+    @Test
+    fun cxrSilenceDoesNotLeaveLiveWheelOnScreenWhileBleIsScanning() = runTest {
+        val cxr = MutableSharedFlow<BridgeFrame>()
+        val source = BridgeTelemetrySource(
+            clientFrames = { flow { awaitCancellation() } },
+            rokidFrames = { cxr }, testOnly = Unit,
+        )
+        val states = mutableListOf<HudTelemetryFrame>()
+        backgroundScope.launch { source.frames().collect { states += it } }
+        runCurrent()
+        cxr.emit(bridgeFrame(true, false, SignalLevel.GOOD))
+        runCurrent()
+        advanceTimeBy(3_501)
+        runCurrent()
+        assertEquals(BridgeLinkState.NO_PHONE, states.last().bridgeLinkState)
+    }
+    @Test
     fun launcherDefaultsToBridge_unlessDirectIsExplicit() {
         assertEquals(HudViewModel.SOURCE_BRIDGE, resolveHudSourceKind(null))
         assertEquals(HudViewModel.SOURCE_BRIDGE, resolveHudSourceKind("unknown"))

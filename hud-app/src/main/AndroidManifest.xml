@@ -4,8 +4,7 @@
 
     <!-- BLE permissions. Same surface as :app so the HUD can own its
          own GATT session when run standalone on the glasses.
-         NOTE: BLUETOOTH_ADMIN is intentionally absent — the HUD is a
-         BLE central only and never manages Bluetooth settings. -->
+         Legacy BLUETOOTH_ADMIN is supplied by :data:ble for scanning. -->
     <uses-permission android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
@@ -28,7 +27,7 @@
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="RideFlux HUD"
+        android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
 

@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 
 /** Output side of the phone bridge; wheel acquisition stays transport-agnostic. */
 internal interface BridgePublisher {
-    fun open(): Boolean
+    suspend fun open(): Boolean
     fun attachSource(scope: CoroutineScope, source: Flow<BridgeFrame>)
     fun stop()
     fun setLowLatency(enabled: Boolean) = Unit
@@ -32,7 +32,7 @@ internal class NativeBleBridgePublisher(
         onState(if (connected) GlassesLinkState.CONNECTED else GlassesLinkState.READY)
     }
 
-    override fun open(): Boolean {
+    override suspend fun open(): Boolean {
         onState(GlassesLinkState.STARTING)
         val opened = server.open()
         onState(if (opened) GlassesLinkState.READY else GlassesLinkState.ERROR)

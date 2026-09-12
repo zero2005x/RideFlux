@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Vietnamese (Tiếng Việt) translations for :app.
+-->
+<resources>
+
+    <string name="action_back">Quay lại</string>
+    <string name="action_open">Mở</string>
+    <string name="action_scan">Quét</string>
+    <string name="action_stop">Dừng</string>
+    <string name="action_clear_all">Xoá tất cả</string>
+    <string name="action_export_csv">Xuất CSV</string>
+    <string name="action_export_gpx">Xuất GPX</string>
+    <string name="action_delete_trip">Xoá chuyến đi</string>
+    <string name="action_beep">Còi</string>
+    <string name="action_grant_permissions">Cấp quyền</string>
+    <string name="action_open_settings">Mở cài đặt</string>
+    <string name="filter_all">Tất cả</string>
+
+    <string name="scanner_title">Quét tìm xe</string>
+    <string name="scanner_searching">Đang tìm xe…</string>
+    <string name="scanner_no_devices">Chưa có thiết bị nào</string>
+    <string name="scanner_no_devices_hint">Chạm Quét để tìm xe ở gần.</string>
+    <string name="scanner_scan_failed">Quét thất bại</string>
+    <string name="scanner_scan_failed_reason">Quét thất bại: %1$s</string>
+    <string name="scanner_unknown_device">Thiết bị không xác định</string>
+    <string name="scanner_device_family">Dòng giao thức: %1$s</string>
+
+    <string name="bridge_card_title">Cầu nối HUD</string>
+    <string name="bridge_state_off">Tắt</string>
+    <string name="bridge_state_standby">Đang chờ xe</string>
+    <string name="bridge_state_attaching">Đang kết nối với xe</string>
+    <string name="bridge_state_relaying">Đang chuyển tiếp dữ liệu</string>
+    <string name="bridge_state_degraded">Không có xe · cầu nối vẫn hiển thị</string>
+    <string name="glasses_link_stopped">đã dừng truyền</string>
+    <string name="glasses_link_starting">đang khởi động liên kết kính</string>
+    <string name="glasses_link_ready">đang chờ kính</string>
+    <string name="glasses_link_connected">kính đã kết nối</string>
+    <string name="glasses_link_error">lỗi liên kết kính</string>
+    <string name="glasses_connection">Kết nối kính</string>
+
+    <string name="page_dashboard">Bảng điều khiển</string>
+    <string name="page_graph">Biểu đồ</string>
+    <string name="page_parameters">Thông số</string>
+    <string name="page_battery">Pin</string>
+    <string name="page_trips">Chuyến đi</string>
+    <string name="page_events">Sự kiện</string>
+    <string name="page_map">Bản đồ</string>
+    <string name="dashboard_bridge_remove">Gỡ xe khỏi cầu nối HUD</string>
+    <string name="dashboard_bridge_send">Gửi xe tới cầu nối HUD</string>
+    <string name="dashboard_open_ar_hud">Mở HUD AR</string>
+    <string name="controls_headlight">Đèn pha</string>
+    <string name="pedals_soft">Mềm</string>
+    <string name="pedals_medium">Trung bình</string>
+    <string name="pedals_hard">Cứng</string>
+
+    <string name="alert_speed_limit_title">VƯỢT TỐC ĐỘ</string>
+    <string name="alert_speed_limit_body">%1$s km/h vượt %2$s km/h</string>
+    <string name="alert_mos_temperature_title">NHIỆT ĐỘ MOS</string>
+    <string name="alert_mos_temperature_body">%1$s°C vượt %2$s°C</string>
+    <string name="alert_low_battery_title">PIN YẾU</string>
+    <string name="alert_low_battery_body">%1$s%% thấp hơn %2$s%%</string>
+    <string name="alert_pwm_load_title">TẢI PWM</string>
+    <string name="alert_pwm_load_body">%1$s%% vượt %2$s%%</string>
+    <string name="alert_tilt_back_title">TILT-BACK</string>
+    <string name="alert_tilt_back_body">Tốc độ %1$s km/h · giới hạn %2$s km/h</string>
+    <string name="alert_speed_cutoff_title">NGẮT ĐỘNG CƠ</string>
+    <string name="alert_speed_cutoff_body">Động cơ ngắt ở %1$s km/h</string>
+    <string name="alert_wheel_low_battery_title">Pin yếu</string>
+    <string name="alert_wheel_low_battery_body">Điện áp pack %1$s V</string>
+    <string name="alert_over_temperature_title">Quá nhiệt</string>
+    <string name="alert_fall_title">PHÁT HIỆN NGÃ</string>
+    <string name="alert_fall_body">Xe báo có sự cố ngã</string>
+    <string name="alert_fault_set_title">Danh sách lỗi thay đổi</string>
+    <string name="alert_faults_added">+%1$d lỗi</string>
+    <string name="alert_faults_cleared">-%1$d đã hết</string>
+    <string name="alert_updated">Đã cập nhật</string>
+    <string name="alert_raw_title">Cảnh báo %1$s 0x%2$s</string>
+    <string name="alert_raw_body">%1$d byte</string>
+
+    <string name="events_header">Sự kiện</string>
+    <string name="events_empty">Chưa có sự kiện nào</string>
+    <string name="event_speed_limit">Vượt tốc độ</string>
+    <string name="event_mos_temperature">Nhiệt độ MOS</string>
+    <string name="event_low_battery_threshold">Ngưỡng pin yếu</string>
+    <string name="event_pwm_load">Tải PWM</string>
+    <string name="event_tilt_back">Tilt-back</string>
+    <string name="event_speed_cutoff">Ngắt động cơ</string>
+    <string name="event_low_battery">Pin yếu</string>
+    <string name="event_low_battery_body">Điện áp %1$s V</string>
+    <string name="event_over_temperature">Quá nhiệt</string>
+    <string name="event_fall_detected">Phát hiện ngã</string>
+    <string name="event_fault_set_changed">Danh sách lỗi thay đổi</string>
+    <string name="event_raw_title">%1$s thô 0x%2$s</string>
+
+    <string name="section_speed">Tốc độ</string>
+    <string name="section_power">Công suất</string>
+    <string name="section_thermals">Nhiệt độ</string>
+    <string name="section_distance">Quãng đường</string>
+    <string name="section_device">Thiết bị</string>
+    <string name="section_pack">Bộ pin</string>
+    <string name="section_cells">Cell</string>
+    <string name="section_current_ride">Chuyến hiện tại</string>
+    <string name="section_lifetime">Tích luỹ</string>
+    <string name="section_saved_rides">Chuyến đã lưu</string>
+    <string name="section_route">Lộ trình</string>
+
+    <string name="metric_speed">Tốc độ</string>
+    <string name="metric_max">Tối đa</string>
+    <string name="metric_average">Trung bình</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">Điện áp</string>
+    <string name="metric_current">Dòng điện</string>
+    <string name="metric_phase_current">Dòng pha</string>
+    <string name="metric_power">Công suất</string>
+    <string name="metric_battery">Pin</string>
+    <string name="metric_battery_voltage">Điện áp pin</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">Nhiệt độ MOS</string>
+    <string name="metric_motor">Động cơ</string>
+    <string name="metric_battery_temp">Nhiệt độ pin</string>
+    <string name="metric_board">Bo mạch</string>
+    <string name="metric_trip">Chuyến</string>
+    <string name="metric_total">Tổng</string>
+    <string name="metric_ride_time">Thời gian chạy</string>
+    <string name="metric_mode">Chế độ</string>
+    <string name="metric_model">Kiểu máy</string>
+    <string name="metric_family">Dòng giao thức</string>
+    <string name="metric_firmware">Firmware</string>
+    <string name="metric_address">Địa chỉ</string>
+    <string name="metric_state_of_charge">Mức pin</string>
+    <string name="metric_trip_distance">Quãng đường chuyến</string>
+    <string name="metric_max_speed">Tốc độ tối đa</string>
+    <string name="metric_avg_speed">Tốc độ trung bình</string>
+    <string name="metric_total_distance">Tổng quãng đường</string>
+    <string name="metric_vehicle">Xe</string>
+    <string name="unit_hms">g:p:g</string>
+
+    <string name="bms_per_cell_title">Dữ liệu từng cell</string>
+    <string name="bms_per_cell_body">Xe này không cung cấp điện áp từng cell qua liên kết dữ liệu BLE. Dữ liệu BMS thông minh chỉ có ở các bản đấu UART của BMS qua bộ điều khiển — không dòng nào được hỗ trợ làm như vậy.</string>
+
+    <string name="graph_header">DỮ LIỆU</string>
+    <string name="graph_waiting">Đang chờ mẫu dữ liệu…</string>
+    <string name="series_speed_kmh">Tốc độ (km/h)</string>
+    <string name="series_speed_mph">Tốc độ (mph)</string>
+    <string name="series_battery">Pin (%%)</string>
+    <string name="series_current">Dòng điện (A)</string>
+    <string name="series_mos">MOS (°C)</string>
+    <string name="series_voltage">Điện áp (V)</string>
+
+    <string name="map_no_location_permission">Chưa cấp quyền vị trí</string>
+    <string name="map_waiting_fix">Đang chờ định vị GPS…</string>
+    <string name="map_track_preview">Xem trước lộ trình ngoại tuyến • %1$d điểm GPS</string>
+
+    <string name="trips_stop_recording">Dừng ghi</string>
+    <string name="trips_saved_empty">Các chuyến đã hoàn tất sẽ hiện ở đây và vẫn còn sau khi khởi động lại.</string>
+    <string name="trip_history_title">Lịch sử chuyến đi</string>
+    <string name="trip_history_subtitle">Xem và xuất các chuyến đã lưu trên máy</string>
+    <string name="trip_none_saved">Chưa có chuyến nào được lưu</string>
+    <string name="trip_details_title">Chi tiết chuyến đi</string>
+    <string name="trip_not_found">Không tìm thấy chuyến đi</string>
+    <string name="trip_summary_card">%1$s km  •  %2$s  •  tối đa %3$s km/h</string>
+    <string name="trip_summary_detail">%1$s km  •  %2$s  •  TB %3$s km/h  •  tối đa %4$s km/h</string>
+
+    <string name="settings_title">Cài đặt</string>
+    <string name="settings_section_alerts">Cảnh báo</string>
+    <string name="settings_enable_alerts_title">Bật cảnh báo theo ngưỡng</string>
+    <string name="settings_enable_alerts_subtitle">Đánh giá giới hạn an toàn phía điện thoại</string>
+    <string name="settings_speed_limit">Giới hạn tốc độ</string>
+    <string name="settings_mos_temperature">Nhiệt độ MOS</string>
+    <string name="settings_low_battery">Pin yếu</string>
+    <string name="settings_pwm_load">Tải PWM</string>
+    <string name="settings_section_display">Hiển thị</string>
+    <string name="settings_metric_units_title">Đơn vị hệ mét</string>
+    <string name="settings_metric_units_subtitle">Tắt để dùng mph và dặm</string>
+    <string name="settings_keep_awake_title">Giữ bảng điều khiển sáng</string>
+    <string name="settings_keep_awake_subtitle">Không để màn hình tắt khi đang chạy</string>
+    <string name="settings_section_hud_bridge">Cầu nối HUD</string>
+    <string name="settings_bridge_autostart_title">Tự động khởi động cầu nối</string>
+    <string name="settings_bridge_autostart_subtitle">Vào chế độ chờ khi mở RideFlux hoặc khi điện thoại khởi động</string>
+    <string name="settings_low_latency_title">Chờ độ trễ thấp</string>
+    <string name="settings_low_latency_subtitle">Tốn pin hơn trong lúc chờ xe</string>
+    <string name="settings_paired_mac">MAC của điện thoại đã ghép</string>
+    <string name="settings_paired_mac_unset">Được đặt trên HUD khi ghép nối</string>
+    <string name="settings_section_about">Giới thiệu</string>
+    <string name="settings_about_subtitle">Dữ liệu xe và cầu nối HUD ưu tiên ngoại tuyến</string>
+
+    <string name="permission_bluetooth_title">Cần quyền Bluetooth</string>
+    <string name="permission_bluetooth_body">RideFlux cần quyền quét và kết nối Bluetooth để tìm và giao tiếp với xe của bạn.</string>
+
+    <string name="hud_headlight_on">Đèn pha bật</string>
+    <string name="hud_headlight_off">Đèn pha tắt</string>
+    <string name="hud_pedals_mode">Chế độ bàn đạp</string>
+    <string name="hud_label_on">BẬT</string>
+    <string name="hud_label_off">TẮT</string>
+
+    <string name="notification_channel_bridge">Cầu nối RideFlux</string>
+    <string name="notification_bridge_title">RideFlux → cầu nối HUD</string>
+    <string name="notification_bridge_standby">Đang chờ xe; kính có thể kết nối</string>
+    <string name="notification_bridge_attaching">Đang kết nối với xe đã chọn</string>
+    <string name="notification_bridge_relaying">Đang chuyển tiếp dữ liệu xe tới kính</string>
+    <string name="notification_bridge_degraded">Không có xe; cầu nối vẫn hiển thị</string>
+    <string name="notification_channel_recording">Ghi chuyến đi</string>
+    <string name="notification_recording_title">RideFlux đang ghi</string>
+    <string name="notification_recording_text">Dữ liệu xe đang được lưu trên máy</string>
+
+</resources>

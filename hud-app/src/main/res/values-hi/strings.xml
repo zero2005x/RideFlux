@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Hindi (हिन्दी) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">फ़ोन की\nप्रतीक्षा</string>
+    <string name="hud_waiting_phone_subtitle">RideFlux खोजा जा रहा है…</string>
+    <string name="hud_phone_connected_title">फ़ोन\nजुड़ा</string>
+    <string name="hud_phone_standby_subtitle">फ़ोन %1$s  ·  ग्लासेज़ %2$s</string>
+    <string name="hud_scanning_title">खोज जारी</string>
+    <string name="hud_scanning_subtitle">वाहन खोजा जा रहा है…</string>
+    <string name="hud_connecting_title">जुड़ रहा है</string>
+    <string name="hud_offline">ऑफ़लाइन</string>
+    <string name="hud_offline_reason">ऑफ़लाइन · %1$s</string>
+    <string name="hud_action_retry">पुनः प्रयास</string>
+    <string name="hud_action_scan">स्कैन</string>
+    <string name="hud_action_pair_phone">फ़ोन पेयर करें</string>
+    <string name="hud_stale">पुराना डेटा</string>
+    <string name="hud_signal_good">अच्छा</string>
+    <string name="hud_signal_weak">कमज़ोर</string>
+    <string name="hud_signal_none">ऑफ़लाइन</string>
+    <string name="hud_settings_title">HUD सेटिंग्स</string>
+    <string name="hud_settings_close">बंद करें</string>
+    <string name="hud_settings_exit">बाहर</string>
+    <string name="hud_settings_pair_with_phone">फ़ोन से पेयर करें</string>
+    <string name="hud_limit_speed">गति</string>
+    <string name="hud_limit_mos_temp">MOS तापमान</string>
+    <string name="hud_limit_low_battery">कम बैटरी</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">ब्लूटूथ अनुमति आवश्यक</string>
+    <string name="permission_bluetooth_body">आपके व्हील तक पहुँचने के लिए RideFlux HUD को ब्लूटूथ स्कैन और कनेक्ट अनुमति चाहिए।</string>
+    <string name="permission_location_body">ब्लूटूथ पर आपके व्हील को खोजने और जुड़ने के लिए RideFlux HUD को स्थान की अनुमति चाहिए।</string>
+    <string name="action_open_settings">सेटिंग्स खोलें</string>
+</resources>

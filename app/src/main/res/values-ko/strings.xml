@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Korean (한국어) translations for :app.
+-->
+<resources>
+
+    <string name="action_back">뒤로</string>
+    <string name="action_open">열기</string>
+    <string name="action_scan">검색</string>
+    <string name="action_stop">중지</string>
+    <string name="action_clear_all">모두 지우기</string>
+    <string name="action_export_csv">CSV 내보내기</string>
+    <string name="action_export_gpx">GPX 내보내기</string>
+    <string name="action_delete_trip">주행 삭제</string>
+    <string name="action_beep">경적</string>
+    <string name="action_grant_permissions">권한 허용</string>
+    <string name="action_open_settings">설정 열기</string>
+    <string name="filter_all">전체</string>
+
+    <string name="scanner_title">휠 검색</string>
+    <string name="scanner_searching">휠을 검색하는 중…</string>
+    <string name="scanner_no_devices">아직 기기가 없습니다</string>
+    <string name="scanner_no_devices_hint">주변 휠을 찾으려면 검색을 누르세요.</string>
+    <string name="scanner_scan_failed">검색 실패</string>
+    <string name="scanner_scan_failed_reason">검색 실패: %1$s</string>
+    <string name="scanner_unknown_device">알 수 없는 기기</string>
+    <string name="scanner_device_family">패밀리: %1$s</string>
+
+    <string name="bridge_card_title">HUD 브리지</string>
+    <string name="bridge_state_off">꺼짐</string>
+    <string name="bridge_state_standby">휠 대기 중</string>
+    <string name="bridge_state_attaching">휠에 연결하는 중</string>
+    <string name="bridge_state_relaying">텔레메트리 중계 중</string>
+    <string name="bridge_state_degraded">휠 사용 불가 · 브리지는 계속 검색 가능</string>
+    <string name="glasses_link_stopped">전송 중지됨</string>
+    <string name="glasses_link_starting">글래스 연결 시작 중</string>
+    <string name="glasses_link_ready">글래스 대기 중</string>
+    <string name="glasses_link_connected">글래스 연결됨</string>
+    <string name="glasses_link_error">글래스 연결 오류</string>
+    <string name="glasses_connection">글래스 연결 방식</string>
+
+    <string name="page_dashboard">대시보드</string>
+    <string name="page_graph">그래프</string>
+    <string name="page_parameters">파라미터</string>
+    <string name="page_battery">배터리</string>
+    <string name="page_trips">주행</string>
+    <string name="page_events">이벤트</string>
+    <string name="page_map">지도</string>
+    <string name="dashboard_bridge_remove">HUD 브리지에서 휠 제거</string>
+    <string name="dashboard_bridge_send">휠을 HUD 브리지로 전송</string>
+    <string name="dashboard_open_ar_hud">AR HUD 열기</string>
+    <string name="controls_headlight">전조등</string>
+    <string name="pedals_soft">소프트</string>
+    <string name="pedals_medium">미디엄</string>
+    <string name="pedals_hard">하드</string>
+
+    <string name="alert_speed_limit_title">속도 초과</string>
+    <string name="alert_speed_limit_body">%1$s km/h가 %2$s km/h를 초과했습니다</string>
+    <string name="alert_mos_temperature_title">MOS 온도</string>
+    <string name="alert_mos_temperature_body">%1$s°C가 %2$s°C를 초과했습니다</string>
+    <string name="alert_low_battery_title">배터리 부족</string>
+    <string name="alert_low_battery_body">%1$s%%가 %2$s%% 미만입니다</string>
+    <string name="alert_pwm_load_title">PWM 부하</string>
+    <string name="alert_pwm_load_body">%1$s%%가 %2$s%%를 초과했습니다</string>
+    <string name="alert_tilt_back_title">틸트백</string>
+    <string name="alert_tilt_back_body">속도 %1$s km/h · 한계 %2$s km/h</string>
+    <string name="alert_speed_cutoff_title">모터 차단</string>
+    <string name="alert_speed_cutoff_body">%1$s km/h에서 모터가 차단됨</string>
+    <string name="alert_wheel_low_battery_title">배터리 부족</string>
+    <string name="alert_wheel_low_battery_body">팩 전압 %1$s V</string>
+    <string name="alert_over_temperature_title">과열</string>
+    <string name="alert_fall_title">넘어짐 감지</string>
+    <string name="alert_fall_body">휠이 넘어짐 이벤트를 보고했습니다</string>
+    <string name="alert_fault_set_title">결함 목록 변경됨</string>
+    <string name="alert_faults_added">+%1$d개 결함</string>
+    <string name="alert_faults_cleared">-%1$d개 해소</string>
+    <string name="alert_updated">업데이트됨</string>
+    <string name="alert_raw_title">%1$s 알림 0x%2$s</string>
+    <string name="alert_raw_body">%1$d바이트</string>
+
+    <string name="events_header">이벤트</string>
+    <string name="events_empty">아직 이벤트가 없습니다</string>
+    <string name="event_speed_limit">속도 초과</string>
+    <string name="event_mos_temperature">MOS 온도</string>
+    <string name="event_low_battery_threshold">배터리 부족 임계값</string>
+    <string name="event_pwm_load">PWM 부하</string>
+    <string name="event_tilt_back">틸트백</string>
+    <string name="event_speed_cutoff">모터 차단</string>
+    <string name="event_low_battery">배터리 부족</string>
+    <string name="event_low_battery_body">전압 %1$s V</string>
+    <string name="event_over_temperature">과열</string>
+    <string name="event_fall_detected">넘어짐 감지</string>
+    <string name="event_fault_set_changed">결함 목록 변경됨</string>
+    <string name="event_raw_title">%1$s 원시 0x%2$s</string>
+
+    <string name="section_speed">속도</string>
+    <string name="section_power">전력</string>
+    <string name="section_thermals">온도</string>
+    <string name="section_distance">거리</string>
+    <string name="section_device">기기</string>
+    <string name="section_pack">배터리 팩</string>
+    <string name="section_cells">셀</string>
+    <string name="section_current_ride">현재 주행</string>
+    <string name="section_lifetime">누적</string>
+    <string name="section_saved_rides">저장된 주행</string>
+    <string name="section_route">경로</string>
+
+    <string name="metric_speed">속도</string>
+    <string name="metric_max">최고</string>
+    <string name="metric_average">평균</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">전압</string>
+    <string name="metric_current">전류</string>
+    <string name="metric_phase_current">상 전류</string>
+    <string name="metric_power">출력</string>
+    <string name="metric_battery">배터리</string>
+    <string name="metric_battery_voltage">배터리 전압</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">MOS 온도</string>
+    <string name="metric_motor">모터</string>
+    <string name="metric_battery_temp">배터리 온도</string>
+    <string name="metric_board">보드</string>
+    <string name="metric_trip">주행 거리</string>
+    <string name="metric_total">총 거리</string>
+    <string name="metric_ride_time">주행 시간</string>
+    <string name="metric_mode">모드</string>
+    <string name="metric_model">모델</string>
+    <string name="metric_family">패밀리</string>
+    <string name="metric_firmware">펌웨어</string>
+    <string name="metric_address">주소</string>
+    <string name="metric_state_of_charge">충전 상태</string>
+    <string name="metric_trip_distance">주행 거리</string>
+    <string name="metric_max_speed">최고 속도</string>
+    <string name="metric_avg_speed">평균 속도</string>
+    <string name="metric_total_distance">총 주행 거리</string>
+    <string name="metric_vehicle">차량</string>
+    <string name="unit_hms">시:분:초</string>
+
+    <string name="bms_per_cell_title">셀별 데이터</string>
+    <string name="bms_per_cell_body">이 휠은 BLE 텔레메트리 링크로 개별 셀 전압을 제공하지 않습니다. 스마트 BMS 데이터는 BMS UART를 컨트롤러에 연결한 구성에서만 제공되며, 지원하는 패밀리 중에는 해당 구성이 없습니다.</string>
+
+    <string name="graph_header">텔레메트리</string>
+    <string name="graph_waiting">텔레메트리 샘플을 기다리는 중…</string>
+    <string name="series_speed_kmh">속도 (km/h)</string>
+    <string name="series_speed_mph">속도 (mph)</string>
+    <string name="series_battery">배터리 (%%)</string>
+    <string name="series_current">전류 (A)</string>
+    <string name="series_mos">MOS (°C)</string>
+    <string name="series_voltage">전압 (V)</string>
+
+    <string name="map_no_location_permission">위치 권한이 허용되지 않았습니다</string>
+    <string name="map_waiting_fix">GPS 신호를 기다리는 중…</string>
+    <string name="map_track_preview">오프라인 경로 미리보기 • GPS %1$d개 지점</string>
+
+    <string name="trips_stop_recording">기록 중지</string>
+    <string name="trips_saved_empty">완료된 주행이 여기에 표시되며 재시작 후에도 유지됩니다.</string>
+    <string name="trip_history_title">주행 기록</string>
+    <string name="trip_history_subtitle">기기에 저장된 주행을 보고 내보냅니다</string>
+    <string name="trip_none_saved">저장된 주행이 아직 없습니다</string>
+    <string name="trip_details_title">주행 상세</string>
+    <string name="trip_not_found">주행을 찾을 수 없습니다</string>
+    <string name="trip_summary_card">%1$s km  •  %2$s  •  최고 %3$s km/h</string>
+    <string name="trip_summary_detail">%1$s km  •  %2$s  •  평균 %3$s km/h  •  최고 %4$s km/h</string>
+
+    <string name="settings_title">설정</string>
+    <string name="settings_section_alerts">경고</string>
+    <string name="settings_enable_alerts_title">임계값 경고 사용</string>
+    <string name="settings_enable_alerts_subtitle">안전 한계를 휴대전화에서 판단합니다</string>
+    <string name="settings_speed_limit">속도 한계</string>
+    <string name="settings_mos_temperature">MOS 온도</string>
+    <string name="settings_low_battery">배터리 부족</string>
+    <string name="settings_pwm_load">PWM 부하</string>
+    <string name="settings_section_display">표시</string>
+    <string name="settings_metric_units_title">미터법 단위</string>
+    <string name="settings_metric_units_subtitle">끄면 mph와 마일을 사용합니다</string>
+    <string name="settings_keep_awake_title">대시보드 화면 유지</string>
+    <string name="settings_keep_awake_subtitle">주행 중 화면이 꺼지지 않게 합니다</string>
+    <string name="settings_section_hud_bridge">HUD 브리지</string>
+    <string name="settings_bridge_autostart_title">브리지 자동 시작</string>
+    <string name="settings_bridge_autostart_subtitle">RideFlux 실행 시 또는 휴대전화 부팅 시 대기 상태로 전환</string>
+    <string name="settings_low_latency_title">저지연 대기</string>
+    <string name="settings_low_latency_subtitle">휠을 기다리는 동안 배터리를 더 사용합니다</string>
+    <string name="settings_paired_mac">페어링된 휴대전화 MAC</string>
+    <string name="settings_paired_mac_unset">페어링할 때 HUD에서 설정됩니다</string>
+    <string name="settings_section_about">정보</string>
+    <string name="settings_about_subtitle">오프라인 우선 휠 텔레메트리와 HUD 브리지</string>
+
+    <string name="permission_bluetooth_title">블루투스 권한이 필요합니다</string>
+    <string name="permission_bluetooth_body">RideFlux가 휠을 찾아 통신하려면 블루투스 검색 및 연결 권한이 필요합니다.</string>
+
+    <string name="hud_headlight_on">전조등 켜짐</string>
+    <string name="hud_headlight_off">전조등 꺼짐</string>
+    <string name="hud_pedals_mode">페달 모드</string>
+    <string name="hud_label_on">켬</string>
+    <string name="hud_label_off">끔</string>
+
+    <string name="notification_channel_bridge">RideFlux 브리지</string>
+    <string name="notification_bridge_title">RideFlux → HUD 브리지</string>
+    <string name="notification_bridge_standby">휠 대기 중, 글래스는 연결할 수 있습니다</string>
+    <string name="notification_bridge_attaching">선택한 휠에 연결하는 중</string>
+    <string name="notification_bridge_relaying">휠 텔레메트리를 글래스로 중계하는 중</string>
+    <string name="notification_bridge_degraded">휠 사용 불가, 브리지는 계속 검색 가능합니다</string>
+    <string name="notification_channel_recording">주행 기록</string>
+    <string name="notification_recording_title">RideFlux가 기록 중입니다</string>
+    <string name="notification_recording_text">휠 텔레메트리를 기기에 저장하고 있습니다</string>
+
+</resources>

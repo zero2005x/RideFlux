@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  French (Français) translations for :app.
+-->
+<resources>
+
+    <string name="action_back">Retour</string>
+    <string name="action_open">Ouvrir</string>
+    <string name="action_scan">Scanner</string>
+    <string name="action_stop">Arrêter</string>
+    <string name="action_clear_all">Tout effacer</string>
+    <string name="action_export_csv">Exporter en CSV</string>
+    <string name="action_export_gpx">Exporter en GPX</string>
+    <string name="action_delete_trip">Supprimer le trajet</string>
+    <string name="action_beep">Klaxon</string>
+    <string name="action_grant_permissions">Accorder les autorisations</string>
+    <string name="action_open_settings">Ouvrir les paramètres</string>
+    <string name="filter_all">Tous</string>
+
+    <string name="scanner_title">Rechercher des roues</string>
+    <string name="scanner_searching">Recherche de roues…</string>
+    <string name="scanner_no_devices">Aucun appareil pour l\'instant</string>
+    <string name="scanner_no_devices_hint">Appuyez sur Scanner pour trouver les roues à proximité.</string>
+    <string name="scanner_scan_failed">Échec du scan</string>
+    <string name="scanner_scan_failed_reason">Échec du scan : %1$s</string>
+    <string name="scanner_unknown_device">Appareil inconnu</string>
+    <string name="scanner_device_family">Famille : %1$s</string>
+
+    <string name="bridge_card_title">Pont HUD</string>
+    <string name="bridge_state_off">Désactivé</string>
+    <string name="bridge_state_standby">En attente d\'une roue</string>
+    <string name="bridge_state_attaching">Connexion à la roue</string>
+    <string name="bridge_state_relaying">Retransmission de la télémétrie</string>
+    <string name="bridge_state_degraded">Roue indisponible · toujours détectable</string>
+    <string name="glasses_link_stopped">transport arrêté</string>
+    <string name="glasses_link_starting">démarrage de la liaison lunettes</string>
+    <string name="glasses_link_ready">en attente des lunettes</string>
+    <string name="glasses_link_connected">lunettes connectées</string>
+    <string name="glasses_link_error">erreur de liaison lunettes</string>
+    <string name="glasses_connection">Connexion aux lunettes</string>
+
+    <string name="page_dashboard">Tableau de bord</string>
+    <string name="page_graph">Graphique</string>
+    <string name="page_parameters">Paramètres</string>
+    <string name="page_battery">Batterie</string>
+    <string name="page_trips">Trajets</string>
+    <string name="page_events">Événements</string>
+    <string name="page_map">Carte</string>
+    <string name="dashboard_bridge_remove">Retirer la roue du pont HUD</string>
+    <string name="dashboard_bridge_send">Envoyer la roue vers le pont HUD</string>
+    <string name="dashboard_open_ar_hud">Ouvrir le HUD RA</string>
+    <string name="controls_headlight">Phare</string>
+    <string name="pedals_soft">Souple</string>
+    <string name="pedals_medium">Moyen</string>
+    <string name="pedals_hard">Ferme</string>
+
+    <string name="alert_speed_limit_title">LIMITE DE VITESSE</string>
+    <string name="alert_speed_limit_body">%1$s km/h dépasse %2$s km/h</string>
+    <string name="alert_mos_temperature_title">TEMPÉRATURE MOS</string>
+    <string name="alert_mos_temperature_body">%1$s°C dépasse %2$s°C</string>
+    <string name="alert_low_battery_title">BATTERIE FAIBLE</string>
+    <string name="alert_low_battery_body">%1$s%% est en dessous de %2$s%%</string>
+    <string name="alert_pwm_load_title">CHARGE PWM</string>
+    <string name="alert_pwm_load_body">%1$s%% dépasse %2$s%%</string>
+    <string name="alert_tilt_back_title">TILT-BACK</string>
+    <string name="alert_tilt_back_body">Vitesse %1$s km/h · limite %2$s km/h</string>
+    <string name="alert_speed_cutoff_title">COUPURE MOTEUR</string>
+    <string name="alert_speed_cutoff_body">Moteur coupé à %1$s km/h</string>
+    <string name="alert_wheel_low_battery_title">Batterie faible</string>
+    <string name="alert_wheel_low_battery_body">Tension du pack %1$s V</string>
+    <string name="alert_over_temperature_title">Surchauffe</string>
+    <string name="alert_fall_title">CHUTE DÉTECTÉE</string>
+    <string name="alert_fall_body">La roue signale une chute</string>
+    <string name="alert_fault_set_title">Défauts modifiés</string>
+    <string name="alert_faults_added">+%1$d défauts</string>
+    <string name="alert_faults_cleared">-%1$d résolus</string>
+    <string name="alert_updated">Mis à jour</string>
+    <string name="alert_raw_title">Alerte %1$s 0x%2$s</string>
+    <string name="alert_raw_body">%1$d octets</string>
+
+    <string name="events_header">Événements</string>
+    <string name="events_empty">Aucun événement pour l\'instant</string>
+    <string name="event_speed_limit">Limite de vitesse</string>
+    <string name="event_mos_temperature">Température MOS</string>
+    <string name="event_low_battery_threshold">Seuil de batterie faible</string>
+    <string name="event_pwm_load">Charge PWM</string>
+    <string name="event_tilt_back">Tilt-back</string>
+    <string name="event_speed_cutoff">Coupure moteur</string>
+    <string name="event_low_battery">Batterie faible</string>
+    <string name="event_low_battery_body">Tension %1$s V</string>
+    <string name="event_over_temperature">Surchauffe</string>
+    <string name="event_fall_detected">Chute détectée</string>
+    <string name="event_fault_set_changed">Défauts modifiés</string>
+    <string name="event_raw_title">%1$s brut 0x%2$s</string>
+
+    <string name="section_speed">Vitesse</string>
+    <string name="section_power">Puissance</string>
+    <string name="section_thermals">Températures</string>
+    <string name="section_distance">Distance</string>
+    <string name="section_device">Appareil</string>
+    <string name="section_pack">Pack</string>
+    <string name="section_cells">Cellules</string>
+    <string name="section_current_ride">Trajet en cours</string>
+    <string name="section_lifetime">Cumul</string>
+    <string name="section_saved_rides">Trajets enregistrés</string>
+    <string name="section_route">Itinéraire</string>
+
+    <string name="metric_speed">Vitesse</string>
+    <string name="metric_max">Max</string>
+    <string name="metric_average">Moyenne</string>
+    <string name="metric_pwm">PWM</string>
+    <string name="metric_voltage">Tension</string>
+    <string name="metric_current">Courant</string>
+    <string name="metric_phase_current">Courant de phase</string>
+    <string name="metric_power">Puissance</string>
+    <string name="metric_battery">Batterie</string>
+    <string name="metric_battery_voltage">Tension batterie</string>
+    <string name="metric_mos">MOS</string>
+    <string name="metric_mos_temp">Temp. MOS</string>
+    <string name="metric_motor">Moteur</string>
+    <string name="metric_battery_temp">Temp. batterie</string>
+    <string name="metric_board">Carte</string>
+    <string name="metric_trip">Trajet</string>
+    <string name="metric_total">Total</string>
+    <string name="metric_ride_time">Durée du trajet</string>
+    <string name="metric_mode">Mode</string>
+    <string name="metric_model">Modèle</string>
+    <string name="metric_family">Famille</string>
+    <string name="metric_firmware">Micrologiciel</string>
+    <string name="metric_address">Adresse</string>
+    <string name="metric_state_of_charge">État de charge</string>
+    <string name="metric_trip_distance">Distance du trajet</string>
+    <string name="metric_max_speed">Vitesse max</string>
+    <string name="metric_avg_speed">Vitesse moy.</string>
+    <string name="metric_total_distance">Distance totale</string>
+    <string name="metric_vehicle">Véhicule</string>
+    <string name="unit_hms">h:m:s</string>
+
+    <string name="bms_per_cell_title">Données par cellule</string>
+    <string name="bms_per_cell_body">Cette roue n\'expose pas la tension de chaque cellule sur sa liaison de télémétrie BLE. Les données du BMS intelligent ne sont disponibles que sur les montages reliant l\'UART du BMS au contrôleur, ce qu\'aucune des familles prises en charge ne fait.</string>
+
+    <string name="graph_header">TÉLÉMÉTRIE</string>
+    <string name="graph_waiting">En attente d\'échantillons de télémétrie…</string>
+    <string name="series_speed_kmh">Vitesse (km/h)</string>
+    <string name="series_speed_mph">Vitesse (mph)</string>
+    <string name="series_battery">Batterie (%%)</string>
+    <string name="series_current">Courant (A)</string>
+    <string name="series_mos">MOS (°C)</string>
+    <string name="series_voltage">Tension (V)</string>
+
+    <string name="map_no_location_permission">Autorisation de localisation refusée</string>
+    <string name="map_waiting_fix">En attente d\'un point GPS…</string>
+    <string name="map_track_preview">Aperçu hors ligne du tracé • %1$d points GPS</string>
+
+    <string name="trips_stop_recording">Arrêter l\'enregistrement</string>
+    <string name="trips_saved_empty">Les trajets terminés apparaîtront ici et resteront disponibles après un redémarrage.</string>
+    <string name="trip_history_title">Historique des trajets</string>
+    <string name="trip_history_subtitle">Consultez et exportez les trajets enregistrés localement</string>
+    <string name="trip_none_saved">Aucun trajet enregistré</string>
+    <string name="trip_details_title">Détails du trajet</string>
+    <string name="trip_not_found">Trajet introuvable</string>
+    <string name="trip_summary_card">%1$s km  •  %2$s  •  max %3$s km/h</string>
+    <string name="trip_summary_detail">%1$s km  •  %2$s  •  moy %3$s km/h  •  max %4$s km/h</string>
+
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_section_alerts">Alertes</string>
+    <string name="settings_enable_alerts_title">Activer les alertes de seuil</string>
+    <string name="settings_enable_alerts_subtitle">Évaluer les limites de sécurité côté téléphone</string>
+    <string name="settings_speed_limit">Limite de vitesse</string>
+    <string name="settings_mos_temperature">Température MOS</string>
+    <string name="settings_low_battery">Batterie faible</string>
+    <string name="settings_pwm_load">Charge PWM</string>
+    <string name="settings_section_display">Affichage</string>
+    <string name="settings_metric_units_title">Unités métriques</string>
+    <string name="settings_metric_units_subtitle">Désactivez pour les mph et les miles</string>
+    <string name="settings_keep_awake_title">Garder le tableau de bord allumé</string>
+    <string name="settings_keep_awake_subtitle">Empêche la mise en veille pendant la conduite</string>
+    <string name="settings_section_hud_bridge">Pont HUD</string>
+    <string name="settings_bridge_autostart_title">Démarrer le pont automatiquement</string>
+    <string name="settings_bridge_autostart_subtitle">Passer en veille au lancement de RideFlux ou au démarrage du téléphone</string>
+    <string name="settings_low_latency_title">Veille à faible latence</string>
+    <string name="settings_low_latency_subtitle">Consomme plus de batterie en attendant une roue</string>
+    <string name="settings_paired_mac">Adresse MAC du téléphone appairé</string>
+    <string name="settings_paired_mac_unset">Configurée sur le HUD lors de l\'appairage</string>
+    <string name="settings_section_about">À propos</string>
+    <string name="settings_about_subtitle">Télémétrie et pont HUD fonctionnant hors ligne</string>
+
+    <string name="permission_bluetooth_title">Autorisation Bluetooth requise</string>
+    <string name="permission_bluetooth_body">RideFlux a besoin des autorisations de scan et de connexion Bluetooth pour trouver votre roue et communiquer avec elle.</string>
+
+    <string name="hud_headlight_on">Phare allumé</string>
+    <string name="hud_headlight_off">Phare éteint</string>
+    <string name="hud_pedals_mode">Mode pédales</string>
+    <string name="hud_label_on">OUI</string>
+    <string name="hud_label_off">NON</string>
+
+    <string name="notification_channel_bridge">Pont RideFlux</string>
+    <string name="notification_bridge_title">Pont RideFlux → HUD</string>
+    <string name="notification_bridge_standby">En attente d\'une roue ; les lunettes peuvent se connecter</string>
+    <string name="notification_bridge_attaching">Connexion à la roue sélectionnée</string>
+    <string name="notification_bridge_relaying">Retransmission de la télémétrie vers les lunettes</string>
+    <string name="notification_bridge_degraded">Roue indisponible ; le pont reste détectable</string>
+    <string name="notification_channel_recording">Enregistrement des trajets</string>
+    <string name="notification_recording_title">RideFlux enregistre</string>
+    <string name="notification_recording_text">La télémétrie est enregistrée localement</string>
+
+</resources>

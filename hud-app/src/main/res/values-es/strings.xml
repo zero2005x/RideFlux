@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 RideFlux project contributors.
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Spanish (Español) translations for :hud-app.
+-->
+<resources>
+    <string name="hud_waiting_phone_title">ESPERANDO\nTELÉFONO</string>
+    <string name="hud_waiting_phone_subtitle">Buscando RideFlux…</string>
+    <string name="hud_phone_connected_title">TELÉFONO\nCONECTADO</string>
+    <string name="hud_phone_standby_subtitle">Teléfono %1$s  ·  Gafas %2$s</string>
+    <string name="hud_scanning_title">BUSCANDO</string>
+    <string name="hud_scanning_subtitle">Buscando el vehículo…</string>
+    <string name="hud_connecting_title">CONECTANDO</string>
+    <string name="hud_offline">SIN CONEXIÓN</string>
+    <string name="hud_offline_reason">SIN CONEXIÓN · %1$s</string>
+    <string name="hud_action_retry">REINTENTAR</string>
+    <string name="hud_action_scan">BUSCAR</string>
+    <string name="hud_action_pair_phone">EMPAREJAR</string>
+    <string name="hud_stale">OBSOLETO</string>
+    <string name="hud_signal_good">BUENA</string>
+    <string name="hud_signal_weak">DÉBIL</string>
+    <string name="hud_signal_none">SIN SEÑAL</string>
+    <string name="hud_settings_title">AJUSTES DEL HUD</string>
+    <string name="hud_settings_close">CERRAR</string>
+    <string name="hud_settings_exit">SALIR</string>
+    <string name="hud_settings_pair_with_phone">EMPAREJAR CON EL TELÉFONO</string>
+    <string name="hud_limit_speed">Velocidad</string>
+    <string name="hud_limit_mos_temp">Temp. MOS</string>
+    <string name="hud_limit_low_battery">Batería baja</string>
+    <string name="hud_limit_pwm">PWM</string>
+    <string name="permission_bluetooth_title">Se necesita permiso de Bluetooth</string>
+    <string name="permission_bluetooth_body">RideFlux HUD necesita permisos de búsqueda y conexión Bluetooth para comunicarse con tu monociclo.</string>
+    <string name="permission_location_body">RideFlux HUD necesita acceso a la ubicación para detectar tu monociclo y conectarse a él por Bluetooth.</string>
+    <string name="action_open_settings">Abrir ajustes</string>
+</resources>

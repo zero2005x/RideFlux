@@ -27,11 +27,14 @@ import com.rideflux.domain.wheel.WheelIdentity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -444,26 +447,29 @@ class DashboardViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        super.onCleared()
-        // Release the ref-counted handle. `resolvedConnection` is used
-        // (rather than awaiting connectionAsync) because viewModelScope
-        // is already cancelled at this point: awaiting a cancelled
-        // Deferred would throw CancellationException and skip teardown.
         val conn = resolvedConnection
+        val deferred = connectionAsync
+        super.onCleared()
+        // viewModelScope is cancelled by super.onCleared(), so launching
+        // teardown there would be a no-op and the GATT link would leak.
+        // Use a detached scope that outlives the ViewModel.
+        val teardownScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         if (conn == null) {
-            viewModelScope.launch(NonCancellable + Dispatchers.IO) {
+            teardownScope.launch {
                 try {
-                    connectionAsync.await().close()
+                    deferred.await().close()
                 } catch (_: Throwable) {
-                    // Best-effort; connection may already be closed.
+                } finally {
+                    teardownScope.cancel()
                 }
             }
         } else {
-            viewModelScope.launch(NonCancellable + Dispatchers.IO) {
+            teardownScope.launch {
                 try {
                     conn.close()
                 } catch (_: Throwable) {
-                    // Best-effort; connection may already be closed.
+                } finally {
+                    teardownScope.cancel()
                 }
             }
         }
