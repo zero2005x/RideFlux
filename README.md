@@ -13,7 +13,7 @@
 | Language | Kotlin 2.0.21 · Jetpack Compose |
 | Min / Target / Compile SDK | 28 / 36 / 36 |
 | Modules | 9 Gradle modules (2 apps, 1 domain, 5 data, 1 core) |
-| Languages | 17 (English + 16 translations) |
+| Languages | 18 (English + 17 translations) |
 
 ---
 
@@ -74,7 +74,7 @@ The project ships **two installable apps** that coexist on separate devices:
 
 **Localization**
 
-- Both apps ship in **17 languages** and follow the device language automatically; there is
+- Both apps ship in **18 languages** and follow the device language automatically; there is
   no in-app language picker.
 - Arabic and Urdu render right-to-left — both manifests set `android:supportsRtl="true"`.
 - Numeric readouts stay on `Locale.US` / `Locale.ROOT` on purpose, so the decimal separator
@@ -104,7 +104,7 @@ under `:data:protocol`.
 
 | Topology | Service / characteristics | Families |
 |---|---|---|
-| `SINGLE_CHAR` | `FFE0` service, `FFE1` notify + write | `G`, `GX`, `K`, `N1` |
+| `SINGLE_CHAR` | `FFE0` service, `FFE1` notify + write | `G`, `GX`, `K`, `N1`, `V` |
 | `SPLIT_CHAR` | notify `FFE0`/`FFE4`, write `FFE5`/`FFE9` | `I1` |
 | `NORDIC_UART` | `6E400001…`, RX `…0002`, TX `…0003` | `N2`, `I2` |
 
@@ -278,9 +278,11 @@ coverage test iterates.
 
 - **JDK 17 or 21.** Kotlin 2.0 cannot parse version strings from JDK 25+. If your system
   JDK is newer, set `org.gradle.java.home` in your *user-level*
-  `~/.gradle/gradle.properties` (Windows: `%USERPROFILE%\.gradle\gradle.properties`) — for
-  example to the JBR bundled with Android Studio. It is deliberately **not** hardcoded in
-  the project so CI and other contributors are unaffected.
+  `~/.gradle/gradle.properties` (Windows: `%USERPROFILE%\.gradle\gradle.properties`) to a
+  JDK 17 or 21 installation. Recent Android Studio releases bundle a JBR built on JDK 25,
+  which does **not** work — run `<studio>/jbr/bin/java -version` before pointing at it. It
+  is deliberately **not** hardcoded in the project so CI and other contributors are
+  unaffected.
 - Android SDK with API 36 installed; `sdk.dir` in `local.properties`.
 - Gradle wrapper 8.13 (checked in — do not run a system Gradle).
 
@@ -330,7 +332,7 @@ sensitive.
 ### Testing & code quality
 
 ```bash
-./gradlew test                 # all JVM unit tests (34 test classes)
+./gradlew test                 # all JVM unit tests (43 test classes)
 ./gradlew :data:protocol:test  # codec round-trip tests only
 ./gradlew jacocoTestReport     # aggregate coverage XML + HTML across every module
 ./gradlew sonar                # SonarCloud analysis (project zero2005x_RideFlux)
@@ -373,7 +375,7 @@ RideFlux/
 │       ├── bridge/          # BridgeService, publishers, boot receiver, link mode
 │       ├── recording/       # RecordingService, TripStatistics
 │       ├── navigation/      # RideFluxNavHost + Routes
-│       └── ui/              # dashboard · scanner · settings · trips · hud · theme
+│       └── ui/              # dashboard · scanner · settings · trips · hud · permission · theme
 ├── hud-app/                 # :hud-app — Rokid AR glasses application
 │   └── src/main/kotlin/com/rideflux/hud/
 │       └── source/          # bridge / direct / CXR telemetry sources
@@ -470,7 +472,7 @@ RideFlux 透過藍牙低功耗（BLE）連線至電動獨輪車（EUC），解�
 
 **多國語系**
 
-- 兩個應用程式皆提供 **17 種語言**，並自動跟隨裝置語言；App 內不另設語言選單。
+- 兩個應用程式皆提供 **18 種語言**，並自動跟隨裝置語言；App 內不另設語言選單。
 - 阿拉伯語與烏爾都語為由右至左排版——兩份 manifest 皆已設定 `android:supportsRtl="true"`。
 - 數值讀數刻意固定使用 `Locale.US`／`Locale.ROOT`，讓小數點符號與其旁的 ASCII 單位一致，
   並使儀表板欄位寬度在各語系下保持穩定。
@@ -497,7 +499,7 @@ RideFlux 透過藍牙低功耗（BLE）連線至電動獨輪車（EUC），解�
 
 | 拓撲 | 服務／特徵值 | 適用家族 |
 |---|---|---|
-| `SINGLE_CHAR` | `FFE0` 服務，`FFE1` 通知 + 寫入 | `G`、`GX`、`K`、`N1` |
+| `SINGLE_CHAR` | `FFE0` 服務，`FFE1` 通知 + 寫入 | `G`、`GX`、`K`、`N1`、`V` |
 | `SPLIT_CHAR` | 通知 `FFE0`/`FFE4`，寫入 `FFE5`/`FFE9` | `I1` |
 | `NORDIC_UART` | `6E400001…`，RX `…0002`，TX `…0003` | `N2`、`I2` |
 
@@ -648,8 +650,10 @@ PDU 合併成單一 `ScanRecord`，因此接收端透過 `ScanRecord.getServiceD
 
 - **JDK 17 或 21。** Kotlin 2.0 無法解析 JDK 25 以上的版本字串。若系統 JDK 較新，請在
   **使用者層級**的 `~/.gradle/gradle.properties`（Windows：
-  `%USERPROFILE%\.gradle\gradle.properties`）設定 `org.gradle.java.home`——例如指向
-  Android Studio 內建的 JBR。專案刻意**不**寫死此路徑，以免影響 CI 與其他貢獻者。
+  `%USERPROFILE%\.gradle\gradle.properties`）設定 `org.gradle.java.home`，指向 JDK 17
+  或 21 的安裝路徑。請注意近期 Android Studio 內建的 JBR 已改用 JDK 25，**並不適用**——
+  指向它之前請先以 `<studio>/jbr/bin/java -version` 確認。專案刻意**不**寫死此路徑，
+  以免影響 CI 與其他貢獻者。
 - 已安裝 API 36 的 Android SDK；並在 `local.properties` 中設定 `sdk.dir`。
 - Gradle wrapper 8.13（已納入版控——請勿使用系統安裝的 Gradle）。
 
@@ -696,7 +700,7 @@ keystore 副檔名——因為 `.lc` 的檔名本身就是 Client ID，連檔名
 ### 測試與程式碼品質
 
 ```bash
-./gradlew test                 # 所有 JVM 單元測試（34 個測試類別）
+./gradlew test                 # 所有 JVM 單元測試（43 個測試類別）
 ./gradlew :data:protocol:test  # 僅執行 codec 來回編解碼測試
 ./gradlew jacocoTestReport     # 跨所有模組的彙整覆蓋率 XML + HTML
 ./gradlew sonar                # SonarCloud 分析（專案 zero2005x_RideFlux）
@@ -737,7 +741,7 @@ RideFlux/
 │       ├── bridge/          # BridgeService、發佈器、開機接收器、連線模式
 │       ├── recording/       # RecordingService、TripStatistics
 │       ├── navigation/      # RideFluxNavHost 與 Routes
-│       └── ui/              # dashboard · scanner · settings · trips · hud · theme
+│       └── ui/              # dashboard · scanner · settings · trips · hud · permission · theme
 ├── hud-app/                 # :hud-app — Rokid AR 眼鏡應用程式
 │   └── src/main/kotlin/com/rideflux/hud/
 │       └── source/          # 橋接／直連／CXR 三種遙測來源

@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 RideFlux project contributors.
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 package com.rideflux.data.ble
 
 import com.rideflux.domain.connection.ConnectionState
