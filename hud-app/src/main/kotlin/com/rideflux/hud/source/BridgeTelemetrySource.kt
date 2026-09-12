@@ -56,6 +56,17 @@ class BridgeTelemetrySource private constructor(
     ) : this(clientFrames = clientFrames, rokidFrames = rokidFrames)
 
     override fun frames(): Flow<HudTelemetryFrame> = channelFlow {
+        var telemetryExpiryJob: Job? = null
+        suspend fun publishFrame(frame: BridgeFrame) {
+            telemetryExpiryJob?.cancel()
+            send(frame.toHudTelemetryFrame())
+            // Expire the displayed data even when a transport stays connected
+            // without emitting, or BLE is still scanning after CXR goes quiet.
+            telemetryExpiryJob = launch {
+                delay(TELEMETRY_FRESHNESS_MILLIS)
+                send(noPhoneFrame())
+            }
+        }
         // Give the preferred CXR path an exclusive startup window. Once a
         // CXR frame arrives, collectLatest below cancels BridgeClient, whose
         // awaitClose immediately releases its scan/GATT. Native BLE starts
@@ -80,7 +91,7 @@ class BridgeTelemetrySource private constructor(
                                 delay(CXR_FRESHNESS_MILLIS)
                                 cxrPreferred.value = false
                             }
-                            send(frame.toHudTelemetryFrame())
+                            publishFrame(frame)
                         }
                     } catch (error: CancellationException) {
                         throw error
@@ -101,7 +112,7 @@ class BridgeTelemetrySource private constructor(
                     try {
                         clientFrames().collect { frame ->
                             attempt = 0
-                            send(frame.toHudTelemetryFrame())
+                            publishFrame(frame)
                         }
                     } catch (error: CancellationException) {
                         throw error
@@ -110,6 +121,7 @@ class BridgeTelemetrySource private constructor(
                     }
                     attempt += 1
                     if (!cxrPreferred.value) {
+                        telemetryExpiryJob?.cancel()
                         send(noPhoneFrame())
                     }
                     val delayMs = (NATIVE_RETRY_BASE_MILLIS shl (attempt - 1).coerceAtMost(NATIVE_RETRY_MAX_SHIFT))
@@ -136,6 +148,7 @@ class BridgeTelemetrySource private constructor(
         const val CXR_RECONNECT_DELAY_MILLIS = 1_000L
         const val CXR_FRESHNESS_MILLIS = 2_500L
         const val CXR_STARTUP_GRACE_MILLIS = 3_000L
+        const val TELEMETRY_FRESHNESS_MILLIS = 3_500L
 
         /**
          * First native-BLE retry delay. Each attempt runs one BLE scan,
@@ -194,6 +207,7 @@ internal fun BridgeFrame.toHudTelemetryFrame(): HudTelemetryFrame {
         },
         staleHint = stale,
         phoneBatteryPercent = phoneBatteryPercent,
+        tripDurationSeconds = tripDurationSeconds,
         bridgeLinkState = if (state == ConnectionState.Ready) {
             BridgeLinkState.WHEEL_LIVE
         } else {
