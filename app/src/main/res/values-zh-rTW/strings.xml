@@ -206,4 +206,91 @@
     <string name="notification_recording_title">RideFlux 正在記錄</string>
     <string name="notification_recording_text">車輛遙測資料正儲存至本機</string>
 
+    <string name="scanner_group_recognised">已辨識</string>
+    <string name="scanner_group_unrecognised">未辨識（點擊嘗試）</string>
+    <string name="scanner_signal_weak">訊號微弱 — 請靠近一些</string>
+    <string name="settings_pairing_code_title">本機配對碼</string>
+    <string name="settings_pairing_code_hint">%1$s\n在眼鏡上選擇此配對碼即可配對</string>
+    <string name="settings_pairing_code_preparing">準備中…</string>
+
+
+    <!-- ===== Glasses authorization & approved list ================== -->
+    <string name="action_allow">允許</string>
+    <string name="action_deny">拒絕</string>
+    <string name="glasses_auth_dialog_title">AR 眼鏡配對請求</string>
+    <string name="glasses_auth_dialog_message">AR 眼鏡（代碼：%1$s）正在請求連線並接收儀表數據。是否允許此裝置？</string>
+    <string name="glasses_auth_dialog_legacy_message">舊版 AR 眼鏡（%1$s）正在請求連線。是否允許此裝置？</string>
+    <string name="glasses_auth_notification_title">眼鏡配對請求</string>
+    <string name="glasses_auth_notification_text">AR 眼鏡（%1$s）想要連線</string>
+    <string name="settings_approved_glasses_title">已核可的眼鏡</string>
+    <string name="settings_approved_glasses_empty">尚無核可的眼鏡</string>
+    <string name="settings_approved_glasses_remove">移除</string>
+    <string name="settings_approved_glasses_device">眼鏡（%1$s）</string>
+    <string name="settings_approved_glasses_legacy_device">舊版 HUD（%1$s）</string>
+
+
+    <!-- ===== AR Glasses Setup & Distribution ====================== -->
+    <string name="glasses_setup_title">設定 AR 眼鏡</string>
+    <string name="glasses_setup_subtitle">在 AR 眼鏡上安裝並設定 HUD 儀表 App</string>
+    <string name="glasses_setup_pairing_code_label">此手機的配對碼</string>
+    <string name="glasses_setup_install_title">安裝說明</string>
+    <string name="glasses_setup_install_step1">1. 從 GitHub Releases 下載最新的 HUD APK（hud-app-release.apk）。</string>
+    <string name="glasses_setup_install_step2">2. 使用 ADB（adb install hud-app-release.apk）或眼鏡專屬傳輸工具安裝。</string>
+    <string name="glasses_setup_install_step3">3. 在眼鏡上開啟 RideFlux，允許藍牙權限，並選擇此手機的配對碼。</string>
+    <string name="glasses_setup_download_button">前往 GitHub 下載 HUD</string>
+    <string name="glasses_setup_version_format">相容於手機版本 %1$s (組建 %2$d)</string>
+    <string name="action_copy">複製</string>
+    <string name="copied_to_clipboard">已複製到剪貼簿</string>
+
+    <!-- ===== Data Backup & Restore ============================== -->
+    <string name="action_cancel">取消</string>
+    <string name="action_export">匯出</string>
+    <string name="action_import">匯入</string>
+    <string name="settings_section_backup">資料備份與還原</string>
+    <string name="settings_backup_export_title">匯出全部資料</string>
+    <string name="settings_backup_export_subtitle">將所有騎乘記錄與設定儲存為 ZIP 封存檔</string>
+    <string name="settings_backup_import_title">匯入資料</string>
+    <string name="settings_backup_import_subtitle">從 ZIP 封存檔還原騎乘記錄與設定</string>
+    <string name="settings_backup_import_dialog_title">還原資料</string>
+    <string name="settings_backup_import_dialog_message">請選擇還原模式：
+• 合併：保留現有資料並跳過重複記錄
+• 取代全部：清除現有所有記錄並以備份檔取代</string>
+    <string name="settings_backup_import_mode_merge">合併（跳過重複）</string>
+    <string name="settings_backup_import_mode_replace">取代全部</string>
+    <string name="settings_backup_export_success">資料匯出成功（%1$d 筆行程）</string>
+    <string name="settings_backup_export_error">匯出失敗：%1$s</string>
+    <string name="settings_backup_import_success">已成功還原 %1$d 筆行程（略過 %2$d 筆重複）</string>
+    <string name="settings_backup_import_error">匯入失敗：%1$s</string>
+
+    <string name="settings_hud_mirror_title">鏡像 HUD 畫面</string>
+    <string name="settings_hud_mirror_subtitle">針對稜鏡反射式光學鏡片進行水平翻轉</string>
+    <string name="settings_select_glasses_title">已選取的 AR 眼鏡</string>
+    <string name="settings_select_glasses_auto">自動偵測（依裝置名稱）</string>
+    <string name="settings_select_glasses_dialog_title">選擇 AR 眼鏡</string>
+    <string name="settings_ring_key_title">戒指遙控器</string>
+    <string name="settings_ring_key_mapping_label">戒指按鍵設定</string>
+    <string name="settings_ring_key_default">預設 (%1$s)</string>
+    <string name="settings_ring_key_custom">自訂（鍵碼：%1$d）</string>
+    <string name="settings_ring_key_learn">學習按鍵</string>
+    <string name="settings_ring_key_reset">重設</string>
+    <string name="settings_ring_learning_dialog_title">學習戒指按鍵</string>
+    <string name="settings_ring_learning_dialog_message">請現在按一下你的戒指按鍵…</string>
+    <string name="action_select">選擇</string>
+
+    <string name="notification_boot_autostart_title">RideFlux 橋接器開機自啟</string>
+    <string name="notification_boot_autostart_body">背景自啟動已被系統限制。輕觸以開啟 RideFlux。</string>
+    <string name="controls_safety_locked_moving">為保障騎乘安全，行進間已鎖定車輛控制</string>
+    <string name="controls_speed_limit_button">限速設定</string>
+    <string name="controls_calibrate_button">水平校準</string>
+    <string name="controls_power_off_button">關閉電源</string>
+    <string name="dialog_power_off_title">確定要關閉車輛電源？</string>
+    <string name="dialog_power_off_warning">關閉電源將立即切斷馬達動力。若車輛處於平衡或騎乘狀態，將會瞬間斷電倒地。請務必在車輛靜止、已下車且有支撐時才進行關機。</string>
+    <string name="dialog_power_off_confirm">確定關機</string>
+    <string name="dialog_calibrate_title">校準車輛水平感應器？</string>
+    <string name="dialog_calibrate_warning">校準將重設陀螺儀水平基準。校準期間馬達將無動力，請將車輛保持垂直平穩放置於水平地面。切勿在站立於車上時校準。</string>
+    <string name="dialog_calibrate_confirm">開始校準</string>
+    <string name="dialog_speed_limit_title">設定最高速限</string>
+    <string name="dialog_speed_limit_warning">修改最高限速將同時調整翹板警示門檻。若在騎乘時將限速調低於當前車速，可能會觸發突然翹板。請務必在靜止時調整。</string>
+    <string name="dialog_speed_limit_confirm">套用限速</string>
+    <string name="dialog_speed_limit_label">限速：%1$d km/h</string>
 </resources>

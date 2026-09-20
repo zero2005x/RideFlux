@@ -6,6 +6,8 @@
 package com.rideflux.app
 
 import android.app.Application
+import com.rideflux.app.bridge.ApprovedGlassesStore
+import com.rideflux.app.bridge.BridgeService
 import com.rideflux.app.di.ApplicationScope
 import com.rideflux.domain.ride.TripRepository
 import dagger.hilt.android.HiltAndroidApp
@@ -36,6 +38,13 @@ class RideFluxApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Align the bridge's process-wide link-mode state with what is
+        // on disk before any screen can observe it, so the transport
+        // shown with the bridge stopped is the one that will actually
+        // start. Also the point where the one-time migration off
+        // ROKID_CXR runs.
+        BridgeService.syncLinkMode(this)
+        ApprovedGlassesStore.init(this)
         applicationScope.launch { tripRepository.recoverIncompleteTrips() }
     }
 }

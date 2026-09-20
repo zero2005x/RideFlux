@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">يحتاج RideFlux HUD إلى إذني البحث والاتصال عبر البلوتوث للوصول إلى عجلتك.</string>
     <string name="permission_location_body">يحتاج RideFlux HUD إلى إذن الموقع لاكتشاف عجلتك والاتصال بها عبر البلوتوث.</string>
     <string name="action_open_settings">فتح الإعدادات</string>
+    <string name="hud_offline_link_lost">انقطع اتصال البلوتوث</string>
+    <string name="hud_offline_handshake">لم تستجب العجلة</string>
+    <string name="hud_offline_internal">خطأ داخلي</string>
+
+    <string name="hud_settings_mirror">مرآة: %1$s</string>
+    <string name="hud_settings_on">تشغيل</string>
+    <string name="hud_settings_off">إيقاف</string>
+    <string name="hud_settings_ring_key">خاتم: %1$s</string>
+    <string name="hud_settings_ring_default">افتراضي</string>
+    <string name="hud_settings_ring_learn">تعلم</string>
+    <string name="hud_settings_ring_listening">اضغط على الخاتم الآن…</string>
+    <string name="hud_settings_ring_reset">إعادة ضبط</string>
+    <string name="hud_settings_ring_learned">مفتاح %1$d</string>
 </resources>

@@ -25,19 +25,34 @@ fun signingCredential(name: String): String? =
 private fun String.asBuildConfigLiteral(): String =
     replace("\\", "\\\\").replace("\"", "\\\"")
 
-val rokidClientSecret = signingCredential("ROKID_CLIENT_SECRET")
-    ?.replace("-", "")
-    .orEmpty()
-val rokidSnAuthBase64 = signingCredential("ROKID_SN_AUTH_BASE64")
+// CXR credentials are opt-in via -Prideflux.embedCxrCredentials=true to prevent
+// proprietary credentials from leaking into public release builds (strings are not
+// obfuscated by R8). When omitted, empty placeholders are embedded instead.
+val embedCxrCredentials = providers.gradleProperty("rideflux.embedCxrCredentials")
+    .map { it.toBoolean() }
+    .getOrElse(false)
+
+val rokidClientSecret = if (embedCxrCredentials) {
+    signingCredential("ROKID_CLIENT_SECRET")
+        ?.replace("-", "")
+        .orEmpty()
+} else {
+    ""
+}
+val rokidSnAuthBase64 = if (embedCxrCredentials) {
     // Resolved against the repository root, not the :app module, so that
     // local.properties can carry a stable repo-relative path such as
     // secrets/<id>.lc. Absolute paths still work unchanged.
-    ?: signingCredential("ROKID_SN_AUTH_FILE")
-        ?.let(rootProject::file)
-        ?.takeIf { it.isFile }
-        ?.readBytes()
-        ?.let { Base64.getEncoder().encodeToString(it) }
-        .orEmpty()
+    signingCredential("ROKID_SN_AUTH_BASE64")
+        ?: signingCredential("ROKID_SN_AUTH_FILE")
+            ?.let(rootProject::file)
+            ?.takeIf { it.isFile }
+            ?.readBytes()
+            ?.let { Base64.getEncoder().encodeToString(it) }
+            .orEmpty()
+} else {
+    ""
+}
 
 android {
     namespace = "com.rideflux.app"
@@ -106,6 +121,16 @@ android {
             ) {
                 "Release signing requested but KEYSTORE_PASSWORD / KEY_ALIAS / " +
                     "KEY_PASSWORD are not set."
+            }
+        }
+
+        val willBundleRelease = allTasks.any { task ->
+            task.project.path == ":app" && task.name == "bundleRelease"
+        }
+        if (willBundleRelease) {
+            require(!embedCxrCredentials && rokidClientSecret.isEmpty() && rokidSnAuthBase64.isEmpty()) {
+                "bundleRelease must never embed CXR credentials for production distribution. " +
+                    "Remove -Prideflux.embedCxrCredentials=true."
             }
         }
     }

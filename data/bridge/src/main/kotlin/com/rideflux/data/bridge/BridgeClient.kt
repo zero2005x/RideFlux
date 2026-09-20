@@ -13,6 +13,7 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
@@ -75,6 +76,7 @@ class BridgeClient(
     context: Context,
     private val peerFilter: BridgePeerFilter = BridgePeerFilter.AcceptAny,
     private val scanThrottle: BleScanThrottle = BleScanThrottle.shared,
+    private val clientToken: ByteArray? = null,
 ) {
 
     // Normalise to the application context: this class retains it for
@@ -142,6 +144,62 @@ class BridgeClient(
             if (g == null) return
             runCatching { g.disconnect() }
             runCatching { g.close() }
+        }
+
+        fun subscribeToTelemetry(g: BluetoothGatt, ch: BluetoothGattCharacteristic) {
+            try {
+                if (!g.setCharacteristicNotification(ch, true)) {
+                    close(IllegalStateException("setCharacteristicNotification failed"))
+                    return
+                }
+                val cccd = ch.getDescriptor(BridgeProtocol.CCCD_UUID)
+                if (cccd == null) {
+                    close(IllegalStateException("CCCD missing"))
+                    return
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    val rc = g.writeDescriptor(
+                        cccd,
+                        BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
+                    )
+                    if (rc != BluetoothGatt.GATT_SUCCESS) {
+                        close(IllegalStateException("writeDescriptor returned $rc"))
+                    }
+                } else {
+                    @Suppress("DEPRECATION")
+                    cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                    @Suppress("DEPRECATION")
+                    if (!g.writeDescriptor(cccd)) {
+                        close(IllegalStateException("writeDescriptor failed"))
+                    }
+                }
+            } catch (t: Throwable) {
+                close(IllegalStateException("CCCD subscribe failed: ${t.message}"))
+            }
+        }
+
+        fun writeHandshakeToken(
+            g: BluetoothGatt,
+            char: BluetoothGattCharacteristic,
+            token: ByteArray,
+        ): Boolean = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                g.writeCharacteristic(
+                    char,
+                    token,
+                    BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
+                ) == BluetoothStatusCodes.SUCCESS
+            } else {
+                @Suppress("DEPRECATION")
+                char.value = token
+                @Suppress("DEPRECATION")
+                char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+                @Suppress("DEPRECATION")
+                g.writeCharacteristic(char)
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "writeHandshakeToken threw: ${t.message}")
+            false
         }
 
         fun connectGattLe(device: BluetoothDevice): BluetoothGatt? = try {
@@ -262,39 +320,39 @@ class BridgeClient(
                     close(IllegalStateException("bridge service/char missing"))
                     return
                 }
-                // Guard the remaining GATT calls like connectGatt above:
-                // if BLUETOOTH_CONNECT is revoked at runtime the
-                // SecurityException would otherwise escape onto the BLE
-                // callback thread and crash the app instead of
-                // surfacing through close(...) for retryWhen.
-                try {
-                    if (!g.setCharacteristicNotification(ch, true)) {
-                        close(IllegalStateException("setCharacteristicNotification failed"))
-                        return
+                val handshakeChar = svc.getCharacteristic(BridgeProtocol.HANDSHAKE_CHAR_UUID)
+                if (handshakeChar != null && clientToken != null) {
+                    Log.i(
+                        TAG,
+                        "writing handshake token ${BridgePairingToken.shortCode(clientToken)}…",
+                    )
+                    if (!writeHandshakeToken(g, handshakeChar, clientToken)) {
+                        Log.w(TAG, "failed to submit handshake token write; subscribing directly")
+                        subscribeToTelemetry(g, ch)
                     }
-                    val cccd = ch.getDescriptor(BridgeProtocol.CCCD_UUID)
-                    if (cccd == null) {
-                        close(IllegalStateException("CCCD missing"))
-                        return
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        val rc = g.writeDescriptor(
-                            cccd,
-                            BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
-                        )
-                        if (rc != BluetoothGatt.GATT_SUCCESS) {
-                            close(IllegalStateException("writeDescriptor returned $rc"))
-                        }
+                } else {
+                    subscribeToTelemetry(g, ch)
+                }
+            }
+
+            override fun onCharacteristicWrite(
+                g: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic,
+                status: Int,
+            ) {
+                if (characteristic.uuid == BridgeProtocol.HANDSHAKE_CHAR_UUID) {
+                    if (status != BluetoothGatt.GATT_SUCCESS) {
+                        Log.w(TAG, "handshake characteristic write failed status=$status; subscribing anyway")
                     } else {
-                        @Suppress("DEPRECATION")
-                        cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                        @Suppress("DEPRECATION")
-                        if (!g.writeDescriptor(cccd)) {
-                            close(IllegalStateException("writeDescriptor failed"))
-                        }
+                        Log.i(TAG, "handshake token confirmed by phone")
                     }
-                } catch (t: Throwable) {
-                    close(IllegalStateException("CCCD subscribe failed: ${t.message}"))
+                    val svc = g.getService(BridgeProtocol.SERVICE_UUID)
+                    val ch = svc?.getCharacteristic(BridgeProtocol.TELEMETRY_CHAR_UUID)
+                    if (ch != null) {
+                        subscribeToTelemetry(g, ch)
+                    } else {
+                        close(IllegalStateException("telemetry characteristic missing after handshake"))
+                    }
                 }
             }
 

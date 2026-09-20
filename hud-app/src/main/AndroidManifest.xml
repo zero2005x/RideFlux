@@ -31,13 +31,18 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
 
-        <!-- screenOrientation="portrait": confirm the AR panel is genuinely
-             portrait before relying on this lock — it is ignored/letterboxed
-             on large screens and prevents the UI adapting to other mounts. -->
+        <!-- screenOrientation="nosensor": Hardware dumpsys tests on the
+             reference AR glasses (RV101 / RG_glasses) confirm the physical
+             display panel is natively 480x640 portrait (rotation 0).
+             Hardcoding "portrait" breaks landscape AR glasses (such as 1080p
+             optics) by rotating the display 90 degrees sideways. Using "nosensor"
+             locks rendering to each device's natural panel orientation while
+             ignoring accelerometer tilt, preventing sudden jarring screen
+             rotations when the rider tilts their head mid-ride. -->
         <activity
             android:name="com.rideflux.hud.HudActivity"
             android:exported="true"
-            android:screenOrientation="portrait"
+            android:screenOrientation="nosensor"
             android:theme="@android:style/Theme.Material.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

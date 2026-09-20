@@ -35,21 +35,29 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.CastConnected
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -57,6 +65,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -88,6 +97,7 @@ import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelAlert
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -126,6 +136,8 @@ fun DashboardRoute(
     }
     val bridgedMac by com.rideflux.app.bridge.BridgeService.activeMac
         .collectAsStateWithLifecycle()
+    val bridgeServiceState by com.rideflux.app.bridge.BridgeService.state
+        .collectAsStateWithLifecycle()
     val bridgeActive = bridgedMac == viewModel.address
     val startBridge = {
         com.rideflux.app.bridge.BridgeService.start(
@@ -148,6 +160,7 @@ fun DashboardRoute(
         recordingState = recordingState,
         locationPermissionGranted = locationPermissionGranted,
         bridgeActive = bridgeActive,
+        bridgeAvailable = bridgeServiceState != com.rideflux.app.bridge.BridgeState.STOPPED,
         onNavigateUp = onNavigateUp,
         onNavigateToHud = onNavigateToHud,
         onOpenTrip = onOpenTrip,
@@ -171,6 +184,9 @@ fun DashboardRoute(
         onSetHeadlight = viewModel::setHeadlight,
         onSetPedalsMode = viewModel::setPedalsMode,
         onBeep = viewModel::beep,
+        onPowerOff = viewModel::powerOff,
+        onCalibrate = viewModel::calibrate,
+        onSetMaxSpeedKmh = viewModel::setMaxSpeedKmh,
     )
 }
 
@@ -194,8 +210,8 @@ private enum class DashboardPage(@androidx.annotation.StringRes val titleRes: In
  * model, HUD link) and a coloured page indicator at the bottom.
  *
  * Page 1 (Main) also hosts the wheel-control card (headlight,
- * pedals mode, beep) so riders don't have to hunt for it during
- * use.
+ * pedals mode, beep, safety-guarded actions) so riders don't have
+ * to hunt for it during use.
  */
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -207,6 +223,7 @@ fun DashboardScreen(
     recordingState: RecordingUiState = RecordingUiState(),
     locationPermissionGranted: Boolean = false,
     bridgeActive: Boolean = false,
+    bridgeAvailable: Boolean = false,
     onNavigateUp: () -> Unit,
     onNavigateToHud: () -> Unit = {},
     onOpenTrip: (Long) -> Unit = {},
@@ -215,6 +232,9 @@ fun DashboardScreen(
     onSetHeadlight: (Boolean) -> Unit = {},
     onSetPedalsMode: (Int) -> Unit = {},
     onBeep: () -> Unit = {},
+    onPowerOff: () -> Unit = {},
+    onCalibrate: () -> Unit = {},
+    onSetMaxSpeedKmh: (Float) -> Unit = {},
 ) {
     val localView = LocalView.current
     DisposableEffect(uiState.keepScreenOnDashboard) {
@@ -227,6 +247,106 @@ fun DashboardScreen(
         derivedStateOf { DashboardPage.values()[pagerState.currentPage] }
     }
     val clock by produceClockState()
+
+    var showPowerOffDialog by remember { mutableStateOf(false) }
+    var showCalibrateDialog by remember { mutableStateOf(false) }
+    var showSpeedLimitDialog by remember { mutableStateOf(false) }
+
+    val isMoving = (uiState.speedKmh ?: 0f) > 0f
+    val actionsPermitted = isVehicleActionPermitted(uiState.connectionState, uiState.speedKmh)
+
+    if (showPowerOffDialog) {
+        AlertDialog(
+            onDismissRequest = { showPowerOffDialog = false },
+            title = { Text(stringResource(R.string.dialog_power_off_title)) },
+            text = { Text(stringResource(R.string.dialog_power_off_warning)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showPowerOffDialog = false
+                        onPowerOff()
+                    },
+                    enabled = actionsPermitted,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                ) {
+                    Text(stringResource(R.string.dialog_power_off_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPowerOffDialog = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    if (showCalibrateDialog) {
+        AlertDialog(
+            onDismissRequest = { showCalibrateDialog = false },
+            title = { Text(stringResource(R.string.dialog_calibrate_title)) },
+            text = { Text(stringResource(R.string.dialog_calibrate_warning)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCalibrateDialog = false
+                        onCalibrate()
+                    },
+                    enabled = actionsPermitted,
+                ) {
+                    Text(stringResource(R.string.dialog_calibrate_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCalibrateDialog = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    if (showSpeedLimitDialog) {
+        var selectedKmh by remember { mutableFloatStateOf(uiState.maxSpeedKmh ?: 25f) }
+        AlertDialog(
+            onDismissRequest = { showSpeedLimitDialog = false },
+            title = { Text(stringResource(R.string.dialog_speed_limit_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(R.string.dialog_speed_limit_warning))
+                    Text(
+                        text = stringResource(R.string.dialog_speed_limit_label, selectedKmh.roundToInt()),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Slider(
+                        value = selectedKmh,
+                        onValueChange = { selectedKmh = it },
+                        valueRange = 10f..70f,
+                        steps = 59,
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSpeedLimitDialog = false
+                        onSetMaxSpeedKmh(selectedKmh)
+                    },
+                    enabled = actionsPermitted,
+                ) {
+                    Text(stringResource(R.string.dialog_speed_limit_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSpeedLimitDialog = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -261,10 +381,14 @@ fun DashboardScreen(
                 actions = {
                     ConnectionDot(state = uiState.connectionState)
                     Spacer(Modifier.width(8.dp))
-                    // Bridge toggle — starts/stops the foreground
-                    // service that relays telemetry to the AR
-                    // glasses over the :data:bridge GATT channel.
-                    IconButton(onClick = onToggleBridge) {
+                    // Assigns/clears *this wheel* as the bridge's
+                    // relay target. It does not start or stop the
+                    // bridge itself — that switch lives on the
+                    // scanner screen — so it is disabled while the
+                    // service is stopped rather than silently doing
+                    // nothing, which is what made the two controls
+                    // read as the same thing.
+                    IconButton(onClick = onToggleBridge, enabled = bridgeAvailable) {
                         Icon(
                             imageVector = if (bridgeActive)
                                 Icons.Filled.CastConnected
@@ -274,10 +398,11 @@ fun DashboardScreen(
                                 if (bridgeActive) R.string.dashboard_bridge_remove
                                 else R.string.dashboard_bridge_send,
                             ),
-                            tint = if (bridgeActive)
-                                RideFluxColors.Neon
-                            else
-                                MaterialTheme.colorScheme.primary,
+                            tint = when {
+                                !bridgeAvailable -> RideFluxColors.Mute
+                                bridgeActive -> RideFluxColors.Neon
+                                else -> MaterialTheme.colorScheme.primary
+                            },
                         )
                     }
                     IconButton(onClick = onNavigateToHud) {
@@ -326,9 +451,14 @@ fun DashboardScreen(
                             headlightOn = uiState.headlightOn,
                             rideMode = uiState.rideMode,
                             enabled = uiState.connectionState == ConnectionState.Ready,
+                            actionsPermitted = actionsPermitted,
+                            isMoving = isMoving,
                             onSetHeadlight = onSetHeadlight,
                             onSetPedalsMode = onSetPedalsMode,
                             onBeep = onBeep,
+                            onOpenPowerOff = { showPowerOffDialog = true },
+                            onOpenCalibrate = { showCalibrateDialog = true },
+                            onOpenSpeedLimit = { showSpeedLimitDialog = true },
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
@@ -630,9 +760,14 @@ private fun ControlsCard(
     headlightOn: Boolean,
     rideMode: RideMode?,
     enabled: Boolean,
+    actionsPermitted: Boolean,
+    isMoving: Boolean,
     onSetHeadlight: (Boolean) -> Unit,
     onSetPedalsMode: (Int) -> Unit,
     onBeep: () -> Unit,
+    onOpenPowerOff: () -> Unit,
+    onOpenCalibrate: () -> Unit,
+    onOpenSpeedLimit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -700,6 +835,90 @@ private fun ControlsCard(
                         stringResource(R.string.action_beep),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 12.sp,
+                    )
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            if (isMoving) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        stringResource(R.string.controls_safety_locked_moving),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                OutlinedButton(
+                    onClick = onOpenSpeedLimit,
+                    enabled = actionsPermitted,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        Icons.Filled.Speed,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        stringResource(R.string.controls_speed_limit_button),
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onOpenCalibrate,
+                    enabled = actionsPermitted,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        Icons.Filled.Tune,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        stringResource(R.string.controls_calibrate_button),
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onOpenPowerOff,
+                    enabled = actionsPermitted,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Icon(
+                        Icons.Filled.PowerSettingsNew,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        stringResource(R.string.controls_power_off_button),
+                        fontSize = 11.sp,
+                        maxLines = 1,
                     )
                 }
             }

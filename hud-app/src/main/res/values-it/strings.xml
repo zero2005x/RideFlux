@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">RideFlux HUD ha bisogno delle autorizzazioni Bluetooth di ricerca e connessione per raggiungere il tuo monoruota.</string>
     <string name="permission_location_body">RideFlux HUD ha bisogno dell\'accesso alla posizione per rilevare il tuo monoruota e connettersi via Bluetooth.</string>
     <string name="action_open_settings">Apri impostazioni</string>
+    <string name="hud_offline_link_lost">Collegamento Bluetooth perso</string>
+    <string name="hud_offline_handshake">Il monoruota non ha risposto</string>
+    <string name="hud_offline_internal">Errore interno</string>
+
+    <string name="hud_settings_mirror">SPECCHIO: %1$s</string>
+    <string name="hud_settings_on">ATTIVO</string>
+    <string name="hud_settings_off">NON ATTIVO</string>
+    <string name="hud_settings_ring_key">ANELLO: %1$s</string>
+    <string name="hud_settings_ring_default">PREDEFINITO</string>
+    <string name="hud_settings_ring_learn">MEMORIZZA</string>
+    <string name="hud_settings_ring_listening">PREMI ORA L\'ANELLO…</string>
+    <string name="hud_settings_ring_reset">REIMPOSTA</string>
+    <string name="hud_settings_ring_learned">TASTO %1$d</string>
 </resources>

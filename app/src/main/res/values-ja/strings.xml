@@ -206,4 +206,91 @@
     <string name="notification_recording_title">RideFlux が記録中です</string>
     <string name="notification_recording_text">ホイールのテレメトリを端末に保存しています</string>
 
+    <string name="scanner_group_recognised">認識済み</string>
+    <string name="scanner_group_unrecognised">未認識（タップして試す）</string>
+    <string name="scanner_signal_weak">電波が弱い — 近づいてください</string>
+    <string name="settings_pairing_code_title">この端末のペアリングコード</string>
+    <string name="settings_pairing_code_hint">%1$s\nグラス側でこのコードを選んでペアリングします</string>
+    <string name="settings_pairing_code_preparing">準備中…</string>
+
+
+    <!-- ===== Glasses authorization & approved list ================== -->
+    <string name="action_allow">許可</string>
+    <string name="action_deny">拒否</string>
+    <string name="glasses_auth_dialog_title">ARグラスのペアリング要求</string>
+    <string name="glasses_auth_dialog_message">ARグラス（コード: %1$s）が接続とテレメトリの受信を要求しています。このデバイスを許可しますか？</string>
+    <string name="glasses_auth_dialog_legacy_message">旧型ARグラス（%1$s）が接続を要求しています。このデバイスを許可しますか？</string>
+    <string name="glasses_auth_notification_title">グラスのペアリング要求</string>
+    <string name="glasses_auth_notification_text">ARグラス（%1$s）が接続を求めています</string>
+    <string name="settings_approved_glasses_title">承認済みのグラス</string>
+    <string name="settings_approved_glasses_empty">承認済みのグラスはありません</string>
+    <string name="settings_approved_glasses_remove">削除</string>
+    <string name="settings_approved_glasses_device">グラス（%1$s）</string>
+    <string name="settings_approved_glasses_legacy_device">旧型HUD（%1$s）</string>
+
+
+    <!-- ===== AR Glasses Setup & Distribution ====================== -->
+    <string name="glasses_setup_title">ARグラスの設定</string>
+    <string name="glasses_setup_subtitle">ARグラスにHUDアプリをインストールして設定</string>
+    <string name="glasses_setup_pairing_code_label">このスマホのペアリングコード</string>
+    <string name="glasses_setup_install_title">インストール手順</string>
+    <string name="glasses_setup_install_step1">1. GitHub Releasesから最新のHUD APK（hud-app-release.apk）をダウンロードします。</string>
+    <string name="glasses_setup_install_step2">2. ADB（adb install hud-app-release.apk）またはグラスの転送ツールでインストールします。</string>
+    <string name="glasses_setup_install_step3">3. グラスでRideFluxを開き、Bluetooth権限を許可して、このスマホのコードを選択します。</string>
+    <string name="glasses_setup_download_button">GitHubからHUDをダウンロード</string>
+    <string name="glasses_setup_version_format">スマホバージョン %1$s (ビルド %2$d) と互換性あり</string>
+    <string name="action_copy">コピー</string>
+    <string name="copied_to_clipboard">クリップボードにコピーしました</string>
+
+    <!-- ===== Data Backup & Restore ============================== -->
+    <string name="action_cancel">キャンセル</string>
+    <string name="action_export">エクスポート</string>
+    <string name="action_import">インポート</string>
+    <string name="settings_section_backup">データのバックアップと復元</string>
+    <string name="settings_backup_export_title">すべてのデータをエクスポート</string>
+    <string name="settings_backup_export_subtitle">すべての走行履歴と設定を ZIP アーカイブに保存します</string>
+    <string name="settings_backup_import_title">データをインポート</string>
+    <string name="settings_backup_import_subtitle">ZIP アーカイブから走行履歴と設定を復元します</string>
+    <string name="settings_backup_import_dialog_title">データの復元</string>
+    <string name="settings_backup_import_dialog_message">復元モードを選択してください：
+• 統合：既存のデータを保持し重複をスキップ
+• すべて置換：既存の履歴を削除しバックアップで上書き</string>
+    <string name="settings_backup_import_mode_merge">統合（重複をスキップ）</string>
+    <string name="settings_backup_import_mode_replace">すべて置換</string>
+    <string name="settings_backup_export_success">バックアップが正常にエクスポートされました（%1$d 件）</string>
+    <string name="settings_backup_export_error">エクスポートに失敗しました：%1$s</string>
+    <string name="settings_backup_import_success">%1$d 件の走行履歴を復元しました（重複 %2$d 件をスキップ）</string>
+    <string name="settings_backup_import_error">インポートに失敗しました：%1$s</string>
+
+    <string name="settings_hud_mirror_title">HUD表示をミラー反転</string>
+    <string name="settings_hud_mirror_subtitle">プリズム反射式AR光学系向けに画面を左右反転します</string>
+    <string name="settings_select_glasses_title">選択中のARグラス</string>
+    <string name="settings_select_glasses_auto">自動検出（デバイス名による）</string>
+    <string name="settings_select_glasses_dialog_title">ARグラスの選択</string>
+    <string name="settings_ring_key_title">リングコントローラー</string>
+    <string name="settings_ring_key_mapping_label">リングボタン割り当て</string>
+    <string name="settings_ring_key_default">デフォルト (%1$s)</string>
+    <string name="settings_ring_key_custom">カスタム（キーコード：%1$d）</string>
+    <string name="settings_ring_key_learn">ボタンを学習</string>
+    <string name="settings_ring_key_reset">リセット</string>
+    <string name="settings_ring_learning_dialog_title">リングボタンの学習</string>
+    <string name="settings_ring_learning_dialog_message">今すぐリングのボタンを押してください…</string>
+    <string name="action_select">選択</string>
+
+    <string name="notification_boot_autostart_title">RideFlux ブリッジ自動起動</string>
+    <string name="notification_boot_autostart_body">バックグラウンド起動がシステムにより制限されました。タップして RideFlux を開いてください。</string>
+    <string name="controls_safety_locked_moving">安全のため、走行中は車両制御が無効化されます</string>
+    <string name="controls_speed_limit_button">速度制限</string>
+    <string name="controls_calibrate_button">キャリブレーション</string>
+    <string name="controls_power_off_button">電源オフ</string>
+    <string name="dialog_power_off_title">車両の電源を切りますか？</string>
+    <string name="dialog_power_off_warning">電源を切ると直ちにモーター出力が遮断されます。走行中や自立状態の場合は即座に転倒します。必ず停止し、降車して車体を支えた状態で行ってください。</string>
+    <string name="dialog_power_off_confirm">電源を切る</string>
+    <string name="dialog_calibrate_title">センサーをキャリブレーションしますか？</string>
+    <string name="dialog_calibrate_warning">キャリブレーションにより水平基準がリセットされます。作業中はモーターが無効になります。車体を水平な地面に垂直かつ安定して保持してください。乗車中は絶対に行わないでください。</string>
+    <string name="dialog_calibrate_confirm">開始</string>
+    <string name="dialog_speed_limit_title">最高速度制限の設定</string>
+    <string name="dialog_speed_limit_warning">速度制限を変更するとチルトバックの閾値が変わります。現在の走行速度未満に設定すると急なチルトバックが発生する危険があります。必ず停止中に変更してください。</string>
+    <string name="dialog_speed_limit_confirm">設定</string>
+    <string name="dialog_speed_limit_label">制限: %1$d km/h</string>
 </resources>

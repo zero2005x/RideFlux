@@ -206,4 +206,91 @@
     <string name="notification_recording_title">RideFlux रिकॉर्ड कर रहा है</string>
     <string name="notification_recording_text">व्हील टेलीमेट्री स्थानीय रूप से सहेजी जा रही है</string>
 
+    <string name="scanner_group_recognised">पहचाने गए</string>
+    <string name="scanner_group_unrecognised">अज्ञात (आज़माने के लिए टैप करें)</string>
+    <string name="scanner_signal_weak">कमज़ोर सिग्नल — और पास जाएँ</string>
+    <string name="settings_pairing_code_title">इस फ़ोन का पेयरिंग कोड</string>
+    <string name="settings_pairing_code_hint">%1$s\nपेयर करने के लिए चश्मे पर यह कोड चुनें</string>
+    <string name="settings_pairing_code_preparing">तैयार हो रहा है…</string>
+
+
+    <!-- ===== Glasses authorization & approved list ================== -->
+    <string name="action_allow">अनुमति दें</string>
+    <string name="action_deny">अस्वीकार करें</string>
+    <string name="glasses_auth_dialog_title">AR चश्मा युग्मन अनुरोध</string>
+    <string name="glasses_auth_dialog_message">AR चश्मा (कोड: %1$s) टेलीमेट्री प्राप्त करने के लिए कनेक्ट होने का अनुरोध कर रहा है। क्या इस उपकरण की अनुमति दें?</string>
+    <string name="glasses_auth_dialog_legacy_message">पुराना AR चश्मा (%1$s) कनेक्ट होने का अनुरोध कर रहा है। क्या इस उपकरण की अनुमति दें?</string>
+    <string name="glasses_auth_notification_title">चश्मा युग्मन अनुरोध</string>
+    <string name="glasses_auth_notification_text">AR चश्मा (%1$s) कनेक्ट होना चाहता है</string>
+    <string name="settings_approved_glasses_title">स्वीकृत चश्मे</string>
+    <string name="settings_approved_glasses_empty">कोई स्वीकृत चश्मा नहीं</string>
+    <string name="settings_approved_glasses_remove">हटाएं</string>
+    <string name="settings_approved_glasses_device">चश्मा (%1$s)</string>
+    <string name="settings_approved_glasses_legacy_device">पुराना HUD (%1$s)</string>
+
+
+    <!-- ===== AR Glasses Setup & Distribution ====================== -->
+    <string name="glasses_setup_title">AR चश्मा सेटअप</string>
+    <string name="glasses_setup_subtitle">अपने AR चश्मे पर HUD ऐप इंस्टॉल और कॉन्फ़िगर करें</string>
+    <string name="glasses_setup_pairing_code_label">इस फ़ोन का युग्मन कोड</string>
+    <string name="glasses_setup_install_title">स्थापना निर्देश</string>
+    <string name="glasses_setup_install_step1">1. GitHub Releases से नवीनतम HUD APK (hud-app-release.apk) डाउनलोड करें।</string>
+    <string name="glasses_setup_install_step2">2. ADB (adb install hud-app-release.apk) या अपने चश्मे के टूल का उपयोग करके APK इंस्टॉल करें।</string>
+    <string name="glasses_setup_install_step3">3. चश्मे पर RideFlux खोलें, ब्लूटूथ अनुमति दें और इस फ़ोन का कोड चुनें।</string>
+    <string name="glasses_setup_download_button">GitHub से HUD डाउनलोड करें</string>
+    <string name="glasses_setup_version_format">फ़ोन संस्करण %1$s (बिल्ड %2$d) के साथ संगत</string>
+    <string name="action_copy">कॉपी करें</string>
+    <string name="copied_to_clipboard">क्लिपबोर्ड पर कॉपी किया गया</string>
+
+    <!-- ===== Data Backup & Restore ============================== -->
+    <string name="action_cancel">रद्द करें</string>
+    <string name="action_export">निर्यात</string>
+    <string name="action_import">आयात</string>
+    <string name="settings_section_backup">डेटा बैकअप और पुनर्स्थापना</string>
+    <string name="settings_backup_export_title">सभी डेटा निर्यात करें</string>
+    <string name="settings_backup_export_subtitle">सभी सवारी और सेटिंग्स को एक ZIP संग्रह में सहेजें</string>
+    <string name="settings_backup_import_title">डेटा आयात करें</string>
+    <string name="settings_backup_import_subtitle">ZIP संग्रह से सवारी और सेटिंग्स पुनर्स्थापित करें</string>
+    <string name="settings_backup_import_dialog_title">डेटा पुनर्स्थापित करें</string>
+    <string name="settings_backup_import_dialog_message">पुनर्स्थापना मोड चुनें:
+• विलय: मौजूदा डेटा रखें और डुप्लिकेट छोड़ें
+• सभी बदलें: सभी मौजूदा सवारी हटाएं और बैकअप से बदलें</string>
+    <string name="settings_backup_import_mode_merge">विलय (डुप्लिकेट छोड़ें)</string>
+    <string name="settings_backup_import_mode_replace">सभी बदलें</string>
+    <string name="settings_backup_export_success">बैकअप सफलतापूर्वक निर्यात किया गया (%1$d सवारी)</string>
+    <string name="settings_backup_export_error">निर्यात विफल: %1$s</string>
+    <string name="settings_backup_import_success">%1$d सवारी पुनर्स्थापित की गईं (%2$d डुप्लिकेट छोड़े गए)</string>
+    <string name="settings_backup_import_error">आयात विफल: %1$s</string>
+
+    <string name="settings_hud_mirror_title">HUD डिस्प्ले को मिरर करें</string>
+    <string name="settings_hud_mirror_subtitle">परावर्तक प्रिज्म AR ऑप्टिक्स के लिए डिस्प्ले को क्षैतिज रूप से पलटता है</string>
+    <string name="settings_select_glasses_title">चयनित AR चश्मा</string>
+    <string name="settings_select_glasses_auto">स्वतः पहचान (डिवाइस नाम से)</string>
+    <string name="settings_select_glasses_dialog_title">AR चश्मा चुनें</string>
+    <string name="settings_ring_key_title">रिंग नियंत्रक</string>
+    <string name="settings_ring_key_mapping_label">रिंग बटन मैपिंग</string>
+    <string name="settings_ring_key_default">डिफ़ॉल्ट (%1$s)</string>
+    <string name="settings_ring_key_custom">कस्टम (कुंजी कोड: %1$d)</string>
+    <string name="settings_ring_key_learn">बटन सीखें</string>
+    <string name="settings_ring_key_reset">रीसेट</string>
+    <string name="settings_ring_learning_dialog_title">रिंग बटन सीखें</string>
+    <string name="settings_ring_learning_dialog_message">अब अपने रिंग का बटन दबाएं…</string>
+    <string name="action_select">चुनें</string>
+
+    <string name="notification_boot_autostart_title">RideFlux ब्रिज स्वतः प्रारंभ</string>
+    <string name="notification_boot_autostart_body">सिस्टम द्वारा बैकग्राउंड स्वतः प्रारंभ प्रतिबंधित कर दिया गया। RideFlux खोलने के लिए टैप करें।</string>
+    <string name="controls_safety_locked_moving">सवार की सुरक्षा के लिए गति के दौरान नियंत्रण लॉक हैं</string>
+    <string name="controls_speed_limit_button">गति सीमा</string>
+    <string name="controls_calibrate_button">कैलिब्रेट करें</string>
+    <string name="controls_power_off_button">पावर बंद करें</string>
+    <string name="dialog_power_off_title">वाहन की पावर बंद करें?</string>
+    <string name="dialog_power_off_warning">पावर बंद करने पर मोटर तुरंत बंद हो जाएगी। यदि वाहन संतुलित है या चल रहा है, तो वह तुरंत गिर जाएगा। केवल रुकने, उतरने और सहारा देने के बाद ही पावर बंद करें।</string>
+    <string name="dialog_power_off_confirm">पावर बंद करें</string>
+    <string name="dialog_calibrate_title">वाहन सेंसर कैलिब्रेट करें?</string>
+    <string name="dialog_calibrate_warning">कैलिब्रेशन से जाइरोस्कोप क्षैतिज स्तर रीसेट होता है। कैलिब्रेशन के दौरान मोटर अक्षम रहेगी। वाहन को समतल सतह पर पूरी तरह सीधा रखें। कभी भी वाहन पर सवार रहते हुए कैलिब्रेट न करें।</string>
+    <string name="dialog_calibrate_confirm">कैलिब्रेशन शुरू करें</string>
+    <string name="dialog_speed_limit_title">गति सीमा निर्धारित करें</string>
+    <string name="dialog_speed_limit_warning">अधिकतम गति सीमा बदलने से टिल्ट-बैक सीमाएं बदलती हैं। वर्तमान गति से कम सीमा सेट करने से अचानक टिल्ट-बैक हो सकता है। केवल रुकने पर ही बदलें।</string>
+    <string name="dialog_speed_limit_confirm">सीमा लागू करें</string>
+    <string name="dialog_speed_limit_label">सीमा: %1$d km/h</string>
 </resources>

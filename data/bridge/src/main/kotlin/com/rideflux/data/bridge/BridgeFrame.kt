@@ -37,6 +37,17 @@ data class BridgeFrame(
     val stale: Boolean,
     /** True when the wheel link is connected & the handshake completed. */
     val ready: Boolean,
+    /**
+     * Phone's request that the glasses blank the HUD.
+     *
+     * This is the one field that travels *as a command* rather than as
+     * telemetry: it lets a ring paired to the phone hide and reveal the
+     * display without the glasses needing an input device of their own.
+     * It rides in a previously unused flag bit, so a phone or HUD on the
+     * older build simply never sets or reads it — no version bump, and
+     * mixed installs keep working.
+     */
+    val hudHidden: Boolean = false,
 ) {
     init {
         // 0 is reserved for the EMPTY sentinel below.

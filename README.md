@@ -68,8 +68,19 @@ The project ships **two installable apps** that coexist on separate devices:
 
 - Two selectable transports: a custom **Android BLE GATT bridge** (phone advertises as
   peripheral, glasses subscribe as central) or the official **Rokid CXR** message channel.
+  The BLE bridge is the default, and a CXR link that fails to come up within its connect
+  timeout degrades back to it automatically — CXR needs provisioned hardware, so on a
+  consumer unit it would otherwise loop while the phone advertised nothing at all.
 - The glasses stay fully passive: the frame carries phone battery, a coarse signal bucket
   and a staleness flag so the HUD never has to talk to the wheel itself.
+- Telemetry is only streamed to the bonded HUD. A release build refuses a notification
+  subscription from any other central; a debug build stays open for bring-up.
+- **Ring control** — a BLE ring paired to either device reveals or blanks the HUD without
+  the rider touching anything. On the glasses the ring's discrete click (`KEYCODE_ENTER`)
+  toggles it; on the phone, volume-up reveals and volume-down blanks, since rings of this
+  class emit nothing but consumer volume events. Blanking stops the drawing only — the
+  bridge stays connected, so revealing it again is instant — and an active safety
+  threshold still breaks through a blanked HUD.
 - Optional autostart on boot via `BridgeBootReceiver`.
 
 **Localization**

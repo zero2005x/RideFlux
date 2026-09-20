@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -53,12 +54,7 @@ class HudActivity : ComponentActivity() {
         // A riding HUD must keep its display and scan alive until the
         // rider explicitly exits the activity.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setTurnScreenOn(true)
-        } else {
-            @Suppress("DEPRECATION")
-            window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
-        }
+        setTurnScreenOn(true)
         // Touch the delegate to trigger eager ViewModel + Hilt wiring.
         viewModel
         // Resolve MAC: explicit intent extra wins; otherwise fall
@@ -99,9 +95,52 @@ class HudActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Reveals or blanks the HUD from the glasses' own ring.
+     *
+     * The RGR06 enumerates as three HID nodes, and its touch surface
+     * expands a swipe into `KEY_F1` followed by a burst of
+     * `KEY_LEFT`/`KEY_RIGHT` — so only the discrete keys are safe to
+     * bind. `ENTER` (the click) is the one that never appears inside a
+     * swipe burst; `F1` would fire on every touch the rider makes.
+     *
+     * Handled here rather than in Compose so it works no matter which
+     * HUD phase currently holds focus, including the blanked surface
+     * that has nothing focusable to receive it.
+     */
+    @android.annotation.SuppressLint("RestrictedApi")
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (viewModel.isLearningRingKey.value) {
+            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+                viewModel.recordRingKey(event.keyCode)
+            }
+            return true
+        }
+
+        val customKey = viewModel.settings.value.ringKeyCode
+        val isTargetKey = if (customKey != null) {
+            event.keyCode == customKey
+        } else {
+            event.keyCode in RING_TOGGLE_KEYS
+        }
+
+        if (isTargetKey) {
+            if (event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
+                viewModel.toggleHudVisible()
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     companion object {
         /** Intent extra key for the target wheel's BLE MAC address. */
         const val EXTRA_MAC: String = "mac"
+
+        private val RING_TOGGLE_KEYS = setOf(
+            KeyEvent.KEYCODE_ENTER,
+            KeyEvent.KEYCODE_DPAD_CENTER,
+        )
 
         // Note: the family/source intent extras are read by
         // HudViewModel via HudViewModel.KEY_FAMILY / KEY_SOURCE (same

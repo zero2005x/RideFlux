@@ -228,6 +228,18 @@ sonar {
             "**/*Args.java",
         ).joinToString(","))
 
+        // Localized string tables intentionally repeat the same key/value
+        // structure across locales. Treating them as copy/paste duplication
+        // makes large i18n updates fail the Quality Gate even though
+        // LocalizationCoverageTest already verifies their correctness.
+        property(
+            "sonar.cpd.exclusions",
+            listOf(
+                "**/src/main/res/values/strings.xml",
+                "**/src/main/res/values-*/strings.xml",
+            ).joinToString(","),
+        )
+
         // Exclude generated / non-project code from coverage analysis.
         // NOTE: sonar.test.exclusions removes files from analysis scope
         // entirely (not just coverage), and the previous broad `**/test/**`
