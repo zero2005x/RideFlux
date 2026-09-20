@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface SettingsRepository {
     val settings: StateFlow<AppSettings>
     suspend fun current(): AppSettings
+    suspend fun updateSettings(settings: AppSettings) {}
 
     suspend fun setSpeedLimitKmh(value: Float)
     suspend fun setTemperatureLimitC(value: Float)
@@ -20,4 +21,7 @@ interface SettingsRepository {
     suspend fun setBridgeAutostart(value: Boolean)
     suspend fun setBridgeStandbyAdvertiseLowLatency(value: Boolean)
     suspend fun setHudPeerMac(value: String?)
+    suspend fun setRingKeyCode(value: Int?) {}
+    suspend fun setHudMirrorHorizontally(value: Boolean) {}
+    suspend fun setPreferredGlassesMac(value: String?) {}
 }

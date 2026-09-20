@@ -206,4 +206,91 @@
     <string name="notification_recording_title">RideFlux가 기록 중입니다</string>
     <string name="notification_recording_text">휠 텔레메트리를 기기에 저장하고 있습니다</string>
 
+    <string name="scanner_group_recognised">인식됨</string>
+    <string name="scanner_group_unrecognised">인식되지 않음(탭하여 시도)</string>
+    <string name="scanner_signal_weak">신호 약함 — 더 가까이 가세요</string>
+    <string name="settings_pairing_code_title">이 휴대폰의 페어링 코드</string>
+    <string name="settings_pairing_code_hint">%1$s\n안경에서 이 코드를 선택해 페어링하세요</string>
+    <string name="settings_pairing_code_preparing">준비 중…</string>
+
+
+    <!-- ===== Glasses authorization & approved list ================== -->
+    <string name="action_allow">허용</string>
+    <string name="action_deny">거부</string>
+    <string name="glasses_auth_dialog_title">AR 안경 페어링 요청</string>
+    <string name="glasses_auth_dialog_message">AR 안경(코드: %1$s)이 연결 및 원격 측정 수신을 요청하고 있습니다. 이 기기를 허용하시겠습니까?</string>
+    <string name="glasses_auth_dialog_legacy_message">레거시 AR 안경(%1$s)이 연결을 요청하고 있습니다. 이 기기를 허용하시겠습니까?</string>
+    <string name="glasses_auth_notification_title">안경 페어링 요청</string>
+    <string name="glasses_auth_notification_text">AR 안경(%1$s) 연결 요청</string>
+    <string name="settings_approved_glasses_title">승인된 안경</string>
+    <string name="settings_approved_glasses_empty">승인된 안경 없음</string>
+    <string name="settings_approved_glasses_remove">삭제</string>
+    <string name="settings_approved_glasses_device">안경(%1$s)</string>
+    <string name="settings_approved_glasses_legacy_device">레거시 HUD(%1$s)</string>
+
+
+    <!-- ===== AR Glasses Setup & Distribution ====================== -->
+    <string name="glasses_setup_title">AR 안경 설정</string>
+    <string name="glasses_setup_subtitle">AR 안경에 HUD 앱 설치 및 구성</string>
+    <string name="glasses_setup_pairing_code_label">이 휴대전화의 페어링 코드</string>
+    <string name="glasses_setup_install_title">설치 안내</string>
+    <string name="glasses_setup_install_step1">1. GitHub Releases에서 최신 HUD APK(hud-app-release.apk)를 다운로드합니다.</string>
+    <string name="glasses_setup_install_step2">2. ADB(adb install hud-app-release.apk) 또는 안경 전송 도구를 사용하여 설치합니다.</string>
+    <string name="glasses_setup_install_step3">3. 안경에서 RideFlux를 열고 블루투스 권한을 허용한 후 이 휴대전화의 코드를 선택합니다.</string>
+    <string name="glasses_setup_download_button">GitHub에서 HUD 다운로드</string>
+    <string name="glasses_setup_version_format">휴대전화 버전 %1$s (빌드 %2$d) 와 호환</string>
+    <string name="action_copy">복사</string>
+    <string name="copied_to_clipboard">클립보드에 복사됨</string>
+
+    <!-- ===== Data Backup & Restore ============================== -->
+    <string name="action_cancel">취소</string>
+    <string name="action_export">내보내기</string>
+    <string name="action_import">가져오기</string>
+    <string name="settings_section_backup">데이터 백업 및 복원</string>
+    <string name="settings_backup_export_title">모든 데이터 내보내기</string>
+    <string name="settings_backup_export_subtitle">모든 주행 기록 및 설정을 ZIP 압축 파일로 저장합니다</string>
+    <string name="settings_backup_import_title">데이터 가져오기</string>
+    <string name="settings_backup_import_subtitle">ZIP 압축 파일에서 주행 기록 및 설정을 복원합니다</string>
+    <string name="settings_backup_import_dialog_title">데이터 복원</string>
+    <string name="settings_backup_import_dialog_message">복원 방식을 선택하세요:
+• 병합: 기존 데이터를 유지하고 중복 기록 건너뛰기
+• 전체 대체: 기존 주행 기록을 모두 지우고 백업으로 대체</string>
+    <string name="settings_backup_import_mode_merge">병합 (중복 건너뛰기)</string>
+    <string name="settings_backup_import_mode_replace">전체 대체</string>
+    <string name="settings_backup_export_success">백업을 성공적으로 내보냈습니다 (%1$d개 주행)</string>
+    <string name="settings_backup_export_error">내보내기 실패: %1$s</string>
+    <string name="settings_backup_import_success">%1$d개 주행 기록 복원 완료 (%2$d개 중복 건너뜀)</string>
+    <string name="settings_backup_import_error">가져오기 실패: %1$s</string>
+
+    <string name="settings_hud_mirror_title">HUD 화면 미러링</string>
+    <string name="settings_hud_mirror_subtitle">반사 프리즘 AR 광학계를 위해 화면을 좌우로 반전합니다</string>
+    <string name="settings_select_glasses_title">선택된 AR 안경</string>
+    <string name="settings_select_glasses_auto">자동 감지 (기기 이름 기준)</string>
+    <string name="settings_select_glasses_dialog_title">AR 안경 선택</string>
+    <string name="settings_ring_key_title">링 컨트롤러</string>
+    <string name="settings_ring_key_mapping_label">링 버튼 매핑</string>
+    <string name="settings_ring_key_default">기본값 (%1$s)</string>
+    <string name="settings_ring_key_custom">사용자 지정 (키 코드: %1$d)</string>
+    <string name="settings_ring_key_learn">버튼 학습</string>
+    <string name="settings_ring_key_reset">초기화</string>
+    <string name="settings_ring_learning_dialog_title">링 버튼 학습</string>
+    <string name="settings_ring_learning_dialog_message">지금 링의 버튼을 누르세요…</string>
+    <string name="action_select">선택</string>
+
+    <string name="notification_boot_autostart_title">RideFlux 브리지 자동 시작</string>
+    <string name="notification_boot_autostart_body">시스템에 의해 백그라운드 자동 시작이 제한되었습니다. RideFlux를 열려면 탭하세요.</string>
+    <string name="controls_safety_locked_moving">주행 안전을 위해 이동 중에는 차량 제어가 잠깁니다</string>
+    <string name="controls_speed_limit_button">속도 제한</string>
+    <string name="controls_calibrate_button">수평 보정</string>
+    <string name="controls_power_off_button">전원 끄기</string>
+    <string name="dialog_power_off_title">기기 전원을 끄시겠습니까?</string>
+    <string name="dialog_power_off_warning">전원을 끄면 즉시 모터 동력이 차단됩니다. 균형 유지 중이거나 주행 중일 경우 즉시 넘어집니다. 반드시 정지 후 하차하여 기기를 지지한 상태에서 진행하세요.</string>
+    <string name="dialog_power_off_confirm">전원 끄기</string>
+    <string name="dialog_calibrate_title">센서 수평을 보정하시겠습니까?</string>
+    <string name="dialog_calibrate_warning">보정을 진행하면 자이로스코프 수평 기준이 초기화됩니다. 보정 중에는 모터가 해제됩니다. 평평한 바닥에서 기기를 수직으로 안정되게 유지하세요. 탑승 중에는 절대 보정하지 마세요.</string>
+    <string name="dialog_calibrate_confirm">보정 시작</string>
+    <string name="dialog_speed_limit_title">최고 속도 제한 설정</string>
+    <string name="dialog_speed_limit_warning">속도 제한을 변경하면 틸트백 기준이 변경됩니다. 현재 주행 속도보다 낮게 설정하면 갑작스러운 틸트백이 발생할 수 있습니다. 반드시 정지 상태에서 조정하세요.</string>
+    <string name="dialog_speed_limit_confirm">제한 설정</string>
+    <string name="dialog_speed_limit_label">제한: %1$d km/h</string>
 </resources>

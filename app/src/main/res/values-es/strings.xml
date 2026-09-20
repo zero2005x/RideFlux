@@ -206,4 +206,91 @@
     <string name="notification_recording_title">RideFlux está grabando</string>
     <string name="notification_recording_text">La telemetría se está guardando localmente</string>
 
+    <string name="scanner_group_recognised">Reconocidos</string>
+    <string name="scanner_group_unrecognised">No reconocidos (toca para probar)</string>
+    <string name="scanner_signal_weak">Señal débil: acércate más</string>
+    <string name="settings_pairing_code_title">Código de vinculación de este teléfono</string>
+    <string name="settings_pairing_code_hint">%1$s\nSelecciona este código en las gafas para vincular</string>
+    <string name="settings_pairing_code_preparing">Preparando…</string>
+
+
+    <!-- ===== Glasses authorization & approved list ================== -->
+    <string name="action_allow">Permitir</string>
+    <string name="action_deny">Rechazar</string>
+    <string name="glasses_auth_dialog_title">Solicitud de vinculación de gafas AR</string>
+    <string name="glasses_auth_dialog_message">Las gafas AR (Código: %1$s) solicitan conectarse y recibir telemetría. ¿Permitir este dispositivo?</string>
+    <string name="glasses_auth_dialog_legacy_message">Las gafas AR heredadas (%1$s) solicitan conectarse. ¿Permitir este dispositivo?</string>
+    <string name="glasses_auth_notification_title">Solicitud de vinculación de gafas</string>
+    <string name="glasses_auth_notification_text">Las gafas AR (%1$s) quieren conectarse</string>
+    <string name="settings_approved_glasses_title">Gafas aprobadas</string>
+    <string name="settings_approved_glasses_empty">No hay gafas aprobadas</string>
+    <string name="settings_approved_glasses_remove">Eliminar</string>
+    <string name="settings_approved_glasses_device">Gafas (%1$s)</string>
+    <string name="settings_approved_glasses_legacy_device">HUD heredado (%1$s)</string>
+
+
+    <!-- ===== AR Glasses Setup & Distribution ====================== -->
+    <string name="glasses_setup_title">Configurar gafas AR</string>
+    <string name="glasses_setup_subtitle">Instalar y configurar la aplicación HUD en tus gafas AR</string>
+    <string name="glasses_setup_pairing_code_label">Código de vinculación de este teléfono</string>
+    <string name="glasses_setup_install_title">Instrucciones de instalación</string>
+    <string name="glasses_setup_install_step1">1. Descarga el APK del HUD más reciente (hud-app-release.apk) desde GitHub Releases.</string>
+    <string name="glasses_setup_install_step2">2. Instala el APK mediante ADB (adb install hud-app-release.apk) o la herramienta de tus gafas.</string>
+    <string name="glasses_setup_install_step3">3. Abre RideFlux en las gafas, concede permisos de Bluetooth y selecciona este código.</string>
+    <string name="glasses_setup_download_button">Descargar HUD desde GitHub</string>
+    <string name="glasses_setup_version_format">Compatible con la versión de teléfono %1$s (compilación %2$d)</string>
+    <string name="action_copy">Copiar</string>
+    <string name="copied_to_clipboard">Copiado al portapapeles</string>
+
+    <!-- ===== Data Backup & Restore ============================== -->
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_export">Exportar</string>
+    <string name="action_import">Importar</string>
+    <string name="settings_section_backup">Copia de seguridad y restauración</string>
+    <string name="settings_backup_export_title">Exportar todos los datos</string>
+    <string name="settings_backup_export_subtitle">Guardar todos los viajes y ajustes en un archivo ZIP</string>
+    <string name="settings_backup_import_title">Importar datos</string>
+    <string name="settings_backup_import_subtitle">Restaurar viajes y ajustes desde un archivo ZIP</string>
+    <string name="settings_backup_import_dialog_title">Restaurar datos</string>
+    <string name="settings_backup_import_dialog_message">Elige el modo de restauración:
+• Combinar: Conservar datos actuales y omitir duplicados
+• Reemplazar todo: Borrar viajes existentes y restaurar desde la copia</string>
+    <string name="settings_backup_import_mode_merge">Combinar (omitir duplicados)</string>
+    <string name="settings_backup_import_mode_replace">Reemplazar todo</string>
+    <string name="settings_backup_export_success">Copia exportada con éxito (%1$d viajes)</string>
+    <string name="settings_backup_export_error">Error al exportar: %1$s</string>
+    <string name="settings_backup_import_success">Se restauraron %1$d viajes (%2$d duplicados omitidos)</string>
+    <string name="settings_backup_import_error">Error al importar: %1$s</string>
+
+    <string name="settings_hud_mirror_title">Reflejar pantalla del HUD</string>
+    <string name="settings_hud_mirror_subtitle">Voltea la pantalla horizontalmente para ópticas AR de prisma reflectante</string>
+    <string name="settings_select_glasses_title">Gafas AR seleccionadas</string>
+    <string name="settings_select_glasses_auto">Detección automática (por nombre de dispositivo)</string>
+    <string name="settings_select_glasses_dialog_title">Elegir gafas AR</string>
+    <string name="settings_ring_key_title">Controlador de anillo</string>
+    <string name="settings_ring_key_mapping_label">Asignación de botones del anillo</string>
+    <string name="settings_ring_key_default">Predeterminado (%1$s)</string>
+    <string name="settings_ring_key_custom">Personalizado (Código de tecla: %1$d)</string>
+    <string name="settings_ring_key_learn">Aprender botón</string>
+    <string name="settings_ring_key_reset">Restablecer</string>
+    <string name="settings_ring_learning_dialog_title">Aprender botón del anillo</string>
+    <string name="settings_ring_learning_dialog_message">Presiona el botón de tu anillo ahora…</string>
+    <string name="action_select">Seleccionar</string>
+
+    <string name="notification_boot_autostart_title">Inicio automático del puente RideFlux</string>
+    <string name="notification_boot_autostart_body">El sistema restringió el inicio en segundo plano. Toca para abrir RideFlux.</string>
+    <string name="controls_safety_locked_moving">Controles bloqueados en movimiento por seguridad del conductor</string>
+    <string name="controls_speed_limit_button">Límite de velocidad</string>
+    <string name="controls_calibrate_button">Calibrar</string>
+    <string name="controls_power_off_button">Apagar</string>
+    <string name="dialog_power_off_title">¿Apagar el vehículo?</string>
+    <string name="dialog_power_off_warning">Apagar cortará de inmediato la potencia del motor. Si estás en equilibrio o conduciendo, el vehículo caerá al instante. Hazlo solo cuando esté detenido, apoyado y sin conductor.</string>
+    <string name="dialog_power_off_confirm">Apagar</string>
+    <string name="dialog_calibrate_title">¿Calibrar el sensor del vehículo?</string>
+    <string name="dialog_calibrate_warning">La calibración restablece el nivel horizontal. El motor se desactivará durante el proceso. Mantén el vehículo totalmente vertical y estable sobre suelo plano. Nunca calibres montado.</string>
+    <string name="dialog_calibrate_confirm">Iniciar calibración</string>
+    <string name="dialog_speed_limit_title">Establecer límite de velocidad</string>
+    <string name="dialog_speed_limit_warning">Modificar el límite cambia los umbrales de tilt-back. Ajustarlo por debajo de la velocidad actual puede provocar un levantamiento repentino de pedales. Ajusta solo detenido.</string>
+    <string name="dialog_speed_limit_confirm">Aplicar límite</string>
+    <string name="dialog_speed_limit_label">Límite: %1$d km/h</string>
 </resources>

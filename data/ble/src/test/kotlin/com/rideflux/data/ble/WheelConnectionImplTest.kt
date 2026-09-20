@@ -518,6 +518,67 @@ class WheelConnectionImplTest {
         conn.close()
     }
 
+    @Test
+    fun `dispatch blocks dangerous commands when vehicle speed is greater than zero`() = runTest {
+        val transport = FakeBleTransport()
+        val codec = FakeWheelCodec()
+        codec.onDecode = {
+            listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(timestampMillis = 100L, speedKmh = 12f)))
+        }
+        val conn = connection(transport, codec, backgroundScope)
+        conn.start()
+        runCurrent()
+        transport.emit(byteArrayOf(1))
+        runCurrent()
+
+        assertEquals(12f, conn.speedKmh.value)
+
+        // Dangerous commands must be rejected
+        val powerOutcome = conn.powerOff()
+        assertTrue("powerOff was $powerOutcome", powerOutcome is CommandOutcome.InvalidArgument)
+
+        val calibrateOutcome = conn.calibrate()
+        assertTrue("calibrate was $calibrateOutcome", calibrateOutcome is CommandOutcome.InvalidArgument)
+
+        val speedLimitOutcome = conn.setMaxSpeedKmh(25f)
+        assertTrue("setMaxSpeedKmh was $speedLimitOutcome", speedLimitOutcome is CommandOutcome.InvalidArgument)
+
+        // Non-hazardous commands must not be blocked by speed
+        codec.onEncode = { listOf(byteArrayOf(0x0A)) }
+        val beepOutcome = conn.beep()
+        assertTrue("beep was $beepOutcome", beepOutcome is CommandOutcome.Success)
+
+        conn.close()
+    }
+
+    @Test
+    fun `dispatch permits dangerous commands when vehicle is stationary`() = runTest {
+        val transport = FakeBleTransport()
+        val codec = FakeWheelCodec()
+        codec.onDecode = {
+            listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(timestampMillis = 100L, speedKmh = 0f)))
+        }
+        codec.onEncode = { listOf(byteArrayOf(0x0A)) }
+        val conn = connection(transport, codec, backgroundScope)
+        conn.start()
+        runCurrent()
+        transport.emit(byteArrayOf(1))
+        runCurrent()
+
+        assertEquals(0f, conn.speedKmh.value)
+
+        val powerOutcome = conn.powerOff()
+        assertTrue("powerOff was $powerOutcome", powerOutcome is CommandOutcome.Success)
+
+        val calibrateOutcome = conn.calibrate()
+        assertTrue("calibrate was $calibrateOutcome", calibrateOutcome is CommandOutcome.Success)
+
+        val speedLimitOutcome = conn.setMaxSpeedKmh(25f)
+        assertTrue("setMaxSpeedKmh was $speedLimitOutcome", speedLimitOutcome is CommandOutcome.Success)
+
+        conn.close()
+    }
+
     private fun capabilitiesStub() = WheelCapabilities(
         headlight = true, horn = false, beep = true, ledStrip = false,
         decorativeLights = false, rideModes = false, maxSpeed = true,

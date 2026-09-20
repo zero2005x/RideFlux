@@ -405,6 +405,21 @@ class WheelConnectionImpl(
     // ---- Commands ------------------------------------------------------
 
     override suspend fun dispatch(command: WheelCommand): CommandOutcome {
+        val currentSpeed = speedKmh.value ?: 0f
+        if (currentSpeed > 0f) {
+            when (command) {
+                is WheelCommand.PowerOff,
+                is WheelCommand.Calibrate,
+                is WheelCommand.SetMaxSpeedKmh -> {
+                    return CommandOutcome.InvalidArgument(
+                        command,
+                        "Safety violation: command ${command::class.simpleName} rejected because vehicle speed is $currentSpeed km/h (> 0)",
+                    )
+                }
+                else -> Unit
+            }
+        }
+
         val frames = try {
             codecMutex.withLock { codec.encode(codecState, command) }
         } catch (e: CancellationException) {

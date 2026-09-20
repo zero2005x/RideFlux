@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">آپ کے وہیل تک پہنچنے کے لیے RideFlux HUD کو بلوٹوتھ اسکین اور کنیکٹ کی اجازت درکار ہے۔</string>
     <string name="permission_location_body">بلوٹوتھ کے ذریعے آپ کے وہیل کو تلاش کرنے اور جڑنے کے لیے RideFlux HUD کو مقام تک رسائی درکار ہے۔</string>
     <string name="action_open_settings">ترتیبات کھولیں</string>
+    <string name="hud_offline_link_lost">بلوٹوتھ کنکشن منقطع ہو گیا</string>
+    <string name="hud_offline_handshake">وہیل نے جواب نہیں دیا</string>
+    <string name="hud_offline_internal">اندرونی خرابی</string>
+
+    <string name="hud_settings_mirror">آئینہ: %1$s</string>
+    <string name="hud_settings_on">آن</string>
+    <string name="hud_settings_off">آف</string>
+    <string name="hud_settings_ring_key">انگوٹھی: %1$s</string>
+    <string name="hud_settings_ring_default">ڈیفالٹ</string>
+    <string name="hud_settings_ring_learn">سیکھیں</string>
+    <string name="hud_settings_ring_listening">ابھی انگوٹھی دبائیں…</string>
+    <string name="hud_settings_ring_reset">ری سیٹ</string>
+    <string name="hud_settings_ring_learned">کلید %1$d</string>
 </resources>

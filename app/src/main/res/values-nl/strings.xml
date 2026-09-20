@@ -206,4 +206,91 @@
     <string name="notification_recording_title">RideFlux neemt op</string>
     <string name="notification_recording_text">Wheel-telemetrie wordt lokaal opgeslagen</string>
 
+    <string name="scanner_group_recognised">Herkend</string>
+    <string name="scanner_group_unrecognised">Niet herkend (tik om te proberen)</string>
+    <string name="scanner_signal_weak">Zwak signaal — ga dichterbij</string>
+    <string name="settings_pairing_code_title">Koppelcode van deze telefoon</string>
+    <string name="settings_pairing_code_hint">%1$s\nSelecteer deze code op de bril om te koppelen</string>
+    <string name="settings_pairing_code_preparing">Voorbereiden…</string>
+
+
+    <!-- ===== Glasses authorization & approved list ================== -->
+    <string name="action_allow">Toestaan</string>
+    <string name="action_deny">Weigeren</string>
+    <string name="glasses_auth_dialog_title">Koppelingsverzoek AR-bril</string>
+    <string name="glasses_auth_dialog_message">AR-bril (Code: %1$s) verzoekt om verbinding voor telemetrie. Dit apparaat toestaan?</string>
+    <string name="glasses_auth_dialog_legacy_message">Oudere AR-bril (%1$s) verzoekt om verbinding. Dit apparaat toestaan?</string>
+    <string name="glasses_auth_notification_title">Koppelingsverzoek bril</string>
+    <string name="glasses_auth_notification_text">AR-bril (%1$s) wil verbinding maken</string>
+    <string name="settings_approved_glasses_title">Goedgekeurde brillen</string>
+    <string name="settings_approved_glasses_empty">Geen goedgekeurde brillen</string>
+    <string name="settings_approved_glasses_remove">Verwijderen</string>
+    <string name="settings_approved_glasses_device">Bril (%1$s)</string>
+    <string name="settings_approved_glasses_legacy_device">Oudere HUD (%1$s)</string>
+
+
+    <!-- ===== AR Glasses Setup & Distribution ====================== -->
+    <string name="glasses_setup_title">AR-bril instellen</string>
+    <string name="glasses_setup_subtitle">Installeer en configureer de HUD-app op uw AR-bril</string>
+    <string name="glasses_setup_pairing_code_label">Koppelingscode van deze telefoon</string>
+    <string name="glasses_setup_install_title">Installatie-instructies</string>
+    <string name="glasses_setup_install_step1">1. Download de nieuwste HUD-APK (hud-app-release.apk) van GitHub Releases.</string>
+    <string name="glasses_setup_install_step2">2. Installeer de APK via ADB (adb install hud-app-release.apk) of de tool van uw bril.</string>
+    <string name="glasses_setup_install_step3">3. Open RideFlux op de bril, verleen Bluetooth-machtigingen en selecteer deze code.</string>
+    <string name="glasses_setup_download_button">Download HUD van GitHub</string>
+    <string name="glasses_setup_version_format">Compatibel met telefoonversie %1$s (build %2$d)</string>
+    <string name="action_copy">Kopiëren</string>
+    <string name="copied_to_clipboard">Gekopieerd naar klembord</string>
+
+    <!-- ===== Data Backup & Restore ============================== -->
+    <string name="action_cancel">Annuleren</string>
+    <string name="action_export">Exporteren</string>
+    <string name="action_import">Importeren</string>
+    <string name="settings_section_backup">Gegevensback-up &amp; herstel</string>
+    <string name="settings_backup_export_title">Alle gegevens exporteren</string>
+    <string name="settings_backup_export_subtitle">Bewaar alle ritten en instellingen in een ZIP-archief</string>
+    <string name="settings_backup_import_title">Gegevens importeren</string>
+    <string name="settings_backup_import_subtitle">Herstel ritten en instellingen vanuit een ZIP-archief</string>
+    <string name="settings_backup_import_dialog_title">Gegevens herstellen</string>
+    <string name="settings_backup_import_dialog_message">Kies de herstelmodus:
+• Samenvoegen: Behoud bestaande gegevens en sla duplicaten over
+• Alles vervangen: Wis alle ritten en herstel vanaf back-up</string>
+    <string name="settings_backup_import_mode_merge">Samenvoegen (sla duplicaten over)</string>
+    <string name="settings_backup_import_mode_replace">Alles vervangen</string>
+    <string name="settings_backup_export_success">Back-up succesvol geëxporteerd (%1$d ritten)</string>
+    <string name="settings_backup_export_error">Exporteren mislukt: %1$s</string>
+    <string name="settings_backup_import_success">%1$d ritten hersteld (%2$d duplicaten overgeslagen)</string>
+    <string name="settings_backup_import_error">Importeren mislukt: %1$s</string>
+
+    <string name="settings_hud_mirror_title">HUD-weergave spiegelen</string>
+    <string name="settings_hud_mirror_subtitle">Kiert de weergave horizontaal voor reflecterende prisma-AR-optica</string>
+    <string name="settings_select_glasses_title">Geselecteerde AR-bril</string>
+    <string name="settings_select_glasses_auto">Automatisch detecteren (op apparaatnaam)</string>
+    <string name="settings_select_glasses_dialog_title">Kies AR-bril</string>
+    <string name="settings_ring_key_title">Ringcontroller</string>
+    <string name="settings_ring_key_mapping_label">Ringknoptoewijzing</string>
+    <string name="settings_ring_key_default">Standaard (%1$s)</string>
+    <string name="settings_ring_key_custom">Aangepast (toetscode: %1$d)</string>
+    <string name="settings_ring_key_learn">Knop leren</string>
+    <string name="settings_ring_key_reset">Resetten</string>
+    <string name="settings_ring_learning_dialog_title">Ringknop leren</string>
+    <string name="settings_ring_learning_dialog_message">Druk nu op de knop op uw ring…</string>
+    <string name="action_select">Selecteren</string>
+
+    <string name="notification_boot_autostart_title">RideFlux bridge automatisch starten</string>
+    <string name="notification_boot_autostart_body">Automatisch starten op de achtergrond is beperkt door het systeem. Tik om RideFlux te openen.</string>
+    <string name="controls_safety_locked_moving">Bediening vergrendeld tijdens rijden voor veiligheid</string>
+    <string name="controls_speed_limit_button">Snelheidslimiet</string>
+    <string name="controls_calibrate_button">Kalibreren</string>
+    <string name="controls_power_off_button">Uitschakelen</string>
+    <string name="dialog_power_off_title">Voertuig uitschakelen?</string>
+    <string name="dialog_power_off_warning">Uitschakelen onderbreekt direct de motorstroom. Als u rijdt of balanceert, valt het wiel direct om. Alleen uitvoeren wanneer u stilstaat, afgestapt bent en het voertuig vasthoudt.</string>
+    <string name="dialog_power_off_confirm">Uitschakelen</string>
+    <string name="dialog_calibrate_title">Voertuigsensor kalibreren?</string>
+    <string name="dialog_calibrate_warning">Kalibratie reset het horizontale nulpunt van de gyroscoop. De motor is tijdens kalibratie uitgeschakeld. Houd het wiel verticaal en stabiel op een vlakke ondergrond. Nooit kalibreren tijdens het rijden.</string>
+    <string name="dialog_calibrate_confirm">Start kalibratie</string>
+    <string name="dialog_speed_limit_title">Snelheidslimiet instellen</string>
+    <string name="dialog_speed_limit_warning">Het aanpassen van de limiet wijzigt de tilt-back drempels. Een limiet lager instellen dan de rijsnelheid kan plotselinge tilt-back veroorzaken. Pas dit alleen aan bij stilstand.</string>
+    <string name="dialog_speed_limit_confirm">Limiet toepassen</string>
+    <string name="dialog_speed_limit_label">Limiet: %1$d km/u</string>
 </resources>

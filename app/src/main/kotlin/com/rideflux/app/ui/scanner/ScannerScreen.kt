@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.CastConnected
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -56,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rideflux.app.R
 import com.rideflux.app.bridge.BridgeService
 import com.rideflux.app.bridge.BridgeState
+import com.rideflux.app.bridge.GlassesAuthorizationRequest
 import com.rideflux.app.bridge.GlassesLinkMode
 import com.rideflux.app.bridge.GlassesLinkState
 import com.rideflux.domain.repository.DiscoveredWheel
@@ -82,6 +85,7 @@ fun ScannerRoute(
     val bridgeTarget by BridgeService.activeMac.collectAsStateWithLifecycle()
     val linkMode by BridgeService.linkMode.collectAsStateWithLifecycle()
     val linkState by BridgeService.linkState.collectAsStateWithLifecycle()
+    val pendingAuth by BridgeService.pendingAuthorization.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     ScannerScreen(
@@ -89,6 +93,9 @@ fun ScannerRoute(
         bridgeState = bridgeState,
         linkMode = linkMode,
         linkState = linkState,
+        pendingAuth = pendingAuth,
+        onApproveAuth = { BridgeService.approveGlasses(context, it) },
+        onRejectAuth = { BridgeService.rejectGlasses(context, it) },
         onStartScan = {
             scope.launch {
                 // A wheel usually accepts only one BLE connection. The
@@ -130,6 +137,9 @@ fun ScannerScreen(
     bridgeState: BridgeState = BridgeState.STOPPED,
     linkMode: GlassesLinkMode = GlassesLinkMode.ANDROID_BLE,
     linkState: GlassesLinkState = GlassesLinkState.STOPPED,
+    pendingAuth: GlassesAuthorizationRequest? = null,
+    onApproveAuth: (GlassesAuthorizationRequest) -> Unit = {},
+    onRejectAuth: (GlassesAuthorizationRequest) -> Unit = {},
     onStartScan: () -> Unit,
     onStopScan: () -> Unit,
     onToggleBridge: (Boolean) -> Unit = {},
@@ -176,6 +186,14 @@ fun ScannerScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
+            pendingAuth?.let { req ->
+                GlassesAuthBanner(
+                    request = req,
+                    onAllow = onApproveAuth,
+                    onDeny = onRejectAuth,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
             BridgeControlCard(
                 state = bridgeState,
                 linkMode = linkMode,
@@ -190,6 +208,53 @@ fun ScannerScreen(
                     onDeviceSelected = onDeviceSelected,
                     contentPadding = PaddingValues(),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GlassesAuthBanner(
+    request: GlassesAuthorizationRequest,
+    onAllow: (GlassesAuthorizationRequest) -> Unit,
+    onDeny: (GlassesAuthorizationRequest) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.glasses_auth_dialog_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            val message = if (request.isLegacy) {
+                stringResource(R.string.glasses_auth_dialog_legacy_message, request.shortCode)
+            } else {
+                stringResource(R.string.glasses_auth_dialog_message, request.shortCode)
+            }
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(modifier = Modifier.size(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = { onDeny(request) }) {
+                    Text(stringResource(R.string.action_deny))
+                }
+                Spacer(modifier = Modifier.size(8.dp))
+                Button(onClick = { onAllow(request) }) {
+                    Text(stringResource(R.string.action_allow))
+                }
             }
         }
     }
@@ -343,7 +408,7 @@ private fun ScannerContent(
                 if (recognised.isNotEmpty()) {
                     item(key = "recognised_header") {
                         Text(
-                            text = "Recognised",
+                            text = stringResource(R.string.scanner_group_recognised),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -355,7 +420,7 @@ private fun ScannerContent(
                 if (unrecognised.isNotEmpty()) {
                     item(key = "unrecognised_header") {
                         Text(
-                            text = "Unrecognised (tap to try)",
+                            text = stringResource(R.string.scanner_group_unrecognised),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -457,6 +522,7 @@ private fun FamilyAndRssiRow(device: DiscoveredWheel) {
     // call and must not sit behind a data-dependent branch.
     val familyLabel = stringResource(R.string.scanner_device_family, device.family?.name.orEmpty())
     val rssiLabel = stringResource(R.string.unit_dbm, device.rssi ?: 0)
+    val weak = isWeakSignal(device.rssi)
     val parts = buildList {
         device.family?.let { add(familyLabel) }
         device.rssi?.let { add(rssiLabel) }
@@ -465,10 +531,39 @@ private fun FamilyAndRssiRow(device: DiscoveredWheel) {
         Text(
             text = parts.joinToString("  ·  "),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
+            // A weak advertiser still renders as a perfectly tappable
+            // row, so the number alone says nothing to anyone who does
+            // not read dBm. Colouring it is what makes a doomed connect
+            // attempt visible before it is made.
+            color = if (weak) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.primary
+            },
+        )
+    }
+    if (weak) {
+        Text(
+            text = stringResource(R.string.scanner_signal_weak),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
         )
     }
 }
+
+/**
+ * Below this, a GATT connect usually fails or drops during the
+ * handshake.
+ *
+ * -90 dBm is roughly where a BLE link stops being reliable in the
+ * open; a wheel is typically behind a metal shell and the rider's own
+ * body, so treat anything at or under it as not worth a silent retry
+ * loop. An absent RSSI is not treated as weak — no reading is not the
+ * same as a bad one.
+ */
+internal const val WEAK_RSSI_DBM = -90
+
+internal fun isWeakSignal(rssi: Int?): Boolean = rssi != null && rssi <= WEAK_RSSI_DBM
 
 @Composable
 private fun CenteredMessage(

@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">ホイールに接続するために、RideFlux HUD には Bluetooth のスキャンと接続の権限が必要です。</string>
     <string name="permission_location_body">Bluetooth でホイールを検出して接続するために、RideFlux HUD には位置情報へのアクセスが必要です。</string>
     <string name="action_open_settings">設定を開く</string>
+    <string name="hud_offline_link_lost">Bluetooth接続が切断されました</string>
+    <string name="hud_offline_handshake">ホイールから応答がありません</string>
+    <string name="hud_offline_internal">内部エラー</string>
+
+    <string name="hud_settings_mirror">ミラー：%1$s</string>
+    <string name="hud_settings_on">オン</string>
+    <string name="hud_settings_off">オフ</string>
+    <string name="hud_settings_ring_key">リング：%1$s</string>
+    <string name="hud_settings_ring_default">デフォルト</string>
+    <string name="hud_settings_ring_learn">学習</string>
+    <string name="hud_settings_ring_listening">リングを押してください…</string>
+    <string name="hud_settings_ring_reset">リセット</string>
+    <string name="hud_settings_ring_learned">キー %1$d</string>
 </resources>

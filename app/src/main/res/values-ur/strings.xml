@@ -207,4 +207,91 @@
     <string name="notification_recording_title">RideFlux ریکارڈ کر رہا ہے</string>
     <string name="notification_recording_text">وہیل کی ٹیلی میٹری مقامی طور پر محفوظ کی جا رہی ہے</string>
 
+    <string name="scanner_group_recognised">شناخت شدہ</string>
+    <string name="scanner_group_unrecognised">غیر شناخت شدہ (آزمانے کے لیے ٹیپ کریں)</string>
+    <string name="scanner_signal_weak">سگنل کمزور ہے — قریب جائیں</string>
+    <string name="settings_pairing_code_title">اس فون کا پیئرنگ کوڈ</string>
+    <string name="settings_pairing_code_hint">%1$s\nپیئر کرنے کے لیے عینک پر یہ کوڈ منتخب کریں</string>
+    <string name="settings_pairing_code_preparing">تیاری جاری ہے…</string>
+
+
+    <!-- ===== Glasses authorization & approved list ================== -->
+    <string name="action_allow">اجازت دیں</string>
+    <string name="action_deny">مسترد کریں</string>
+    <string name="glasses_auth_dialog_title">AR چشمہ پیئرنگ کی درخواست</string>
+    <string name="glasses_auth_dialog_message">AR چشمہ (کوڈ: %1$s) ٹیلی میٹری حاصل کرنے کے لیے کنیکٹ ہونے کی درخواست کر رہا ہے۔ کیا اس ڈیوائس کی اجازت دیں؟</string>
+    <string name="glasses_auth_dialog_legacy_message">پرانا AR چشمہ (%1$s) کنیکٹ ہونے کی درخواست کر رہا ہے۔ کیا اس ڈیوائس کی اجازت دیں؟</string>
+    <string name="glasses_auth_notification_title">چشمہ پیئرنگ کی درخواست</string>
+    <string name="glasses_auth_notification_text">AR چشمہ (%1$s) کنیکٹ ہونا چاہتا ہے</string>
+    <string name="settings_approved_glasses_title">منظور شدہ چشمے</string>
+    <string name="settings_approved_glasses_empty">کوئی منظور شدہ چشمہ نہیں</string>
+    <string name="settings_approved_glasses_remove">ہٹائیں</string>
+    <string name="settings_approved_glasses_device">چشمہ (%1$s)</string>
+    <string name="settings_approved_glasses_legacy_device">پرانا HUD (%1$s)</string>
+
+
+    <!-- ===== AR Glasses Setup & Distribution ====================== -->
+    <string name="glasses_setup_title">AR چشمہ سیٹ اپ</string>
+    <string name="glasses_setup_subtitle">اپنے AR چشمے پر HUD ایپ انسٹال اور ترتیب دیں</string>
+    <string name="glasses_setup_pairing_code_label">اس فون کا پیئرنگ کوڈ</string>
+    <string name="glasses_setup_install_title">انسٹالیشن کی ہدایات</string>
+    <string name="glasses_setup_install_step1">1. GitHub Releases سے تازہ ترین HUD APK (hud-app-release.apk) ڈاؤن لوڈ کریں۔</string>
+    <string name="glasses_setup_install_step2">2. ADB (adb install hud-app-release.apk) یا اپنے چشمے کے ٹول سے APK انسٹال کریں۔</string>
+    <string name="glasses_setup_install_step3">3. چشمے پر RideFlux کھولیں، بلوٹوتھ اجازت دیں اور اس فون کا کوڈ منتخب کریں۔</string>
+    <string name="glasses_setup_download_button">GitHub سے HUD ڈاؤن لوڈ کریں</string>
+    <string name="glasses_setup_version_format">فون ورژن %1$s (بلڈ %2$d) کے ساتھ مطابقت رکھتا ہے</string>
+    <string name="action_copy">کاپی کریں</string>
+    <string name="copied_to_clipboard">کلپ بورڈ پر کاپی ہو گیا</string>
+
+    <!-- ===== Data Backup & Restore ============================== -->
+    <string name="action_cancel">منسوخ</string>
+    <string name="action_export">برآمد</string>
+    <string name="action_import">درآمد</string>
+    <string name="settings_section_backup">ڈیٹا بیک اپ اور بحالی</string>
+    <string name="settings_backup_export_title">تمام ڈیٹا برآمد کریں</string>
+    <string name="settings_backup_export_subtitle">تمام سواریاں اور ترتیبات ZIP فائل میں محفوظ کریں</string>
+    <string name="settings_backup_import_title">ڈیٹا درآمد کریں</string>
+    <string name="settings_backup_import_subtitle">ZIP فائل سے سواریاں اور ترتیبات بحال کریں</string>
+    <string name="settings_backup_import_dialog_title">ڈیٹا بحال کریں</string>
+    <string name="settings_backup_import_dialog_message">بحالی کا طریقہ منتخب کریں:
+• ضم کریں: موجودہ ڈیٹا رکھیں اور ڈپلیکیٹ چھوڑیں
+• سب تبدیل کریں: تمام موجودہ سواریاں صاف کریں اور بیک اپ سے بدلیں</string>
+    <string name="settings_backup_import_mode_merge">ضم کریں (ڈپلیکیٹ چھوڑیں)</string>
+    <string name="settings_backup_import_mode_replace">سب تبدیل کریں</string>
+    <string name="settings_backup_export_success">بیک اپ کامیابی کے ساتھ برآمد ہو گیا (%1$d سواریاں)</string>
+    <string name="settings_backup_export_error">برآمد ناکام: %1$s</string>
+    <string name="settings_backup_import_success">%1$d سواریاں بحال ہو گئیں (%2$d ڈپلیکیٹ چھوڑ دی گئیں)</string>
+    <string name="settings_backup_import_error">درآمد ناکام: %1$s</string>
+
+    <string name="settings_hud_mirror_title">HUD ڈسپلے آئینہ کریں</string>
+    <string name="settings_hud_mirror_subtitle">عکاسی پرزم AR آپٹکس کے لیے ڈسپلے کو افقی طور پر الٹ دیتا ہے</string>
+    <string name="settings_select_glasses_title">منتخب کردہ AR چشمہ</string>
+    <string name="settings_select_glasses_auto">خودکار شناخت (ڈیوائس کے نام سے)</string>
+    <string name="settings_select_glasses_dialog_title">AR چشمہ منتخب کریں</string>
+    <string name="settings_ring_key_title">انگوٹھی کنٹرولر</string>
+    <string name="settings_ring_key_mapping_label">انگوٹھی بٹن میپنگ</string>
+    <string name="settings_ring_key_default">ڈیفالٹ (%1$s)</string>
+    <string name="settings_ring_key_custom">حسب ضرورت (کلید کوڈ: %1$d)</string>
+    <string name="settings_ring_key_learn">بٹن سیکھیں</string>
+    <string name="settings_ring_key_reset">ری سیٹ</string>
+    <string name="settings_ring_learning_dialog_title">انگوٹھی بٹن سیکھیں</string>
+    <string name="settings_ring_learning_dialog_message">ابھی اپنی انگوٹھی پر بٹن دبائیں…</string>
+    <string name="action_select">منتخب کریں</string>
+
+    <string name="notification_boot_autostart_title">RideFlux برج خودکار آغاز</string>
+    <string name="notification_boot_autostart_body">پس منظر میں خودکار آغاز سسٹم کی طرف سے محدود کر دیا گیا ہے۔ RideFlux کھولنے کے لیے ٹیپ کریں۔</string>
+    <string name="controls_safety_locked_moving">رائیڈر کی حفاظت کے لیے حرکت کے دوران کنٹرولز مقفل ہیں</string>
+    <string name="controls_speed_limit_button">رفتار کی حد</string>
+    <string name="controls_calibrate_button">کیلیبریٹ کریں</string>
+    <string name="controls_power_off_button">پاور آف</string>
+    <string name="dialog_power_off_title">گاڑی کی پاور آف کریں؟</string>
+    <string name="dialog_power_off_warning">پاور آف کرنے سے موٹر کی پاور فوری طور پر بند ہو جائے گی۔ اگر آپ سوار ہیں تو گاڑی فوراً گر جائے گی۔ صرف رکنے، اترنے اور سنبھالنے کے بعد ہی پاور آف کریں۔</string>
+    <string name="dialog_power_off_confirm">پاور آف</string>
+    <string name="dialog_calibrate_title">گاڑی کا سینسر کیلیبریٹ کریں؟</string>
+    <string name="dialog_calibrate_warning">کیلیبریشن سے جائروسکوپ افقی ریفرنس ری سیٹ ہو جاتا ہے۔ کیلیبریشن کے دوران موٹر غیر فعال رہے گی۔ گاڑی کو ہموار سطح پر بالکل سیدھا رکھیں۔ سواری کے دوران کبھی کیلیبریٹ نہ کریں۔</string>
+    <string name="dialog_calibrate_confirm">کیلیبریشن شروع کریں</string>
+    <string name="dialog_speed_limit_title">رفتار کی حد مقرر کریں</string>
+    <string name="dialog_speed_limit_warning">رفتار کی حد تبدیل کرنے سے ٹیلٹ بیک حدیں بدل جاتی ہیں۔ موجودہ رفتار سے کم حد سیٹ کرنے سے اچانک ٹیلٹ بیک ہو سکتا ہے۔ صرف رکنے کی حالت میں ایڈجسٹ کریں۔</string>
+    <string name="dialog_speed_limit_confirm">حد مقرر کریں</string>
+    <string name="dialog_speed_limit_label">حد: %1$d کلومیٹر/گھنٹہ</string>
 </resources>

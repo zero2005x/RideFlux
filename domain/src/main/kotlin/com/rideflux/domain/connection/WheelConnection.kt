@@ -157,6 +157,13 @@ interface WheelConnection {
 
     suspend fun setMaxSpeedKmh(kmh: Float): CommandOutcome {
         require(kmh.isFinite() && kmh >= 0f) { "kmh must be finite and non-negative, got $kmh" }
+        val currentSpeed = speedKmh.value ?: 0f
+        if (currentSpeed > 0f) {
+            return CommandOutcome.InvalidArgument(
+                WheelCommand.SetMaxSpeedKmh(kmh),
+                "Cannot change speed limit while vehicle is moving (speed: $currentSpeed km/h)",
+            )
+        }
         return dispatch(WheelCommand.SetMaxSpeedKmh(kmh))
     }
 
@@ -178,9 +185,27 @@ interface WheelConnection {
     suspend fun setRideMode(modeCode: Int): CommandOutcome =
         dispatch(WheelCommand.SetRideMode(modeCode))
 
-    suspend fun calibrate(): CommandOutcome = dispatch(WheelCommand.Calibrate)
+    suspend fun calibrate(): CommandOutcome {
+        val currentSpeed = speedKmh.value ?: 0f
+        if (currentSpeed > 0f) {
+            return CommandOutcome.InvalidArgument(
+                WheelCommand.Calibrate,
+                "Cannot calibrate while vehicle is moving (speed: $currentSpeed km/h)",
+            )
+        }
+        return dispatch(WheelCommand.Calibrate)
+    }
 
-    suspend fun powerOff(): CommandOutcome = dispatch(WheelCommand.PowerOff)
+    suspend fun powerOff(): CommandOutcome {
+        val currentSpeed = speedKmh.value ?: 0f
+        if (currentSpeed > 0f) {
+            return CommandOutcome.InvalidArgument(
+                WheelCommand.PowerOff,
+                "Cannot power off while vehicle is moving (speed: $currentSpeed km/h)",
+            )
+        }
+        return dispatch(WheelCommand.PowerOff)
+    }
 
     suspend fun unlockWithPin(pin: String): CommandOutcome =
         dispatch(WheelCommand.UnlockWithPin(pin))

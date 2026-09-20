@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">RideFlux HUD a besoin des autorisations de scan et de connexion Bluetooth pour atteindre votre roue.</string>
     <string name="permission_location_body">RideFlux HUD a besoin de l\'accès à la localisation pour détecter votre roue et s\'y connecter en Bluetooth.</string>
     <string name="action_open_settings">Ouvrir les paramètres</string>
+    <string name="hud_offline_link_lost">Liaison Bluetooth perdue</string>
+    <string name="hud_offline_handshake">La roue n\'a pas répondu</string>
+    <string name="hud_offline_internal">Erreur interne</string>
+
+    <string name="hud_settings_mirror">MIROIR : %1$s</string>
+    <string name="hud_settings_on">ACTIVÉ</string>
+    <string name="hud_settings_off">DÉSACTIVÉ</string>
+    <string name="hud_settings_ring_key">BAGUE : %1$s</string>
+    <string name="hud_settings_ring_default">PAR DÉFAUT</string>
+    <string name="hud_settings_ring_learn">APPRENDRE</string>
+    <string name="hud_settings_ring_listening">APPUYEZ SUR LA BAGUE…</string>
+    <string name="hud_settings_ring_reset">RÉINITIALISER</string>
+    <string name="hud_settings_ring_learned">TOUCHE %1$d</string>
 </resources>

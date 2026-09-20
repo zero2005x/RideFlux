@@ -5,6 +5,7 @@
 package com.rideflux.data.database
 
 import androidx.room.withTransaction
+import com.rideflux.domain.ride.ImportResult
 import com.rideflux.domain.ride.Trip
 import com.rideflux.domain.ride.TripRepository
 import com.rideflux.domain.ride.TripSample
@@ -26,6 +27,15 @@ class RoomTripRepository(
     override fun observeSamples(tripId: Long): Flow<List<TripSample>> =
         dao.observeSamples(tripId).map { rows -> rows.map(TripSampleEntity::toDomain) }
 
+    override suspend fun getAllTrips(): List<Trip> =
+        dao.getAllTrips().map(TripEntity::toDomain)
+
+    override suspend fun getAllSamples(): List<TripSample> =
+        dao.getAllSamples().map(TripSampleEntity::toDomain)
+
+    override suspend fun getSamples(tripId: Long): List<TripSample> =
+        dao.getSamplesForTrip(tripId).map(TripSampleEntity::toDomain)
+
     override suspend fun createTrip(trip: Trip): Long = dao.insertTrip(trip.toEntity())
 
     override suspend fun appendSample(sample: TripSample) = dao.insertSample(sample.toEntity())
@@ -38,6 +48,47 @@ class RoomTripRepository(
     override suspend fun deleteTrip(tripId: Long) = dao.deleteTrip(tripId)
     override suspend fun clearAll() = dao.clearAll()
     override suspend fun recoverIncompleteTrips() = dao.recoverIncompleteTrips()
+
+    override suspend fun importTrips(
+        tripsWithSamples: List<Pair<Trip, List<TripSample>>>,
+        replaceAll: Boolean,
+    ): ImportResult = database.withTransaction {
+        if (replaceAll) {
+            dao.clearAll()
+        }
+        val existingKeys = if (replaceAll) {
+            mutableSetOf()
+        } else {
+            dao.getAllTrips().map { "${it.wheelAddress}_${it.startedAtMillis}" }.toMutableSet()
+        }
+
+        var importedTrips = 0
+        var skippedTrips = 0
+        var importedSamples = 0
+
+        for ((trip, samples) in tripsWithSamples) {
+            val key = "${trip.wheelAddress}_${trip.startedAtMillis}"
+            if (!replaceAll && existingKeys.contains(key)) {
+                skippedTrips++
+                continue
+            }
+            val newTripId = dao.insertTrip(trip.copy(id = 0L).toEntity())
+            existingKeys.add(key)
+            importedTrips++
+
+            if (samples.isNotEmpty()) {
+                val sampleEntities = samples.map { it.copy(tripId = newTripId).toEntity() }
+                dao.insertSamples(sampleEntities)
+                importedSamples += sampleEntities.size
+            }
+        }
+
+        ImportResult(
+            tripsImported = importedTrips,
+            tripsSkipped = skippedTrips,
+            samplesImported = importedSamples,
+        )
+    }
 }
 
 internal fun TripEntity.toDomain() = Trip(

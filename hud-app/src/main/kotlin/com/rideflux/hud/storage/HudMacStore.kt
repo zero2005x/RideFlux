@@ -79,6 +79,19 @@ class HudMacStore @Inject constructor(
         }
     }
 
+    /**
+     * Pairing token identifying these glasses to the phone.
+     * Minted once on first run and persisted so it survives restarts.
+     */
+    fun readOrCreateGlassesToken(): ByteArray {
+        BridgePairingToken.fromHex(prefs.getString(KEY_GLASSES_TOKEN, null))?.let { return it }
+        val minted = BridgePairingToken.generate()
+        if (!prefs.edit().putString(KEY_GLASSES_TOKEN, BridgePairingToken.toHex(minted)).commit()) {
+            Log.w(TAG, "glasses token commit returned false")
+        }
+        return minted
+    }
+
     /** Returns the cached family, falling back to [DEFAULT_FAMILY]. */
     fun readFamily(): WheelFamily =
         prefs.getString(KEY_FAMILY, null)
@@ -116,6 +129,7 @@ class HudMacStore @Inject constructor(
         private const val KEY_FAMILY = "last_family"
         private const val KEY_PAIRED_PHONE_MAC = "paired_phone_mac"
         private const val KEY_PAIRED_PHONE_TOKEN = "paired_phone_token"
+        private const val KEY_GLASSES_TOKEN = "glasses_token"
 
         /** Begode / Gotway / ExtremeBull — the most common family. */
         val DEFAULT_FAMILY: WheelFamily = WheelFamily.G
