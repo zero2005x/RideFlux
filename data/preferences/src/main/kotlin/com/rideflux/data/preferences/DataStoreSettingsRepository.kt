@@ -136,7 +136,7 @@ class DataStoreSettingsRepository(
         ),
         useMetric = p[Keys.USE_METRIC] ?: true,
         keepScreenOnDashboard = p[Keys.KEEP_SCREEN_ON] ?: true,
-        bridgeAutostart = p[Keys.BRIDGE_AUTOSTART] ?: true,
+        bridgeAutostart = p[Keys.BRIDGE_AUTOSTART] ?: false,
         bridgeStandbyAdvertiseLowLatency = p[Keys.BRIDGE_STANDBY_LOW_LATENCY] ?: false,
         hudPeerMac = p[Keys.HUD_PEER_MAC],
         ringKeyCode = p[Keys.RING_KEY_CODE],

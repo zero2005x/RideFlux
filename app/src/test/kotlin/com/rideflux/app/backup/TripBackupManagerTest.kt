@@ -48,7 +48,7 @@ class TripBackupManagerTest {
                 ),
                 useMetric = false,
                 keepScreenOnDashboard = false,
-                bridgeAutostart = false,
+                bridgeAutostart = true,
                 bridgeStandbyAdvertiseLowLatency = true,
                 hudPeerMac = "AA:BB:CC:11:22:33",
                 ringKeyCode = 24,
@@ -190,7 +190,7 @@ class TripBackupManagerTest {
         assertEquals(88f, restoredSettings.alertThresholds.pwmAlertPercent)
         assertFalse(restoredSettings.useMetric)
         assertFalse(restoredSettings.keepScreenOnDashboard)
-        assertFalse(restoredSettings.bridgeAutostart)
+        assertTrue(restoredSettings.bridgeAutostart)
         assertTrue(restoredSettings.bridgeStandbyAdvertiseLowLatency)
         assertEquals("AA:BB:CC:11:22:33", restoredSettings.hudPeerMac)
         assertEquals(24, restoredSettings.ringKeyCode)

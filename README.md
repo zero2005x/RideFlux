@@ -8,12 +8,14 @@
 
 | | |
 |---|---|
-| Version | `0.1.6` (versionCode 7) |
+| Version | `0.1.8` (versionCode 9) |
 | License | GPL-3.0-or-later |
 | Language | Kotlin 2.0.21 · Jetpack Compose |
 | Min / Target / Compile SDK | 28 / 36 / 36 |
 | Modules | 9 Gradle modules (2 apps, 1 domain, 5 data, 1 core) |
 | Languages | 18 (English + 17 translations) |
+| Distribution | Phone app: Google Play · Glasses HUD: GitHub Releases |
+| Privacy | [Privacy policy / 隱私權政策](PRIVACY.md) |
 
 ---
 
@@ -81,7 +83,8 @@ The project ships **two installable apps** that coexist on separate devices:
   class emit nothing but consumer volume events. Blanking stops the drawing only — the
   bridge stays connected, so revealing it again is instant — and an active safety
   threshold still breaks through a blanked HUD.
-- Optional autostart on boot via `BridgeBootReceiver`.
+- Optional autostart on app launch and boot via `BridgeBootReceiver` (off by default; enable
+  it in Settings).
 
 **Localization**
 
@@ -315,6 +318,17 @@ adb -s <phone-serial>   install -r app/build/outputs/apk/debug/app-debug.apk
 adb -s <glasses-serial> install -r hud-app/build/outputs/apk/debug/hud-app-debug.apk
 ```
 
+**Release bundle (Google Play)**
+
+```bash
+./gradlew :app:bundleRelease   # → app/build/outputs/bundle/release/app-release.aab
+```
+
+This needs the release signing credentials described in [Signing & secrets](#signing--secrets),
+and it refuses to run if CXR credentials would be embedded. Every Play upload must carry a
+higher `versionCode` than the last one; bump `:app` and `:hud-app` together, because
+`ModuleVersionAlignmentTest` fails when their `versionCode` or `versionName` differ.
+
 **Runtime permissions.** The phone app requests `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT` /
 `BLUETOOTH_ADVERTISE`, `ACCESS_FINE_LOCATION` (needed for trip GPS, and as the scan gate on
 API ≤ 30), `POST_NOTIFICATIONS`, and foreground-service types `connectedDevice` + `location`.
@@ -343,7 +357,7 @@ sensitive.
 ### Testing & code quality
 
 ```bash
-./gradlew test                 # all JVM unit tests (43 test classes)
+./gradlew test                 # all JVM unit tests (54 test classes)
 ./gradlew :data:protocol:test  # codec round-trip tests only
 ./gradlew jacocoTestReport     # aggregate coverage XML + HTML across every module
 ./gradlew sonar                # SonarCloud analysis (project zero2005x_RideFlux)
@@ -377,16 +391,35 @@ requires regenerating it:
 
 The **configuration cache** is on by default (`org.gradle.configuration-cache=true`).
 
+### Play Store assets
+
+The store icon, feature graphics and phone screenshots live under `docs/play-store/`
+(the icon at `app/src/main/ic_launcher-playstore.png`), together with the scripts that
+regenerate them:
+
+| Script | Output |
+|---|---|
+| `docs/play-store/tools/render_icon.py` | 512×512 icon, drawn from the adaptive launcher vectors |
+| `docs/play-store/tools/feature_graphic.py` | 1024×500 feature graphic per locale |
+| `docs/play-store/tools/capture.ps1` | 1080×1920 phone screenshots per locale, from a running emulator |
+
+The screenshots come from `StoreScreenshotActivity` in `app/src/debug/`, which renders the
+real stateless screens with sample data and seeds the emulator's trip database, so no wheel
+is needed. It lives only in the debug source set and never ships in release builds. Install
+the debug APK on an Android 13+ emulator, then run `.\docs\play-store\tools\capture.ps1
+-Locale zh-TW` (or `en-US`) from the repository root. The Python scripts need Pillow.
+
 ### Project layout
 
 ```
 RideFlux/
 ├── app/                     # :app — phone application
-│   └── src/main/kotlin/com/rideflux/app/
-│       ├── bridge/          # BridgeService, publishers, boot receiver, link mode
-│       ├── recording/       # RecordingService, TripStatistics
-│       ├── navigation/      # RideFluxNavHost + Routes
-│       └── ui/              # dashboard · scanner · settings · trips · hud · permission · theme
+│   ├── src/main/kotlin/com/rideflux/app/
+│   │   ├── bridge/          # BridgeService, publishers, boot receiver, link mode
+│   │   ├── recording/       # RecordingService, TripStatistics
+│   │   ├── navigation/      # RideFluxNavHost + Routes
+│   │   └── ui/              # dashboard · scanner · settings · trips · hud · permission · theme
+│   └── src/debug/           # StoreScreenshotActivity (debug builds only)
 ├── hud-app/                 # :hud-app — Rokid AR glasses application
 │   └── src/main/kotlin/com/rideflux/hud/
 │       └── source/          # bridge / direct / CXR telemetry sources
@@ -398,10 +431,12 @@ RideFlux/
 │   ├── database/            # Room + exported schemas/
 │   └── preferences/         # DataStore settings
 ├── core/location/           # fused-location trip source
+├── docs/play-store/         # store listing graphics + tools/ that regenerate them
 ├── gradle/
 │   ├── libs.versions.toml   # single source of truth for all versions
 │   └── verification-metadata.xml
 ├── secrets/                 # gitignored — never committed
+├── PRIVACY.md               # privacy policy linked from the Play listing
 └── build.gradle.kts         # root: JaCoCo aggregate, Sonar, BouncyCastle pin
 ```
 
@@ -479,7 +514,7 @@ RideFlux 透過藍牙低功耗（BLE）連線至電動獨輪車（EUC），解�
   中央端訂閱），或官方的 **Rokid CXR** 訊息通道。
 - 眼鏡端完全被動：封包內已帶有手機電量、粗略訊號等級與資料過期旗標，HUD 完全不需要直接
   與車輛通訊。
-- 可透過 `BridgeBootReceiver` 選擇開機自動啟動。
+- 可透過 `BridgeBootReceiver` 選擇在 App 啟動及開機時自動啟動（預設關閉，可於設定中開啟）。
 
 **多國語系**
 
@@ -685,6 +720,16 @@ adb -s <手機序號>   install -r app/build/outputs/apk/debug/app-debug.apk
 adb -s <眼鏡序號>   install -r hud-app/build/outputs/apk/debug/hud-app-debug.apk
 ```
 
+**發行版套件（Google Play）**
+
+```bash
+./gradlew :app:bundleRelease   # → app/build/outputs/bundle/release/app-release.aab
+```
+
+需要[簽章與機密資訊](#簽章與機密資訊)所述的發行版簽章憑證；若會嵌入 CXR 憑證則拒絕建置。每次上傳
+Play 的 `versionCode` 都必須比上一次大；`:app` 與 `:hud-app` 要一起調整，因為
+`ModuleVersionAlignmentTest` 會在兩者的 `versionCode` 或 `versionName` 不一致時失敗。
+
 **執行期權限。** 手機端會請求 `BLUETOOTH_SCAN`／`BLUETOOTH_CONNECT`／`BLUETOOTH_ADVERTISE`、
 `ACCESS_FINE_LOCATION`（行程 GPS 需要，且在 API ≤ 30 上是掃描的前置條件）、
 `POST_NOTIFICATIONS`，以及 `connectedDevice` + `location` 兩種前景服務型別。
@@ -711,7 +756,7 @@ keystore 副檔名——因為 `.lc` 的檔名本身就是 Client ID，連檔名
 ### 測試與程式碼品質
 
 ```bash
-./gradlew test                 # 所有 JVM 單元測試（43 個測試類別）
+./gradlew test                 # 所有 JVM 單元測試（54 個測試類別）
 ./gradlew :data:protocol:test  # 僅執行 codec 來回編解碼測試
 ./gradlew jacocoTestReport     # 跨所有模組的彙整覆蓋率 XML + HTML
 ./gradlew sonar                # SonarCloud 分析（專案 zero2005x_RideFlux）
@@ -743,16 +788,34 @@ Sonar。SonarCloud 端請採 CI-based analysis 並停用 Automatic Analysis，�
 
 **設定快取（configuration cache）** 預設為開啟（`org.gradle.configuration-cache=true`）。
 
+### Play 商店素材
+
+商店圖示、主要宣傳圖片與手機截圖都放在 `docs/play-store/`（圖示位於
+`app/src/main/ic_launcher-playstore.png`），並附有重新產生素材的腳本：
+
+| 腳本 | 產出 |
+|---|---|
+| `docs/play-store/tools/render_icon.py` | 512×512 圖示，依啟動器向量圖繪製 |
+| `docs/play-store/tools/feature_graphic.py` | 各語系的 1024×500 主要宣傳圖片 |
+| `docs/play-store/tools/capture.ps1` | 從執行中的模擬器擷取各語系的 1080×1920 手機截圖 |
+
+截圖來自 `app/src/debug/` 中的 `StoreScreenshotActivity`：它以範例資料渲染 App 實際的無狀態
+畫面，並將範例行程寫入模擬器的資料庫，因此不需要連接車輛。它只存在於 debug 原始碼集，絕不會
+進入發行版。在 Android 13 以上的模擬器安裝 debug APK 後，於專案根目錄執行
+`.\docs\play-store\tools\capture.ps1 -Locale zh-TW`（或 `en-US`）即可。Python 腳本需要
+Pillow。
+
 ### 專案結構
 
 ```
 RideFlux/
 ├── app/                     # :app — 手機應用程式
-│   └── src/main/kotlin/com/rideflux/app/
-│       ├── bridge/          # BridgeService、發佈器、開機接收器、連線模式
-│       ├── recording/       # RecordingService、TripStatistics
-│       ├── navigation/      # RideFluxNavHost 與 Routes
-│       └── ui/              # dashboard · scanner · settings · trips · hud · permission · theme
+│   ├── src/main/kotlin/com/rideflux/app/
+│   │   ├── bridge/          # BridgeService、發佈器、開機接收器、連線模式
+│   │   ├── recording/       # RecordingService、TripStatistics
+│   │   ├── navigation/      # RideFluxNavHost 與 Routes
+│   │   └── ui/              # dashboard · scanner · settings · trips · hud · permission · theme
+│   └── src/debug/           # StoreScreenshotActivity（僅 debug 建置）
 ├── hud-app/                 # :hud-app — Rokid AR 眼鏡應用程式
 │   └── src/main/kotlin/com/rideflux/hud/
 │       └── source/          # 橋接／直連／CXR 三種遙測來源
@@ -764,10 +827,12 @@ RideFlux/
 │   ├── database/            # Room 與匯出的 schemas/
 │   └── preferences/         # DataStore 設定
 ├── core/location/           # 融合定位的行程座標來源
+├── docs/play-store/         # 商店圖片素材，以及重新產生素材的 tools/
 ├── gradle/
 │   ├── libs.versions.toml   # 所有版本號的唯一真實來源
 │   └── verification-metadata.xml
 ├── secrets/                 # 已 gitignore——絕不提交
+├── PRIVACY.md               # Play 商店資訊連結的隱私權政策
 └── build.gradle.kts         # 根建置檔：JaCoCo 彙整、Sonar、BouncyCastle 版本鎖定
 ```
 

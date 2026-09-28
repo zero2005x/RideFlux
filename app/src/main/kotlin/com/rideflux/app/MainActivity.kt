@@ -54,9 +54,10 @@ class MainActivity : ComponentActivity() {
                 ) {
                     BlePermissionGate {
                         val context = LocalContext.current
-                        // Standby is the default once Nearby Devices has
-                        // been granted. This also covers first install / app
-                        // update, where BOOT_COMPLETED has not occurred yet.
+                        // Riders who turn on bridge autostart (off by default)
+                        // enter standby once Nearby Devices has been granted.
+                        // This also covers app updates, where BOOT_COMPLETED
+                        // has not occurred yet.
                         LaunchedEffect(Unit) {
                             if (settingsRepository.current().bridgeAutostart) {
                                 BridgeService.startStandby(context.applicationContext)

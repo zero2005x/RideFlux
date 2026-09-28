@@ -16,7 +16,7 @@ data class AppSettings(
     val alertThresholds: AlertThresholds = AlertThresholds(),
     val useMetric: Boolean = true,
     val keepScreenOnDashboard: Boolean = true,
-    val bridgeAutostart: Boolean = true,
+    val bridgeAutostart: Boolean = false,
     val bridgeStandbyAdvertiseLowLatency: Boolean = false,
     val hudPeerMac: String? = null,
     val ringKeyCode: Int? = null,

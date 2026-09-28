@@ -34,11 +34,15 @@ class AppSettingsTest {
     }
 
     @Test
-    fun `app defaults are metric, awake, and bridge-autostarting`() {
+    fun `app defaults are metric and awake`() {
         val settings = AppSettings()
         assertTrue(settings.useMetric)
         assertTrue(settings.keepScreenOnDashboard)
-        assertTrue(settings.bridgeAutostart)
+    }
+
+    @Test
+    fun `bridge autostart is off by default so riders without glasses get no standby service`() {
+        assertFalse(AppSettings().bridgeAutostart)
     }
 
     @Test

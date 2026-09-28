@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -56,6 +57,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -75,7 +77,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -869,6 +873,7 @@ private fun ControlsCard(
                     onClick = onOpenSpeedLimit,
                     enabled = actionsPermitted,
                     modifier = Modifier.weight(1f),
+                    contentPadding = ControlButtonPadding,
                 ) {
                     Icon(
                         Icons.Filled.Speed,
@@ -876,17 +881,14 @@ private fun ControlsCard(
                         modifier = Modifier.size(16.dp),
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text(
-                        stringResource(R.string.controls_speed_limit_button),
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                    )
+                    ControlButtonLabel(stringResource(R.string.controls_speed_limit_button))
                 }
 
                 OutlinedButton(
                     onClick = onOpenCalibrate,
                     enabled = actionsPermitted,
                     modifier = Modifier.weight(1f),
+                    contentPadding = ControlButtonPadding,
                 ) {
                     Icon(
                         Icons.Filled.Tune,
@@ -894,17 +896,14 @@ private fun ControlsCard(
                         modifier = Modifier.size(16.dp),
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text(
-                        stringResource(R.string.controls_calibrate_button),
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                    )
+                    ControlButtonLabel(stringResource(R.string.controls_calibrate_button))
                 }
 
                 OutlinedButton(
                     onClick = onOpenPowerOff,
                     enabled = actionsPermitted,
                     modifier = Modifier.weight(1f),
+                    contentPadding = ControlButtonPadding,
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
                     ),
@@ -915,15 +914,32 @@ private fun ControlsCard(
                         modifier = Modifier.size(16.dp),
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text(
-                        stringResource(R.string.controls_power_off_button),
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                    )
+                    ControlButtonLabel(stringResource(R.string.controls_power_off_button))
                 }
             }
         }
     }
+}
+
+// Three equal-width buttons share one row, so the Material default 24 dp
+// side padding left too little room for longer translations (es, pt, vi,
+// nl) and the single-line labels were clipped mid-word. Tighter padding
+// plus a two-line, centred label keeps every locale readable; automatic
+// hyphenation splits single long compounds (nl "Snelheidslimiet",
+// uk "Калібрування") at a syllable instead of an arbitrary letter.
+private val ControlButtonPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+
+@Composable
+private fun ControlButtonLabel(text: String) {
+    Text(
+        text,
+        fontSize = 11.sp,
+        lineHeight = 13.sp,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        textAlign = TextAlign.Center,
+        style = LocalTextStyle.current.copy(hyphens = Hyphens.Auto),
+    )
 }
 
 // ---------------------------------------------------------------------
