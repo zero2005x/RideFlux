@@ -5,7 +5,8 @@
   can launch it, and it never ships in release builds.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application>
+    <!-- Mirrors src/main: app data must never enter Android backups. -->
+    <application android:allowBackup="false">
         <activity
             android:name="com.rideflux.app.screenshot.StoreScreenshotActivity"
             android:exported="true"
