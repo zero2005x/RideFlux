@@ -8,7 +8,7 @@
 
 | | |
 |---|---|
-| Version | `0.1.5` (versionCode 6) |
+| Version | `0.1.6` (versionCode 7) |
 | License | GPL-3.0-or-later |
 | Language | Kotlin 2.0.21 · Jetpack Compose |
 | Min / Target / Compile SDK | 28 / 36 / 36 |

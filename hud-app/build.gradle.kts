@@ -35,8 +35,8 @@ android {
         // Rokid's official glasses-side CXR bridge requires API 28.
         minSdk = 28
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.1.5"
+        versionCode = 7
+        versionName = "0.1.6"
     }
 
     signingConfigs {
