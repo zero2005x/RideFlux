@@ -22,6 +22,7 @@ import com.rokid.cxr.client.extend.CxrApi
 import com.rokid.cxr.client.extend.callbacks.BluetoothStatusCallback
 import com.rokid.cxr.client.utils.ValueUtil
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.FlowPreview
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -47,6 +49,7 @@ internal class RokidCxrBridgePublisher(
     private val context: Context,
     parentScope: CoroutineScope,
     private val onState: (GlassesLinkState) -> Unit,
+    private val preferredGlassesMacProvider: (() -> String?)? = null,
 ) : BridgePublisher {
 
     private val publisherJob = SupervisorJob(parentScope.coroutineContext[Job])
@@ -56,6 +59,8 @@ internal class RokidCxrBridgePublisher(
     @Volatile private var connectJob: Job? = null
     @Volatile private var connectTimeoutJob: Job? = null
     @Volatile private var reconnectJob: Job? = null
+    /** Resolved by the first connect's outcome; see [open]. */
+    @Volatile private var firstAttempt: CompletableDeferred<Boolean>? = null
     private var reconnectAttempt = 0L
 
     @Volatile private var running = false
@@ -120,30 +125,56 @@ internal class RokidCxrBridgePublisher(
         }
     }
 
-    // The interface method is `suspend` for the native-BLE publisher,
-    // which must await its GATT service registration. Nothing here
-    // suspends, so the body stays in a @Synchronized helper: open() and
-    // stop() mutate the same `running` / `targetDevice` state and must
-    // not interleave.
-    override suspend fun open(): Boolean = openBlocking()
+    /**
+     * Opens the CXR transport and **waits for the first connection
+     * attempt to resolve**.
+     *
+     * Returning true as soon as a bonded device was found made the
+     * caller's fallback unreachable: the real connect is asynchronous,
+     * and every failure was absorbed by this class's own retry loop, so
+     * [BridgeService]'s degrade-to-BLE counter — which only advances
+     * when `open()` returns false — never moved. On consumer glasses
+     * that meant looping on 20 s timeouts forever while the phone
+     * advertised nothing for the HUD to find.
+     */
+    override suspend fun open(): Boolean {
+        val pending = beginOpen() ?: return false
+        // armConnectionTimeout always resolves `pending`; the outer
+        // bound only covers an SDK that never calls back at all.
+        val connected = withTimeoutOrNull(CXR_OPEN_TIMEOUT_MILLIS) { pending.await() } ?: false
+        if (!connected) {
+            Log.w(TAG, "CXR did not connect on the first attempt; caller may degrade")
+        }
+        return connected
+    }
 
+    /**
+     * Synchronous half of [open]: claims the transport and fires the
+     * first connect. Returns the deferred that the SDK callbacks (or the
+     * connection timeout) resolve, or null when there is nothing to
+     * connect to. open() and stop() mutate the same `running` /
+     * `targetDevice` state and must not interleave, hence the monitor —
+     * the await deliberately happens outside it.
+     */
     @Synchronized
-    private fun openBlocking(): Boolean {
-        if (running) return true
+    private fun beginOpen(): CompletableDeferred<Boolean>? {
+        if (running) return firstAttempt ?: CompletableDeferred(connected)
         val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)
             ?.adapter
         val device = adapter?.let(::findBondedGlasses)
         if (device == null) {
             Log.w(TAG, "No bonded Rokid glasses found; pair RV101 in Android settings first")
             onState(GlassesLinkState.ERROR)
-            return false
+            return null
         }
         targetDevice = device
         running = true
         reconnectAttempt = 0L
+        val pending = CompletableDeferred<Boolean>()
+        firstAttempt = pending
         onState(GlassesLinkState.STARTING)
         connectOnce()
-        return true
+        return pending
     }
 
     @OptIn(FlowPreview::class)
@@ -177,6 +208,11 @@ internal class RokidCxrBridgePublisher(
         running = false
         connected = false
         reinitializing = false
+        // Release an open() still waiting on the first attempt; without
+        // this it would burn the full CXR_OPEN_TIMEOUT_MILLIS after a
+        // mode switch has already torn this publisher down.
+        firstAttempt?.complete(false)
+        firstAttempt = null
         connectJob?.cancel()
         connectTimeoutJob?.cancel()
         reconnectJob?.cancel()
@@ -243,6 +279,17 @@ internal class RokidCxrBridgePublisher(
     private fun handleConnectionFailure(reason: String) {
         connected = false
         onState(GlassesLinkState.ERROR)
+        // Until open() has returned, the retry decision belongs to the
+        // caller: resolving false lets it fall back to the native BLE
+        // bridge instead of leaving this publisher looping on a
+        // transport that is not going to work on this hardware. Once a
+        // link has been established, a later drop is ours to heal.
+        val pending = firstAttempt
+        if (pending != null && !pending.isCompleted) {
+            Log.w(TAG, "CXR first attempt failed: $reason")
+            pending.complete(false)
+            return
+        }
         scheduleReconnect(reason)
     }
 
@@ -251,6 +298,7 @@ internal class RokidCxrBridgePublisher(
         if (!running) return
         connected = true
         reconnectAttempt = 0L
+        firstAttempt?.complete(true)
         connectTimeoutJob?.cancel()
         connectTimeoutJob = null
         reconnectJob?.cancel()
@@ -298,30 +346,52 @@ internal class RokidCxrBridgePublisher(
         ?.takeIf { it.isNotEmpty() }
         ?: ByteArray(0)
 
-    private fun findBondedGlasses(adapter: BluetoothAdapter): BluetoothDevice? =
-        adapter.bondedDevices
-            .asSequence()
-            .map { device -> device to runCatching { device.name.orEmpty() }.getOrDefault("") }
-            .sortedByDescending { (_, name) ->
-                when {
-                    name.contains("rokid", ignoreCase = true) -> 2
-                    name.contains("glass", ignoreCase = true) -> 1
-                    else -> 0
-                }
-            }
-            .firstOrNull { (_, name) ->
-                name.contains("rokid", ignoreCase = true) ||
-                    name.contains("glass", ignoreCase = true)
-            }
-            ?.first
+    private fun findBondedGlasses(adapter: BluetoothAdapter): BluetoothDevice? {
+        val devices = adapter.bondedDevices.toList()
+        val pairs = devices.map { it.address to runCatching { it.name.orEmpty() }.getOrDefault("") }
+        val selectedAddress = selectBondedGlasses(pairs, preferredGlassesMacProvider?.invoke())
+        return devices.firstOrNull { it.address.equals(selectedAddress, ignoreCase = true) }
+    }
 
     private companion object {
         const val TAG = "RokidCxrPublisher"
         const val CXR_FRAME_PERIOD_MILLIS = 50L
         const val CXR_REINIT_SETTLE_MILLIS = 300L
         const val CXR_CONNECT_TIMEOUT_MILLIS = 20_000L
+
+        /**
+         * Upper bound on [open]. Comfortably exceeds
+         * [CXR_CONNECT_TIMEOUT_MILLIS] plus the re-init settle, so it
+         * only fires when the SDK delivers no callback whatsoever.
+         */
+        const val CXR_OPEN_TIMEOUT_MILLIS = 25_000L
     }
 }
 
 internal fun cxrReconnectBackoffMillis(attempt: Long): Long =
     (1_000L * (1L shl attempt.coerceIn(0L, 4L).toInt())).coerceAtMost(15_000L)
+
+internal fun selectBondedGlasses(
+    devices: List<Pair<String, String>>,
+    preferredMac: String?,
+): String? {
+    val preferred = preferredMac?.trim()?.uppercase()
+    if (!preferred.isNullOrEmpty()) {
+        val match = devices.firstOrNull { it.first.equals(preferred, ignoreCase = true) }
+        if (match != null) return match.first
+    }
+    return devices
+        .sortedByDescending { (_, name) ->
+            when {
+                name.contains("rokid", ignoreCase = true) -> 2
+                name.contains("glass", ignoreCase = true) -> 1
+                else -> 0
+            }
+        }
+        .firstOrNull { (_, name) ->
+            name.contains("rokid", ignoreCase = true) ||
+                name.contains("glass", ignoreCase = true)
+        }
+        ?.first
+}
+

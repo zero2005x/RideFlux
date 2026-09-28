@@ -25,11 +25,26 @@ interface TripDao {
     @Query("SELECT * FROM trip_samples WHERE tripId = :tripId ORDER BY timestampMillis")
     fun observeSamples(tripId: Long): Flow<List<TripSampleEntity>>
 
+    @Query("SELECT * FROM trips ORDER BY startedAtMillis ASC")
+    suspend fun getAllTrips(): List<TripEntity>
+
+    @Query("SELECT * FROM trip_samples ORDER BY tripId, timestampMillis ASC")
+    suspend fun getAllSamples(): List<TripSampleEntity>
+
+    @Query("SELECT * FROM trip_samples WHERE tripId = :tripId ORDER BY timestampMillis ASC")
+    suspend fun getSamplesForTrip(tripId: Long): List<TripSampleEntity>
+
     @Insert
     suspend fun insertTrip(trip: TripEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTrips(trips: List<TripEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSample(sample: TripSampleEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSamples(samples: List<TripSampleEntity>)
 
     @Update
     suspend fun updateTrip(trip: TripEntity)

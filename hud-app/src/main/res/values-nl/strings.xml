@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">RideFlux HUD heeft de Bluetooth-rechten voor scannen en verbinden nodig om je wheel te bereiken.</string>
     <string name="permission_location_body">RideFlux HUD heeft locatietoegang nodig om je wheel via Bluetooth te vinden en ermee te verbinden.</string>
     <string name="action_open_settings">Instellingen openen</string>
+    <string name="hud_offline_link_lost">Bluetooth-verbinding verbroken</string>
+    <string name="hud_offline_handshake">Wiel reageert niet</string>
+    <string name="hud_offline_internal">Interne fout</string>
+
+    <string name="hud_settings_mirror">SPIEGELEN: %1$s</string>
+    <string name="hud_settings_on">AAN</string>
+    <string name="hud_settings_off">UIT</string>
+    <string name="hud_settings_ring_key">RING: %1$s</string>
+    <string name="hud_settings_ring_default">STANDAARD</string>
+    <string name="hud_settings_ring_learn">LERNEN</string>
+    <string name="hud_settings_ring_listening">DRUK NU OP DE RING…</string>
+    <string name="hud_settings_ring_reset">RESET</string>
+    <string name="hud_settings_ring_learned">TOETS %1$d</string>
 </resources>

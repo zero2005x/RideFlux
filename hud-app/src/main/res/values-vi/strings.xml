@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">RideFlux HUD cần quyền quét và kết nối Bluetooth để liên lạc với xe của bạn.</string>
     <string name="permission_location_body">RideFlux HUD cần quyền vị trí để phát hiện và kết nối với xe của bạn qua Bluetooth.</string>
     <string name="action_open_settings">Mở cài đặt</string>
+    <string name="hud_offline_link_lost">Mất kết nối Bluetooth</string>
+    <string name="hud_offline_handshake">Xe không phản hồi</string>
+    <string name="hud_offline_internal">Lỗi nội bộ</string>
+
+    <string name="hud_settings_mirror">GƯƠNG: %1$s</string>
+    <string name="hud_settings_on">BẬT</string>
+    <string name="hud_settings_off">TẮT</string>
+    <string name="hud_settings_ring_key">NHẪN: %1$s</string>
+    <string name="hud_settings_ring_default">MẶC ĐỊNH</string>
+    <string name="hud_settings_ring_learn">HỌC</string>
+    <string name="hud_settings_ring_listening">NHẤN NHẪN NGAY…</string>
+    <string name="hud_settings_ring_reset">ĐẶT LẠI</string>
+    <string name="hud_settings_ring_learned">PHÍM %1$d</string>
 </resources>

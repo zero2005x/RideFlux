@@ -48,6 +48,13 @@ object BridgeProtocol {
     val TELEMETRY_CHAR_UUID: UUID = UUID.fromString("e7810a72-73ae-499d-8c15-faa9aef0c3f2")
 
     /**
+     * Write-only handshake characteristic. Connected glasses write their
+     * 8-byte token here upon connection to identify themselves for peer
+     * authorization before telemetry subscription is activated.
+     */
+    val HANDSHAKE_CHAR_UUID: UUID = UUID.fromString("e7810a73-73ae-499d-8c15-faa9aef0c3f2")
+
+    /**
      * Standard Client Characteristic Configuration Descriptor used to
      * enable / disable notifications. Defined by the Bluetooth SIG.
      */

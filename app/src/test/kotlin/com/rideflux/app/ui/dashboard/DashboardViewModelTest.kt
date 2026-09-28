@@ -40,4 +40,57 @@ class DashboardViewModelTest {
     }
     @Test fun historyLimit_is600() { assertEquals(600, DashboardViewModel.HISTORY_LIMIT) }
     @Test fun alertTtl_is6000() { assertEquals(6000L, DashboardViewModel.ALERT_TTL_MILLIS) }
+
+    @Test
+    fun isVehicleActionPermitted_readyAndStationary_returnsTrue() {
+        org.junit.Assert.assertTrue(
+            isVehicleActionPermitted(
+                com.rideflux.domain.connection.ConnectionState.Ready,
+                0f,
+            ),
+        )
+    }
+
+    @Test
+    fun isVehicleActionPermitted_readyAndNullSpeed_returnsTrue() {
+        org.junit.Assert.assertTrue(
+            isVehicleActionPermitted(
+                com.rideflux.domain.connection.ConnectionState.Ready,
+                null,
+            ),
+        )
+    }
+
+    @Test
+    fun isVehicleActionPermitted_readyAndMoving_returnsFalse() {
+        org.junit.Assert.assertFalse(
+            isVehicleActionPermitted(
+                com.rideflux.domain.connection.ConnectionState.Ready,
+                0.1f,
+            ),
+        )
+        org.junit.Assert.assertFalse(
+            isVehicleActionPermitted(
+                com.rideflux.domain.connection.ConnectionState.Ready,
+                25.0f,
+            ),
+        )
+    }
+
+    @Test
+    fun isVehicleActionPermitted_notReady_returnsFalse() {
+        org.junit.Assert.assertFalse(
+            isVehicleActionPermitted(
+                com.rideflux.domain.connection.ConnectionState.Disconnected,
+                0f,
+            ),
+        )
+        org.junit.Assert.assertFalse(
+            isVehicleActionPermitted(
+                com.rideflux.domain.connection.ConnectionState.Connecting,
+                0f,
+            ),
+        )
+    }
 }
+

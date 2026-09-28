@@ -244,4 +244,91 @@
     <string name="notification_recording_title">RideFlux is recording</string>
     <string name="notification_recording_text">Wheel telemetry is being saved locally</string>
 
+    <string name="scanner_group_recognised">Recognised</string>
+    <string name="scanner_group_unrecognised">Unrecognised (tap to try)</string>
+    <string name="scanner_signal_weak">Weak signal — move closer</string>
+    <string name="settings_pairing_code_title">This phone\'s pairing code</string>
+    <string name="settings_pairing_code_hint">%1$s\nSelect this code on the glasses to pair</string>
+    <string name="settings_pairing_code_preparing">Preparing…</string>
+
+
+    <!-- ===== Glasses authorization & approved list ================== -->
+    <string name="action_allow">Allow</string>
+    <string name="action_deny">Deny</string>
+    <string name="glasses_auth_dialog_title">AR Glasses Pairing Request</string>
+    <string name="glasses_auth_dialog_message">AR glasses (Code: %1$s) are requesting to connect and receive telemetry. Allow this device?</string>
+    <string name="glasses_auth_dialog_legacy_message">Legacy AR glasses (%1$s) are requesting to connect. Allow this device?</string>
+    <string name="glasses_auth_notification_title">Glasses pairing request</string>
+    <string name="glasses_auth_notification_text">AR glasses (%1$s) want to connect</string>
+    <string name="settings_approved_glasses_title">Approved glasses</string>
+    <string name="settings_approved_glasses_empty">No approved glasses</string>
+    <string name="settings_approved_glasses_remove">Remove</string>
+    <string name="settings_approved_glasses_device">Glasses (%1$s)</string>
+    <string name="settings_approved_glasses_legacy_device">Legacy HUD (%1$s)</string>
+
+
+    <!-- ===== AR Glasses Setup & Distribution ====================== -->
+    <string name="glasses_setup_title">Setup AR Glasses</string>
+    <string name="glasses_setup_subtitle">Install and configure the HUD app on your AR glasses</string>
+    <string name="glasses_setup_pairing_code_label">This phone\'s pairing code</string>
+    <string name="glasses_setup_install_title">Installation Instructions</string>
+    <string name="glasses_setup_install_step1">1. Download the latest HUD APK (hud-app-release.apk) from GitHub Releases.</string>
+    <string name="glasses_setup_install_step2">2. Install the APK on your glasses using ADB (adb install hud-app-release.apk) or your glasses transfer tool.</string>
+    <string name="glasses_setup_install_step3">3. Open RideFlux on your glasses, grant Bluetooth permissions, and select this phone\'s pairing code.</string>
+    <string name="glasses_setup_download_button">Download HUD from GitHub</string>
+    <string name="glasses_setup_version_format">Compatible with phone version %1$s (build %2$d)</string>
+    <string name="action_copy">Copy</string>
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+
+    <!-- ===== Data Backup & Restore ============================== -->
+    <string name="action_cancel">Cancel</string>
+    <string name="action_export">Export</string>
+    <string name="action_import">Import</string>
+    <string name="settings_section_backup">Data Backup &amp; Restore</string>
+    <string name="settings_backup_export_title">Export all data</string>
+    <string name="settings_backup_export_subtitle">Save all rides and settings to a ZIP archive</string>
+    <string name="settings_backup_import_title">Import data</string>
+    <string name="settings_backup_import_subtitle">Restore rides and settings from a ZIP archive</string>
+    <string name="settings_backup_import_dialog_title">Restore Data</string>
+    <string name="settings_backup_import_dialog_message">Choose how to restore your backup:
+• Merge: Keep existing data and skip duplicate rides
+• Replace all: Clear all existing rides and restore from backup</string>
+    <string name="settings_backup_import_mode_merge">Merge (skip duplicates)</string>
+    <string name="settings_backup_import_mode_replace">Replace all</string>
+    <string name="settings_backup_export_success">Backup exported successfully (%1$d trips)</string>
+    <string name="settings_backup_export_error">Export failed: %1$s</string>
+    <string name="settings_backup_import_success">Restored %1$d trips (%2$d duplicates skipped)</string>
+    <string name="settings_backup_import_error">Import failed: %1$s</string>
+
+    <string name="settings_hud_mirror_title">Mirror HUD display</string>
+    <string name="settings_hud_mirror_subtitle">Flips the display horizontally for reflective prism AR optics</string>
+    <string name="settings_select_glasses_title">Selected AR glasses</string>
+    <string name="settings_select_glasses_auto">Auto-detect (by device name)</string>
+    <string name="settings_select_glasses_dialog_title">Choose AR Glasses</string>
+    <string name="settings_ring_key_title">Ring controller</string>
+    <string name="settings_ring_key_mapping_label">Ring button mapping</string>
+    <string name="settings_ring_key_default">Default (%1$s)</string>
+    <string name="settings_ring_key_custom">Custom (Key code: %1$d)</string>
+    <string name="settings_ring_key_learn">Learn button</string>
+    <string name="settings_ring_key_reset">Reset</string>
+    <string name="settings_ring_learning_dialog_title">Learn Ring Button</string>
+    <string name="settings_ring_learning_dialog_message">Press the button on your ring now…</string>
+    <string name="action_select">Select</string>
+
+    <string name="notification_boot_autostart_title">RideFlux bridge auto-start</string>
+    <string name="notification_boot_autostart_body">Background auto-start was restricted by the system. Tap to open RideFlux.</string>
+    <string name="controls_safety_locked_moving">Controls locked while moving for rider safety</string>
+    <string name="controls_speed_limit_button">Speed limit</string>
+    <string name="controls_calibrate_button">Calibrate</string>
+    <string name="controls_power_off_button">Power off</string>
+    <string name="dialog_power_off_title">Power off vehicle?</string>
+    <string name="dialog_power_off_warning">Powering off will immediately cut motor power. If you are riding or balancing, the vehicle will fall instantly. Only proceed when stationary, dismounted, and supported.</string>
+    <string name="dialog_power_off_confirm">Power off</string>
+    <string name="dialog_calibrate_title">Calibrate vehicle sensor?</string>
+    <string name="dialog_calibrate_warning">Calibration resets the horizontal balance reference. Motor power will be disabled during calibration. Keep the vehicle upright and level on a flat surface. Never calibrate while mounted.</string>
+    <string name="dialog_calibrate_confirm">Start calibration</string>
+    <string name="dialog_speed_limit_title">Set speed limit</string>
+    <string name="dialog_speed_limit_warning">Changing the maximum speed limit adjusts tilt-back thresholds. Setting a limit below current cruising speed can trigger sudden tilt-back. Adjust only while stopped.</string>
+    <string name="dialog_speed_limit_confirm">Set limit</string>
+    <string name="dialog_speed_limit_label">Limit: %1$d km/h</string>
 </resources>

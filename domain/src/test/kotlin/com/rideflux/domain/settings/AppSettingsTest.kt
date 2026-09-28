@@ -52,13 +52,29 @@ class AppSettingsTest {
     }
 
     @Test
+    fun `hardware assumption defaults are unconfigured or unmirrored`() {
+        val settings = AppSettings()
+        assertNull(settings.ringKeyCode)
+        assertFalse(settings.hudMirrorHorizontally)
+        assertNull(settings.preferredGlassesMac)
+    }
+
+    @Test
     fun `copy leaves untouched settings alone`() {
         val settings = AppSettings()
-        val updated = settings.copy(useMetric = false)
+        val updated = settings.copy(
+            useMetric = false,
+            ringKeyCode = 24,
+            hudMirrorHorizontally = true,
+            preferredGlassesMac = "11:22:33:44:55:66",
+        )
         assertFalse(updated.useMetric)
         assertEquals(settings.alertThresholds, updated.alertThresholds)
         assertEquals(settings.bridgeAutostart, updated.bridgeAutostart)
         assertEquals(settings.hudPeerMac, updated.hudPeerMac)
+        assertEquals(24, updated.ringKeyCode)
+        assertTrue(updated.hudMirrorHorizontally)
+        assertEquals("11:22:33:44:55:66", updated.preferredGlassesMac)
     }
 
     @Test

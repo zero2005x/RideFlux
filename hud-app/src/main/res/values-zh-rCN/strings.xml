@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">RideFlux HUD 需要蓝牙扫描与连接权限，才能连上你的车辆。</string>
     <string name="permission_location_body">RideFlux HUD 需要定位权限，才能透过蓝牙发现并连接你的车辆。</string>
     <string name="action_open_settings">打开设置</string>
+    <string name="hud_offline_link_lost">蓝牙连接已断开</string>
+    <string name="hud_offline_handshake">车辆无回应</string>
+    <string name="hud_offline_internal">内部错误</string>
+
+    <string name="hud_settings_mirror">镜像：%1$s</string>
+    <string name="hud_settings_on">开启</string>
+    <string name="hud_settings_off">关闭</string>
+    <string name="hud_settings_ring_key">戒指：%1$s</string>
+    <string name="hud_settings_ring_default">默认</string>
+    <string name="hud_settings_ring_learn">学习</string>
+    <string name="hud_settings_ring_listening">请按戒指…</string>
+    <string name="hud_settings_ring_reset">重置</string>
+    <string name="hud_settings_ring_learned">键码 %1$d</string>
 </resources>

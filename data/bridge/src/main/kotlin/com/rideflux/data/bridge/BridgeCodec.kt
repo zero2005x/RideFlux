@@ -17,6 +17,7 @@ import kotlin.math.roundToInt
  * 0       u8   magic         = 0x52 ('R')
  * 1       u8   version       = 2
  * 2       u8   flags         bit0=stale  bit1=ready  bits2..3=signal wire (0/1/2)
+ *                            bit4=hudHidden  bits5..7 reserved (must decode as don't-care)
  * 3..6    i32  timestampSec  unix seconds (decoded unsigned — covers 2106)
  * 7..8    i16  speedKmhX10   speed * 10, INT16_NULL = absent
  * 9       u8   vehBatPct     0..100, 0xFF = absent
@@ -74,6 +75,7 @@ object BridgeCodec {
         if (frame.stale) flags = flags or 0x01
         if (frame.ready) flags = flags or 0x02
         flags = flags or (frame.signal.wire shl 2)
+        if (frame.hudHidden) flags = flags or FLAG_HUD_HIDDEN
         buf.put(flags.toByte())
 
         // Seconds resolution; decoded as unsigned on the receive side
@@ -160,6 +162,7 @@ object BridgeCodec {
             signal = signal,
             stale = (flags and 0x01) != 0,
             ready = (flags and 0x02) != 0,
+            hudHidden = (flags and FLAG_HUD_HIDDEN) != 0,
         )
     }
 
@@ -267,6 +270,16 @@ object BridgeCodec {
         val v = b.toInt() and 0xFF
         return if (v == BridgeProtocol.PERCENT_NULL) null else v.toFloat()
     }
+
+    /**
+     * Flags bit 4 — the phone asking the glasses to blank the HUD.
+     *
+     * Bits 0..3 were already spoken for (stale, ready, two signal bits);
+     * 4..7 were unused and decoded as don't-care, which is what makes
+     * this addition compatible in both directions without a version
+     * bump. Claim bits from 4 upward for any future flag.
+     */
+    private const val FLAG_HUD_HIDDEN = 0x10
 
     private const val PROTOCOL_VERSION_V1: Byte = 1
     private const val PROTOCOL_VERSION_V2: Byte = 2

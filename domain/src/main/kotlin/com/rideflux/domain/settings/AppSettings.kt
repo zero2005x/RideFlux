@@ -19,4 +19,7 @@ data class AppSettings(
     val bridgeAutostart: Boolean = true,
     val bridgeStandbyAdvertiseLowLatency: Boolean = false,
     val hudPeerMac: String? = null,
+    val ringKeyCode: Int? = null,
+    val hudMirrorHorizontally: Boolean = false,
+    val preferredGlassesMac: String? = null,
 )

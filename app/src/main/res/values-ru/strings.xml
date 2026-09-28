@@ -206,4 +206,91 @@
     <string name="notification_recording_title">RideFlux ведёт запись</string>
     <string name="notification_recording_text">Телеметрия сохраняется локально</string>
 
+    <string name="scanner_group_recognised">Распознанные</string>
+    <string name="scanner_group_unrecognised">Нераспознанные (нажмите, чтобы попробовать)</string>
+    <string name="scanner_signal_weak">Слабый сигнал — подойдите ближе</string>
+    <string name="settings_pairing_code_title">Код сопряжения этого телефона</string>
+    <string name="settings_pairing_code_hint">%1$s\nВыберите этот код на очках для сопряжения</string>
+    <string name="settings_pairing_code_preparing">Подготовка…</string>
+
+
+    <!-- ===== Glasses authorization & approved list ================== -->
+    <string name="action_allow">Разрешить</string>
+    <string name="action_deny">Отклонить</string>
+    <string name="glasses_auth_dialog_title">Запрос на сопряжение AR-очков</string>
+    <string name="glasses_auth_dialog_message">AR-очки (Код: %1$s) запрашивают подключение для телеметрии. Разрешить это устройство?</string>
+    <string name="glasses_auth_dialog_legacy_message">Старые AR-очки (%1$s) запрашивают подключение. Разрешить это устройство?</string>
+    <string name="glasses_auth_notification_title">Запрос на сопряжение очков</string>
+    <string name="glasses_auth_notification_text">AR-очки (%1$s) хотят подключиться</string>
+    <string name="settings_approved_glasses_title">Одобренные очки</string>
+    <string name="settings_approved_glasses_empty">Нет одобренных очков</string>
+    <string name="settings_approved_glasses_remove">Удалить</string>
+    <string name="settings_approved_glasses_device">Очки (%1$s)</string>
+    <string name="settings_approved_glasses_legacy_device">Старый HUD (%1$s)</string>
+
+
+    <!-- ===== AR Glasses Setup & Distribution ====================== -->
+    <string name="glasses_setup_title">Настройка AR-очков</string>
+    <string name="glasses_setup_subtitle">Установка и настройка приложения HUD на ваших AR-очках</string>
+    <string name="glasses_setup_pairing_code_label">Код сопряжения этого телефона</string>
+    <string name="glasses_setup_install_title">Инструкции по установке</string>
+    <string name="glasses_setup_install_step1">1. Загрузите последний APK HUD (hud-app-release.apk) из GitHub Releases.</string>
+    <string name="glasses_setup_install_step2">2. Установите APK через ADB (adb install hud-app-release.apk) или утилиту очков.</string>
+    <string name="glasses_setup_install_step3">3. Откройте RideFlux на очках, разрешите Bluetooth и выберите код этого телефона.</string>
+    <string name="glasses_setup_download_button">Скачать HUD с GitHub</string>
+    <string name="glasses_setup_version_format">Совместимо с версией телефона %1$s (сборка %2$d)</string>
+    <string name="action_copy">Копировать</string>
+    <string name="copied_to_clipboard">Скопировано в буфер обмена</string>
+
+    <!-- ===== Data Backup & Restore ============================== -->
+    <string name="action_cancel">Отмена</string>
+    <string name="action_export">Экспорт</string>
+    <string name="action_import">Импорт</string>
+    <string name="settings_section_backup">Резервное копирование и восстановление</string>
+    <string name="settings_backup_export_title">Экспортировать все данные</string>
+    <string name="settings_backup_export_subtitle">Сохранить все поездки и настройки в ZIP-архив</string>
+    <string name="settings_backup_import_title">Импортировать данные</string>
+    <string name="settings_backup_import_subtitle">Восстановить поездки и настройки из ZIP-архива</string>
+    <string name="settings_backup_import_dialog_title">Восстановление данных</string>
+    <string name="settings_backup_import_dialog_message">Выберите режим восстановления:
+• Объединить: Сохранить текущие данные и пропустить дубликаты
+• Заменить все: Удалить все текущие поездки и восстановить из копии</string>
+    <string name="settings_backup_import_mode_merge">Объединить (пропустить дубликаты)</string>
+    <string name="settings_backup_import_mode_replace">Заменить все</string>
+    <string name="settings_backup_export_success">Резервная копия успешно экспортирована (%1$d поездок)</string>
+    <string name="settings_backup_export_error">Ошибка экспорта: %1$s</string>
+    <string name="settings_backup_import_success">Восстановлено поездок: %1$d (пропущено дубликатов: %2$d)</string>
+    <string name="settings_backup_import_error">Ошибка импорта: %1$s</string>
+
+    <string name="settings_hud_mirror_title">Зеркальное отображение HUD</string>
+    <string name="settings_hud_mirror_subtitle">Отражает изображение по горизонтали для призматической AR-оптики</string>
+    <string name="settings_select_glasses_title">Выбранные AR-очки</string>
+    <string name="settings_select_glasses_auto">Автоопределение (по имени устройства)</string>
+    <string name="settings_select_glasses_dialog_title">Выбрать AR-очки</string>
+    <string name="settings_ring_key_title">Кольцо-контроллер</string>
+    <string name="settings_ring_key_mapping_label">Назначение кнопки кольца</string>
+    <string name="settings_ring_key_default">По умолчанию (%1$s)</string>
+    <string name="settings_ring_key_custom">Пользовательский (код: %1$d)</string>
+    <string name="settings_ring_key_learn">Обучить кнопку</string>
+    <string name="settings_ring_key_reset">Сброс</string>
+    <string name="settings_ring_learning_dialog_title">Обучение кнопки кольца</string>
+    <string name="settings_ring_learning_dialog_message">Нажмите кнопку на кольце…</string>
+    <string name="action_select">Выбрать</string>
+
+    <string name="notification_boot_autostart_title">Автозапуск моста RideFlux</string>
+    <string name="notification_boot_autostart_body">Фоновый автозапуск ограничен системой. Нажмите, чтобы открыть RideFlux.</string>
+    <string name="controls_safety_locked_moving">Управление заблокировано во время движения для безопасности</string>
+    <string name="controls_speed_limit_button">Лимит скорости</string>
+    <string name="controls_calibrate_button">Калибровка</string>
+    <string name="controls_power_off_button">Выключить</string>
+    <string name="dialog_power_off_title">Выключить питание колеса?</string>
+    <string name="dialog_power_off_warning">Выключение немедленно обесточит мотор. Если колесо находится в балансе или вы едете, оно мгновенно упадет. Выполняйте только после полной остановки, спешившись и удерживая колесо.</string>
+    <string name="dialog_power_off_confirm">Выключить</string>
+    <string name="dialog_calibrate_title">Калибровать датчик горизонта?</string>
+    <string name="dialog_calibrate_warning">Калибровка сбрасывает горизонтальный уровень гироскопа. Во время процедуры мотор будет отключен. Удерживайте колесо строго вертикально на ровной поверхности. Ни в коем случае не калибруйте стоя на колесе.</string>
+    <string name="dialog_calibrate_confirm">Начать калибровку</string>
+    <string name="dialog_speed_limit_title">Установить лимит скорости</string>
+    <string name="dialog_speed_limit_warning">Изменение максимальной скорости меняет порог подъема педалей (tilt-back). Установка лимита ниже текущей скорости может вызвать резкий подъем педалей. Настраивайте только на месте.</string>
+    <string name="dialog_speed_limit_confirm">Применить</string>
+    <string name="dialog_speed_limit_label">Лимит: %1$d км/ч</string>
 </resources>

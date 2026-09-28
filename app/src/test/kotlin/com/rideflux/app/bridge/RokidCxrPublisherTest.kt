@@ -27,4 +27,34 @@ class RokidCxrPublisherTest {
         val c = BridgeCodec.decode(BridgeCodec.encode(f))
         assertEquals(f.speedKmh, c?.speedKmh)
     }
+
+    @Test fun selectBondedGlasses_prefersUserExplicitSelection() {
+        val devices = listOf(
+            "AA:BB:CC:01" to "Rokid Vision",
+            "AA:BB:CC:02" to "My AR Glasses",
+            "AA:BB:CC:03" to "Generic Bluetooth",
+        )
+        // User explicitly picked "AA:BB:CC:02"
+        val selected = selectBondedGlasses(devices, "AA:BB:CC:02")
+        assertEquals("AA:BB:CC:02", selected)
+    }
+
+    @Test fun selectBondedGlasses_fallsBackToNameHeuristicWhenUnset() {
+        val devices = listOf(
+            "AA:BB:CC:01" to "Some Headphones",
+            "AA:BB:CC:02" to "Rokid Vision Pro",
+            "AA:BB:CC:03" to "Smart Glass 2",
+        )
+        // No preferred MAC; prefers "rokid" over "glass"
+        val selected = selectBondedGlasses(devices, null)
+        assertEquals("AA:BB:CC:02", selected)
+    }
+
+    @Test fun selectBondedGlasses_returnsNullWhenNoMatch() {
+        val devices = listOf(
+            "AA:BB:CC:01" to "Car Audio",
+            "AA:BB:CC:02" to "Watch",
+        )
+        assertNull(selectBondedGlasses(devices, null))
+    }
 }

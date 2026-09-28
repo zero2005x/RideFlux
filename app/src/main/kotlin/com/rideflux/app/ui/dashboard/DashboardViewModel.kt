@@ -434,6 +434,45 @@ class DashboardViewModel @Inject constructor(
         dispatchSafely(WheelCommand.Beep, "beep")
     }
 
+    /**
+     * Power off the wheel remotely.
+     * Guarded by vehicle speed: will not execute if speed > 0 km/h.
+     */
+    fun powerOff() {
+        val speed = uiState.value.speedKmh ?: 0f
+        if (speed > 0f) {
+            Log.w(TAG, "powerOff blocked: vehicle is in motion (speed=$speed km/h)")
+            return
+        }
+        dispatchSafely(WheelCommand.PowerOff, "power off")
+    }
+
+    /**
+     * Calibrate the wheel's gyroscope / horizontal zero.
+     * Guarded by vehicle speed: will not execute if speed > 0 km/h.
+     */
+    fun calibrate() {
+        val speed = uiState.value.speedKmh ?: 0f
+        if (speed > 0f) {
+            Log.w(TAG, "calibrate blocked: vehicle is in motion (speed=$speed km/h)")
+            return
+        }
+        dispatchSafely(WheelCommand.Calibrate, "calibrate")
+    }
+
+    /**
+     * Set the maximum speed limit in km/h.
+     * Guarded by vehicle speed: will not execute if speed > 0 km/h.
+     */
+    fun setMaxSpeedKmh(kmh: Float) {
+        val speed = uiState.value.speedKmh ?: 0f
+        if (speed > 0f) {
+            Log.w(TAG, "setMaxSpeedKmh blocked: vehicle is in motion (speed=$speed km/h)")
+            return
+        }
+        dispatchSafely(WheelCommand.SetMaxSpeedKmh(kmh), "set max speed")
+    }
+
     private fun dispatchSafely(command: WheelCommand, operation: String) {
         viewModelScope.launch {
             try {
@@ -551,3 +590,14 @@ class DashboardViewModel @Inject constructor(
         const val RIDE_START_THRESHOLD_KMH: Float = 1f
     }
 }
+
+/**
+ * Pure policy predicate: determines if hazardous vehicle controls
+ * (power off, calibration, speed limit change) are permitted.
+ *
+ * Strictly disallowed if the connection is not Ready, or if the vehicle
+ * reports non-zero speed (moving).
+ */
+fun isVehicleActionPermitted(connectionState: ConnectionState, speedKmh: Float?): Boolean =
+    connectionState == ConnectionState.Ready && (speedKmh == null || speedKmh <= 0f)
+

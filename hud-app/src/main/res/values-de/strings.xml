@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">RideFlux HUD benötigt die Bluetooth-Berechtigungen zum Suchen und Verbinden, um dein Wheel zu erreichen.</string>
     <string name="permission_location_body">RideFlux HUD benötigt Standortzugriff, um dein Wheel per Bluetooth zu finden und sich zu verbinden.</string>
     <string name="action_open_settings">Einstellungen öffnen</string>
+    <string name="hud_offline_link_lost">Bluetooth-Verbindung verloren</string>
+    <string name="hud_offline_handshake">Rad antwortet nicht</string>
+    <string name="hud_offline_internal">Interner Fehler</string>
+
+    <string name="hud_settings_mirror">SPIEGELN: %1$s</string>
+    <string name="hud_settings_on">EIN</string>
+    <string name="hud_settings_off">AUS</string>
+    <string name="hud_settings_ring_key">RING: %1$s</string>
+    <string name="hud_settings_ring_default">STANDARD</string>
+    <string name="hud_settings_ring_learn">LERNEN</string>
+    <string name="hud_settings_ring_listening">RING JETZT DRÜCKEN…</string>
+    <string name="hud_settings_ring_reset">ZURÜCKSETZEN</string>
+    <string name="hud_settings_ring_learned">TASTE %1$d</string>
 </resources>

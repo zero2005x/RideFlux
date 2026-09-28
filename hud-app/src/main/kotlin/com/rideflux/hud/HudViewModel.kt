@@ -154,6 +154,7 @@ class HudViewModel @Inject constructor(
             appContext,
             macStore.readPairedPhoneToken(),
             macStore.readPairedPhoneMac(),
+            macStore.readOrCreateGlassesToken(),
         )
         targetAddress != null -> DirectWheelTelemetrySource(
             wheelRepository = wheelRepository,
@@ -187,6 +188,25 @@ class HudViewModel @Inject constructor(
     private val thresholdTracker = ThresholdStatusTracker()
 
     val settings: StateFlow<AppSettings> = settingsRepository.settings
+
+    private val _hudVisible = MutableStateFlow(true)
+
+    /**
+     * Whether the HUD surface is currently drawn.
+     *
+     * Hiding blanks the display only — the bridge stays connected and
+     * frames keep arriving, so revealing it again is instant rather
+     * than a 20-second rescan.
+     */
+    val hudVisible: StateFlow<Boolean> = _hudVisible.asStateFlow()
+
+    /** Last visibility the phone asked for, so its requests are edge-triggered. */
+    private var lastPhoneRequestedHidden: Boolean? = null
+
+    /** Ring press on the glasses. Local, and never blocked by the phone's last request. */
+    fun toggleHudVisible() {
+        _hudVisible.value = !_hudVisible.value
+    }
     private val _pairingCandidates = MutableStateFlow<List<BridgePeerCandidate>>(emptyList())
     val pairingCandidates: StateFlow<List<BridgePeerCandidate>> = _pairingCandidates.asStateFlow()
     private var pairingJob: kotlinx.coroutines.Job? = null
@@ -234,6 +254,18 @@ class HudViewModel @Inject constructor(
     ): HudUiState {
         val state = frame.state
         val telem = frame.telemetry
+
+        // Edge-triggered: only a *change* in what the phone asks for
+        // moves local visibility. Applying it on every frame would let
+        // the phone's last request veto the glasses ring several times a
+        // second, so a rider pressing the ring on the glasses would see
+        // the HUD flicker straight back.
+        frame.hudHiddenByPhone?.let { hidden ->
+            if (hidden != lastPhoneRequestedHidden) {
+                lastPhoneRequestedHidden = hidden
+                _hudVisible.value = !hidden
+            }
+        }
 
         // Capture the session-start once the link first goes Ready, and
         // reset it whenever the link drops so the trip clock reflects
@@ -333,6 +365,7 @@ class HudViewModel @Inject constructor(
                 appContext,
                 macStore.readPairedPhoneToken(),
                 macStore.readPairedPhoneMac(),
+                macStore.readOrCreateGlassesToken(),
             )
         }
     }
@@ -341,6 +374,35 @@ class HudViewModel @Inject constructor(
     fun setTemperatureLimit(value: Float) = viewModelScope.launch { settingsRepository.setTemperatureLimitC(value) }
     fun setLowBatteryLimit(value: Float) = viewModelScope.launch { settingsRepository.setLowBatteryPercent(value) }
     fun setPwmLimit(value: Float) = viewModelScope.launch { settingsRepository.setPwmAlertPercent(value) }
+
+    fun setHudMirrorHorizontally(value: Boolean) = viewModelScope.launch {
+        settingsRepository.setHudMirrorHorizontally(value)
+    }
+
+    private val _isLearningRingKey = MutableStateFlow(false)
+    val isLearningRingKey: StateFlow<Boolean> = _isLearningRingKey.asStateFlow()
+
+    fun startLearningRingKey() {
+        _isLearningRingKey.value = true
+    }
+
+    fun stopLearningRingKey() {
+        _isLearningRingKey.value = false
+    }
+
+    fun recordRingKey(keyCode: Int) {
+        _isLearningRingKey.value = false
+        viewModelScope.launch {
+            settingsRepository.setRingKeyCode(keyCode)
+        }
+    }
+
+    fun resetRingKey() {
+        _isLearningRingKey.value = false
+        viewModelScope.launch {
+            settingsRepository.setRingKeyCode(null)
+        }
+    }
 
     /**
      * Polls the device's [BatteryManager] every 30 s. Cheap (one

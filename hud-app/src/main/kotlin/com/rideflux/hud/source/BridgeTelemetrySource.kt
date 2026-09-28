@@ -35,10 +35,16 @@ class BridgeTelemetrySource private constructor(
     private val rokidFrames: (() -> Flow<BridgeFrame>)?,
 ) : HudTelemetrySource {
 
-    constructor(context: Context, pairedPhoneToken: ByteArray?, pairedPhoneMac: String?) : this(
+    constructor(
+        context: Context,
+        pairedPhoneToken: ByteArray?,
+        pairedPhoneMac: String?,
+        glassesToken: ByteArray? = null,
+    ) : this(
         clientFrames = BridgeClient(
-            context.applicationContext,
-            peerFilterFor(pairedPhoneToken, pairedPhoneMac),
+            context = context.applicationContext,
+            peerFilter = peerFilterFor(pairedPhoneToken, pairedPhoneMac),
+            clientToken = glassesToken,
         )
             .let { client -> { client.frames() } },
         rokidFrames = { RokidCxrBridgeClient.frames() },
@@ -208,6 +214,7 @@ internal fun BridgeFrame.toHudTelemetryFrame(): HudTelemetryFrame {
         staleHint = stale,
         phoneBatteryPercent = phoneBatteryPercent,
         tripDurationSeconds = tripDurationSeconds,
+        hudHiddenByPhone = hudHidden,
         bridgeLinkState = if (state == ConnectionState.Ready) {
             BridgeLinkState.WHEEL_LIVE
         } else {

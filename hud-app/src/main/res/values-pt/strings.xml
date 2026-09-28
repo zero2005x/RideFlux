@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">O RideFlux HUD precisa de permissões de procura e ligação Bluetooth para chegar ao seu monociclo.</string>
     <string name="permission_location_body">O RideFlux HUD precisa de acesso à localização para detetar o seu monociclo e ligar-se a ele por Bluetooth.</string>
     <string name="action_open_settings">Abrir definições</string>
+    <string name="hud_offline_link_lost">Ligação Bluetooth perdida</string>
+    <string name="hud_offline_handshake">A roda não respondeu</string>
+    <string name="hud_offline_internal">Erro interno</string>
+
+    <string name="hud_settings_mirror">ESPELHO: %1$s</string>
+    <string name="hud_settings_on">LIGADO</string>
+    <string name="hud_settings_off">DESLIGADO</string>
+    <string name="hud_settings_ring_key">ANEL: %1$s</string>
+    <string name="hud_settings_ring_default">PADRÃO</string>
+    <string name="hud_settings_ring_learn">APRENDER</string>
+    <string name="hud_settings_ring_listening">PRESSIONE O ANEL AGORA…</string>
+    <string name="hud_settings_ring_reset">REDEFINIR</string>
+    <string name="hud_settings_ring_learned">TECLA %1$d</string>
 </resources>

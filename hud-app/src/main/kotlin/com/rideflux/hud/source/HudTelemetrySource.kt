@@ -47,6 +47,14 @@ data class HudTelemetryFrame(
     val bridgeLinkState: BridgeLinkState? = null,
     /** Phone-owned trip clock; null in direct mode or when unknown. */
     val tripDurationSeconds: Long? = null,
+    /**
+     * The phone's current request for HUD visibility, or null when the
+     * transport carries no such request — direct-wheel mode, and the
+     * synthetic frames this source emits when no phone is connected.
+     * Null must leave local visibility untouched, so losing the phone
+     * never blanks a HUD the rider is looking at.
+     */
+    val hudHiddenByPhone: Boolean? = null,
 )
 
 /**

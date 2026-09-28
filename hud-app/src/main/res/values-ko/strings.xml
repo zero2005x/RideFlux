@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">RideFlux HUD가 휠에 연결하려면 블루투스 검색 및 연결 권한이 필요합니다.</string>
     <string name="permission_location_body">블루투스로 휠을 찾아 연결하려면 RideFlux HUD에 위치 권한이 필요합니다.</string>
     <string name="action_open_settings">설정 열기</string>
+    <string name="hud_offline_link_lost">블루투스 연결 끊김</string>
+    <string name="hud_offline_handshake">휠이 응답하지 않음</string>
+    <string name="hud_offline_internal">내부 오류</string>
+
+    <string name="hud_settings_mirror">미러링: %1$s</string>
+    <string name="hud_settings_on">켜짐</string>
+    <string name="hud_settings_off">꺼짐</string>
+    <string name="hud_settings_ring_key">링: %1$s</string>
+    <string name="hud_settings_ring_default">기본값</string>
+    <string name="hud_settings_ring_learn">학습</string>
+    <string name="hud_settings_ring_listening">지금 링을 누르세요…</string>
+    <string name="hud_settings_ring_reset">초기화</string>
+    <string name="hud_settings_ring_learned">키 %1$d</string>
 </resources>

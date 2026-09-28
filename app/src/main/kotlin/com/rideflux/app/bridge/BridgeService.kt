@@ -9,6 +9,7 @@ import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
@@ -20,7 +21,9 @@ import android.os.BatteryManager
 import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
+import com.rideflux.app.MainActivity
 import com.rideflux.data.bridge.BridgeFrame
+import com.rideflux.data.bridge.BridgePairingToken
 import com.rideflux.data.bridge.SignalLevel
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
@@ -52,6 +55,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlin.math.min
 
@@ -121,6 +125,34 @@ class BridgeService : Service() {
                 Log.i(TAG, "wheel target clearing; waiting for GATT teardown")
             }
             ACTION_SET_LINK_MODE -> readLinkMode(intent)?.let(::switchPublisher)
+            ACTION_APPROVE_PEER -> {
+                val address = intent.getStringExtra(EXTRA_AUTH_ADDRESS)
+                val tokenHex = intent.getStringExtra(EXTRA_AUTH_TOKEN_HEX)
+                val shortCode = intent.getStringExtra(EXTRA_AUTH_SHORT_CODE) ?: "????"
+                if (address != null) {
+                    publisher?.approvePeer(address)
+                    ApprovedGlassesStore.add(
+                        applicationContext,
+                        ApprovedGlasses(tokenHex = tokenHex, mac = address, shortCode = shortCode),
+                    )
+                    if (_pendingAuthorization.value?.deviceAddress == address) {
+                        _pendingAuthorization.value = null
+                    }
+                    cancelAuthorizationNotification()
+                    Log.i(TAG, "peer approved: $address (code=$shortCode)")
+                }
+            }
+            ACTION_REJECT_PEER -> {
+                val address = intent.getStringExtra(EXTRA_AUTH_ADDRESS)
+                if (address != null) {
+                    publisher?.rejectPeer(address)
+                    if (_pendingAuthorization.value?.deviceAddress == address) {
+                        _pendingAuthorization.value = null
+                    }
+                    cancelAuthorizationNotification()
+                    Log.i(TAG, "peer rejected: $address")
+                }
+            }
             ACTION_START, null -> Unit
             else -> Log.w(TAG, "ignoring unknown action ${intent.action}")
         }
@@ -184,13 +216,16 @@ class BridgeService : Service() {
                     val openingMode = _linkMode.value
                     val opening: BridgePublisher = when (openingMode) {
                         GlassesLinkMode.ANDROID_BLE -> NativeBleBridgePublisher(
-                            applicationContext,
-                            ::setLinkState,
+                            context = applicationContext,
+                            onState = ::setLinkState,
+                            onAuthorizationRequested = ::handleAuthorizationRequested,
+                            onAuthorizationDismissed = ::handleAuthorizationDismissed,
                         )
                         GlassesLinkMode.ROKID_CXR -> RokidCxrBridgePublisher(
                             applicationContext,
                             scope,
                             ::setLinkState,
+                            preferredGlassesMacProvider = { settingsRepository.settings.value.preferredGlassesMac },
                         )
                     }
                     candidate = opening
@@ -213,7 +248,7 @@ class BridgeService : Service() {
                     setBridgeState(BridgeState.DEGRADED)
                     if (openingMode == GlassesLinkMode.ROKID_CXR) {
                         consecutiveCxrFailures += 1
-                        if (consecutiveCxrFailures >= CXR_OPEN_FAILURE_LIMIT) {
+                        if (shouldDegradeFromCxr(consecutiveCxrFailures)) {
                             // In CXR mode the phone performs no BLE
                             // advertising at all, so a persistently
                             // failing CXR publisher (no bonded glasses,
@@ -249,13 +284,22 @@ class BridgeService : Service() {
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun frames(): Flow<BridgeFrame> = target.flatMapLatest { selected ->
-        if (selected == null) {
-            setBridgeState(BridgeState.STANDBY)
-            idleFrames()
-        } else {
-            reconnectingWheelFrames(selected)
-        }
+    private fun frames(): Flow<BridgeFrame> = combine(
+        target.flatMapLatest { selected ->
+            if (selected == null) {
+                setBridgeState(BridgeState.STANDBY)
+                idleFrames()
+            } else {
+                reconnectingWheelFrames(selected)
+            }
+        },
+        _hudVisible,
+    ) { frame, visible ->
+        // Stamping visibility here rather than pushing a separate
+        // command means a toggle emits a frame immediately, so the HUD
+        // reacts at once instead of at the next telemetry tick — which
+        // in standby would be up to a second away.
+        frame.copy(hudHidden = !visible)
     }.catch { error ->
         if (error is CancellationException) throw error
         Log.e(TAG, "bridge frame pipeline failed; falling back to standby", error)
@@ -398,9 +442,122 @@ class BridgeService : Service() {
         _state.value = BridgeState.STOPPED
         _linkState.value = GlassesLinkState.STOPPED
         foregroundStarted = false
+        cancelAuthorizationNotification()
+        _pendingAuthorization.value = null
         scope.cancel()
         Log.i(TAG, "bridge stopped")
         super.onDestroy()
+    }
+
+    private fun handleAuthorizationRequested(request: GlassesAuthorizationRequest) {
+        Log.i(TAG, "incoming glasses authorization request from ${request.deviceAddress} (code=${request.shortCode})")
+        _pendingAuthorization.value = request
+        postAuthorizationNotification(request)
+    }
+
+    private fun handleAuthorizationDismissed(deviceAddress: String) {
+        if (_pendingAuthorization.value?.deviceAddress == deviceAddress) {
+            Log.i(TAG, "glasses authorization request for $deviceAddress dismissed")
+            _pendingAuthorization.value = null
+            cancelAuthorizationNotification()
+        }
+    }
+
+    private fun ensureAuthNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+            val channel = NotificationChannel(
+                AUTH_CHANNEL_ID,
+                getString(com.rideflux.app.R.string.glasses_auth_notification_title),
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = getString(com.rideflux.app.R.string.glasses_auth_notification_title)
+            }
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun postAuthorizationNotification(request: GlassesAuthorizationRequest) {
+        val canPostNotification = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        if (!canPostNotification) {
+            Log.w(TAG, "cannot post authorization notification: POST_NOTIFICATIONS not granted")
+            return
+        }
+
+        ensureAuthNotificationChannel()
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        val openAppPendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            openAppIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val approveIntent = Intent(this, BridgeService::class.java).apply {
+            action = ACTION_APPROVE_PEER
+            putExtra(EXTRA_AUTH_ADDRESS, request.deviceAddress)
+            putExtra(EXTRA_AUTH_TOKEN_HEX, request.token?.let(BridgePairingToken::toHex))
+            putExtra(EXTRA_AUTH_SHORT_CODE, request.shortCode)
+            putExtra(EXTRA_AUTH_IS_LEGACY, request.isLegacy)
+        }
+        val approvePendingIntent = PendingIntent.getService(
+            this,
+            1,
+            approveIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val rejectIntent = Intent(this, BridgeService::class.java).apply {
+            action = ACTION_REJECT_PEER
+            putExtra(EXTRA_AUTH_ADDRESS, request.deviceAddress)
+        }
+        val rejectPendingIntent = PendingIntent.getService(
+            this,
+            2,
+            rejectIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, AUTH_CHANNEL_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+
+        val notification = builder
+            .setContentTitle(getString(com.rideflux.app.R.string.glasses_auth_notification_title))
+            .setContentText(getString(com.rideflux.app.R.string.glasses_auth_notification_text, request.shortCode))
+            .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
+            .setContentIntent(openAppPendingIntent)
+            .setAutoCancel(true)
+            .addAction(
+                Notification.Action.Builder(
+                    null,
+                    getString(com.rideflux.app.R.string.action_deny),
+                    rejectPendingIntent,
+                ).build(),
+            )
+            .addAction(
+                Notification.Action.Builder(
+                    null,
+                    getString(com.rideflux.app.R.string.action_allow),
+                    approvePendingIntent,
+                ).build(),
+            )
+            .build()
+
+        manager.notify(AUTH_NOTIF_ID, notification)
+    }
+
+    private fun cancelAuthorizationNotification() {
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        manager.cancel(AUTH_NOTIF_ID)
     }
 
     private fun setBridgeState(value: BridgeState) {
@@ -478,23 +635,34 @@ class BridgeService : Service() {
 
     companion object {
         private const val TAG = "BridgeService"
-        private const val CHANNEL_ID = "rideflux_bridge"
+        internal const val CHANNEL_ID = "rideflux_bridge"
         private const val NOTIF_ID = 7421
 
         const val EXTRA_MAC = "mac"
         const val EXTRA_FAMILY = "family"
         const val EXTRA_LINK_MODE = "link_mode"
+        const val EXTRA_AUTH_ADDRESS = "auth_address"
+        const val EXTRA_AUTH_TOKEN_HEX = "auth_token_hex"
+        const val EXTRA_AUTH_SHORT_CODE = "auth_short_code"
+        const val EXTRA_AUTH_IS_LEGACY = "auth_is_legacy"
         const val ACTION_START = "com.rideflux.app.bridge.START"
         const val ACTION_SET_TARGET = "com.rideflux.app.bridge.SET_TARGET"
         const val ACTION_CLEAR_TARGET = "com.rideflux.app.bridge.CLEAR_TARGET"
         const val ACTION_SET_LINK_MODE = "com.rideflux.app.bridge.SET_LINK_MODE"
+        const val ACTION_APPROVE_PEER = "com.rideflux.app.bridge.APPROVE_PEER"
+        const val ACTION_REJECT_PEER = "com.rideflux.app.bridge.REJECT_PEER"
+
+        private const val AUTH_CHANNEL_ID = "rideflux_bridge_auth"
+        private const val AUTH_NOTIF_ID = 7422
+
+        private val _pendingAuthorization = MutableStateFlow<GlassesAuthorizationRequest?>(null)
+        val pendingAuthorization: StateFlow<GlassesAuthorizationRequest?> = _pendingAuthorization.asStateFlow()
 
         private const val STALE_THRESHOLD_MILLIS = 3_000L
         private const val STALE_TICK_MILLIS = 1_000L
         private const val IDLE_HEARTBEAT_MILLIS = 1_000L
         private const val PHONE_BATTERY_POLL_MILLIS = 15_000L
         private const val PUBLISHER_SWITCH_SETTLE_MILLIS = 1_000L
-        private const val CXR_OPEN_FAILURE_LIMIT = 3
 
         private val _state = MutableStateFlow(BridgeState.STOPPED)
         val state: StateFlow<BridgeState> = _state.asStateFlow()
@@ -506,8 +674,47 @@ class BridgeService : Service() {
         private val _linkMode = MutableStateFlow(GlassesLinkMode.ANDROID_BLE)
         val linkMode: StateFlow<GlassesLinkMode> = _linkMode.asStateFlow()
 
+        private val linkModeSeeded = AtomicBoolean(false)
+
+        /**
+         * Aligns [linkMode] with the persisted preference once per
+         * process.
+         *
+         * Without this the flow reports its declared default until the
+         * service happens to run, so with the bridge stopped the UI
+         * showed a transport the rider had not selected — and turning
+         * the bridge on then started the stored one instead, silently
+         * contradicting the chip they had just been looking at.
+         */
+        fun syncLinkMode(context: Context) {
+            if (linkModeSeeded.compareAndSet(false, true)) {
+                _linkMode.value = GlassesLinkPreferences.read(context)
+            }
+        }
+
         private val _linkState = MutableStateFlow(GlassesLinkState.STOPPED)
         val linkState: StateFlow<GlassesLinkState> = _linkState.asStateFlow()
+
+        private val _hudVisible = MutableStateFlow(true)
+
+        /**
+         * Whether the glasses are being asked to show the HUD.
+         *
+         * Deliberately *not* persisted: a hidden HUD is a momentary
+         * choice made mid-ride, and starting a later ride with a
+         * blank display the rider does not remember switching off is
+         * worse than making them press the ring again.
+         */
+        val hudVisible: StateFlow<Boolean> = _hudVisible.asStateFlow()
+
+        /** Show or blank the HUD; takes effect on the next frame, which is immediate. */
+        fun setHudVisible(visible: Boolean) {
+            _hudVisible.value = visible
+        }
+
+        fun toggleHudVisible() {
+            _hudVisible.value = !_hudVisible.value
+        }
 
         fun startStandby(context: Context) {
             launch(context, Intent(context, BridgeService::class.java).apply { action = ACTION_START })
@@ -550,6 +757,31 @@ class BridgeService : Service() {
             )
         }
 
+        fun approveGlasses(context: Context, request: GlassesAuthorizationRequest) {
+            _pendingAuthorization.value = null
+            launch(
+                context,
+                Intent(context, BridgeService::class.java).apply {
+                    action = ACTION_APPROVE_PEER
+                    putExtra(EXTRA_AUTH_ADDRESS, request.deviceAddress)
+                    putExtra(EXTRA_AUTH_TOKEN_HEX, request.token?.let(BridgePairingToken::toHex))
+                    putExtra(EXTRA_AUTH_SHORT_CODE, request.shortCode)
+                    putExtra(EXTRA_AUTH_IS_LEGACY, request.isLegacy)
+                },
+            )
+        }
+
+        fun rejectGlasses(context: Context, request: GlassesAuthorizationRequest) {
+            _pendingAuthorization.value = null
+            launch(
+                context,
+                Intent(context, BridgeService::class.java).apply {
+                    action = ACTION_REJECT_PEER
+                    putExtra(EXTRA_AUTH_ADDRESS, request.deviceAddress)
+                },
+            )
+        }
+
         /** The single full-stop path. Target clearing is deliberately separate. */
         fun stop(context: Context) {
             context.stopService(Intent(context, BridgeService::class.java))
@@ -580,6 +812,20 @@ internal fun standbyFrame(
     stale = true,
     ready = false,
 )
+
+/**
+ * How many consecutive failed CXR opens force the bridge back to the
+ * native BLE transport.
+ *
+ * One. `RokidCxrBridgePublisher.open()` now waits out a full connection
+ * attempt before reporting failure, so a single false already means the
+ * rider has spent ~20 s with a phone that advertises nothing at all —
+ * there is nothing to gain by spending another minute proving it twice.
+ */
+private const val CXR_OPEN_FAILURE_LIMIT = 1
+
+internal fun shouldDegradeFromCxr(consecutiveFailures: Int): Boolean =
+    consecutiveFailures >= CXR_OPEN_FAILURE_LIMIT
 
 internal fun reconnectBackoffMillis(attempt: Long): Long =
     (1_000L * (1L shl attempt.coerceIn(0L, 4L).toInt())).coerceAtMost(15_000L)

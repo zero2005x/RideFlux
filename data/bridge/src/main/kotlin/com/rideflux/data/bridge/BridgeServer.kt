@@ -78,7 +78,10 @@ import java.util.concurrent.atomic.AtomicReference
 class BridgeServer(
     private val context: Context,
     private val pairingToken: ByteArray? = null,
+    private val peerAuthorizer: BridgeServerPeerAuthorizer = BridgeServerPeerAuthorizer.AcceptAny,
     private val onSubscriberStateChanged: (Boolean) -> Unit = {},
+    private val onAuthorizationRequested: (BluetoothDevice, ByteArray?) -> Unit = { _, _ -> },
+    private val onAuthorizationTimedOut: (BluetoothDevice) -> Unit = {},
 ) {
 
     @Volatile private var gattServer: BluetoothGattServer? = null
@@ -113,6 +116,9 @@ class BridgeServer(
     private val latestPayload = AtomicReference<ByteArray?>(null)
     private val notificationsInFlight = ConcurrentHashMap.newKeySet<BluetoothDevice>()
     private val lastSubmittedPayload = ConcurrentHashMap<BluetoothDevice, ByteArray>()
+    private val pendingSubscribers = CopyOnWriteArraySet<BluetoothDevice>()
+    private val deviceHandshakeTokens = ConcurrentHashMap<BluetoothDevice, ByteArray>()
+    private val pendingTimeouts = ConcurrentHashMap<BluetoothDevice, Runnable>()
 
     /**
      * Begin advertising. Safe to call multiple times — the first call
@@ -161,10 +167,20 @@ class BridgeServer(
             )
         }
 
+        val handshake = BluetoothGattCharacteristic(
+            BridgeProtocol.HANDSHAKE_CHAR_UUID,
+            BluetoothGattCharacteristic.PROPERTY_WRITE or
+                BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
+            BluetoothGattCharacteristic.PERMISSION_WRITE,
+        )
+
         val service = BluetoothGattService(
             BridgeProtocol.SERVICE_UUID,
             BluetoothGattService.SERVICE_TYPE_PRIMARY,
-        ).apply { addCharacteristic(char) }
+        ).apply {
+            addCharacteristic(char)
+            addCharacteristic(handshake)
+        }
 
         val server = mgr.openGattServer(context, serverCallback)
             ?: run {
@@ -328,6 +344,10 @@ class BridgeServer(
         latestPayload.set(null)
         notificationsInFlight.clear()
         lastSubmittedPayload.clear()
+        pendingTimeouts.values.forEach(mainHandler::removeCallbacks)
+        pendingTimeouts.clear()
+        pendingSubscribers.clear()
+        deviceHandshakeTokens.clear()
     }
 
     private fun notifyLatest(device: BluetoothDevice) {
@@ -496,6 +516,9 @@ class BridgeServer(
             Log.i(TAG, "central ${device.address} status=$status newState=$newState")
             if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 subscribers.remove(device)
+                pendingSubscribers.remove(device)
+                cancelPendingTimeout(device)
+                deviceHandshakeTokens.remove(device)
                 dispatchSubscriberState()
                 notificationsInFlight.remove(device)
                 lastSubmittedPayload.remove(device)
@@ -511,6 +534,58 @@ class BridgeServer(
             // If frames arrived while the previous packet was queued,
             // immediately submit only the newest one.
             notifyLatest(device)
+        }
+
+        override fun onCharacteristicWriteRequest(
+            device: BluetoothDevice,
+            requestId: Int,
+            characteristic: BluetoothGattCharacteristic,
+            preparedWrite: Boolean,
+            responseNeeded: Boolean,
+            offset: Int,
+            value: ByteArray,
+        ) {
+            if (characteristic.uuid == BridgeProtocol.HANDSHAKE_CHAR_UUID) {
+                if (offset != 0 || value.size != BridgeProtocol.PAIRING_TOKEN_SIZE) {
+                    Log.w(TAG, "invalid handshake write from ${device.address}: len=${value.size}")
+                    if (responseNeeded) {
+                        gattServer?.sendResponse(
+                            device,
+                            requestId,
+                            BluetoothGatt.GATT_INVALID_ATTRIBUTE_LENGTH,
+                            offset,
+                            null,
+                        )
+                    }
+                    return
+                }
+                val token = value.copyOf()
+                Log.i(
+                    TAG,
+                    "handshake token received from ${device.address}: " +
+                        "${BridgePairingToken.shortCode(token)}…",
+                )
+                handleHandshakeToken(device, token)
+                if (responseNeeded) {
+                    gattServer?.sendResponse(
+                        device,
+                        requestId,
+                        BluetoothGatt.GATT_SUCCESS,
+                        offset,
+                        null,
+                    )
+                }
+                return
+            }
+            if (responseNeeded) {
+                gattServer?.sendResponse(
+                    device,
+                    requestId,
+                    BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED,
+                    offset,
+                    null,
+                )
+            }
         }
 
         override fun onDescriptorReadRequest(
@@ -588,9 +663,25 @@ class BridgeServer(
                     return
                 }
                 val enable = value[0].toInt() != 0
-                if (enable) subscribers.add(device) else subscribers.remove(device)
-                dispatchSubscriberState()
-                Log.i(TAG, "CCCD write ${device.address} enable=$enable")
+                if (enable) {
+                    val token = deviceHandshakeTokens[device]
+                    if (peerAuthorizer.isAuthorized(device, token)) {
+                        subscribers.add(device)
+                        pendingSubscribers.remove(device)
+                        cancelPendingTimeout(device)
+                        dispatchSubscriberState()
+                        Log.i(TAG, "telemetry subscription authorized for ${device.address}")
+                    } else {
+                        Log.i(TAG, "telemetry subscription pending authorization for ${device.address}")
+                        enterPending(device, token)
+                    }
+                } else {
+                    subscribers.remove(device)
+                    pendingSubscribers.remove(device)
+                    cancelPendingTimeout(device)
+                    dispatchSubscriberState()
+                    Log.i(TAG, "CCCD write ${device.address} enable=false")
+                }
             }
             // Acknowledge the write before notifying anything so the
             // central never sees a notification for an unacknowledged
@@ -617,10 +708,97 @@ class BridgeServer(
             .onFailure { Log.w(TAG, "subscriber-state callback failed", it) }
     }
 
+    private fun handleHandshakeToken(device: BluetoothDevice, token: ByteArray) {
+        deviceHandshakeTokens[device] = token
+        if (pendingSubscribers.contains(device)) {
+            if (peerAuthorizer.isAuthorized(device, token)) {
+                Log.i(TAG, "pending central ${device.address} authorized by received token")
+                subscribers.add(device)
+                pendingSubscribers.remove(device)
+                cancelPendingTimeout(device)
+                dispatchSubscriberState()
+                notifyLatest(device)
+            } else {
+                onAuthorizationRequested(device, token)
+            }
+        }
+    }
+
+    private fun enterPending(device: BluetoothDevice, token: ByteArray?) {
+        pendingSubscribers.add(device)
+        cancelPendingTimeout(device)
+        val runnable = Runnable {
+            if (pendingSubscribers.remove(device)) {
+                Log.w(
+                    TAG,
+                    "pending authorization timed out after ${PENDING_AUTHORIZATION_TIMEOUT_MILLIS}ms " +
+                        "for ${device.address}",
+                )
+                try {
+                    gattServer?.cancelConnection(device)
+                } catch (t: Throwable) {
+                    Log.w(TAG, "cancelConnection on timeout threw", t)
+                }
+                onAuthorizationTimedOut(device)
+            }
+        }
+        pendingTimeouts[device] = runnable
+        mainHandler.postDelayed(runnable, PENDING_AUTHORIZATION_TIMEOUT_MILLIS)
+        onAuthorizationRequested(device, token)
+    }
+
+    private fun cancelPendingTimeout(device: BluetoothDevice) {
+        pendingTimeouts.remove(device)?.let(mainHandler::removeCallbacks)
+    }
+
+    fun approvePeer(device: BluetoothDevice) {
+        if (pendingSubscribers.remove(device)) {
+            cancelPendingTimeout(device)
+            subscribers.add(device)
+            dispatchSubscriberState()
+            Log.i(TAG, "peer approved: ${device.address}")
+            notifyLatest(device)
+        }
+    }
+
+    fun approvePeer(address: String): Boolean {
+        val dev = pendingSubscribers.firstOrNull { it.address.equals(address, ignoreCase = true) }
+            ?: return false
+        approvePeer(dev)
+        return true
+    }
+
+    fun rejectPeer(device: BluetoothDevice) {
+        if (pendingSubscribers.remove(device)) {
+            cancelPendingTimeout(device)
+            Log.i(TAG, "peer rejected: ${device.address}")
+            try {
+                gattServer?.cancelConnection(device)
+            } catch (t: Throwable) {
+                Log.w(TAG, "cancelConnection on reject threw", t)
+            }
+        }
+    }
+
+    fun rejectPeer(address: String): Boolean {
+        val dev = pendingSubscribers.firstOrNull { it.address.equals(address, ignoreCase = true) }
+            ?: return false
+        rejectPeer(dev)
+        return true
+    }
+
+    fun isPending(address: String): Boolean =
+        pendingSubscribers.any { it.address.equals(address, ignoreCase = true) }
+
     private companion object {
         const val TAG = "BridgeServer"
         const val ADVERTISE_RETRY_BASE_MILLIS = 2_000
         const val ADVERTISE_RETRY_MAX_MILLIS = 30_000
+
+        /**
+         * Centrals pending approval timeout after 60 seconds of inactivity.
+         */
+        const val PENDING_AUTHORIZATION_TIMEOUT_MILLIS = 60_000L
 
         /**
          * How long [open] waits for `onServiceAdded`. The platform

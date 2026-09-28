@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">आपके व्हील तक पहुँचने के लिए RideFlux HUD को ब्लूटूथ स्कैन और कनेक्ट अनुमति चाहिए।</string>
     <string name="permission_location_body">ब्लूटूथ पर आपके व्हील को खोजने और जुड़ने के लिए RideFlux HUD को स्थान की अनुमति चाहिए।</string>
     <string name="action_open_settings">सेटिंग्स खोलें</string>
+    <string name="hud_offline_link_lost">ब्लूटूथ कनेक्शन टूट गया</string>
+    <string name="hud_offline_handshake">व्हील ने जवाब नहीं दिया</string>
+    <string name="hud_offline_internal">आंतरिक त्रुटि</string>
+
+    <string name="hud_settings_mirror">दर्पण: %1$s</string>
+    <string name="hud_settings_on">चालू</string>
+    <string name="hud_settings_off">बंद</string>
+    <string name="hud_settings_ring_key">रिंग: %1$s</string>
+    <string name="hud_settings_ring_default">डिफ़ॉल्ट</string>
+    <string name="hud_settings_ring_learn">सीखें</string>
+    <string name="hud_settings_ring_listening">रिंग अभी दबाएं…</string>
+    <string name="hud_settings_ring_reset">रीसेट</string>
+    <string name="hud_settings_ring_learned">कुंजी %1$d</string>
 </resources>

@@ -17,9 +17,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -59,6 +63,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -108,17 +113,27 @@ fun HudRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val candidates by viewModel.pairingCandidates.collectAsStateWithLifecycle()
+    val hudVisible by viewModel.hudVisible.collectAsStateWithLifecycle()
+    val isLearningRingKey by viewModel.isLearningRingKey.collectAsStateWithLifecycle()
     var settingsOpen by remember { mutableStateOf(false) }
     HudScreen(
         uiState = uiState,
+        hudVisible = hudVisible,
+        mirrorHorizontally = settings.hudMirrorHorizontally,
         targetMac = targetMac,
         onExit = onExit,
         onRetry = onRetry,
         settingsOpen = settingsOpen,
         thresholds = settings.alertThresholds,
         pairingCandidates = candidates,
+        isLearningRingKey = isLearningRingKey,
+        ringKeyCode = settings.ringKeyCode,
         onOpenSettings = { settingsOpen = true },
-        onCloseSettings = { settingsOpen = false; viewModel.stopPhonePairing() },
+        onCloseSettings = {
+            settingsOpen = false
+            viewModel.stopPhonePairing()
+            viewModel.stopLearningRingKey()
+        },
         onStartPairing = viewModel::startPhonePairing,
         // The ViewModel rebuilds the bridge source in place with the new
         // pairing token, so no activity restart is needed for pairing to
@@ -128,6 +143,9 @@ fun HudRoute(
         onTemperatureLimit = viewModel::setTemperatureLimit,
         onLowBatteryLimit = viewModel::setLowBatteryLimit,
         onPwmLimit = viewModel::setPwmLimit,
+        onToggleMirror = { viewModel.setHudMirrorHorizontally(!settings.hudMirrorHorizontally) },
+        onStartLearnRing = viewModel::startLearningRingKey,
+        onResetRingKey = viewModel::resetRingKey,
     )
 }
 
@@ -137,9 +155,13 @@ fun HudScreen(
     targetMac: String?,
     onExit: () -> Unit,
     onRetry: () -> Unit,
+    hudVisible: Boolean = true,
+    mirrorHorizontally: Boolean = false,
     settingsOpen: Boolean = false,
     thresholds: AlertThresholds = AlertThresholds(),
     pairingCandidates: List<BridgePeerCandidate> = emptyList(),
+    isLearningRingKey: Boolean = false,
+    ringKeyCode: Int? = null,
     onOpenSettings: () -> Unit = {},
     onCloseSettings: () -> Unit = {},
     onStartPairing: () -> Unit = {},
@@ -148,24 +170,39 @@ fun HudScreen(
     onTemperatureLimit: (Float) -> Unit = {},
     onLowBatteryLimit: (Float) -> Unit = {},
     onPwmLimit: (Float) -> Unit = {},
+    onToggleMirror: () -> Unit = {},
+    onStartLearnRing: () -> Unit = {},
+    onResetRingKey: () -> Unit = {},
 ) {
     // Use the latest onExit/onRetry even across recompositions so a
     // pointerInput(Unit) block never captures a stale lambda.
     val currentOnExit by rememberUpdatedState(onExit)
     val currentOnRetry by rememberUpdatedState(onRetry)
     val currentOnOpenSettings by rememberUpdatedState(onOpenSettings)
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
             .then(
-                if (MIRROR_HORIZONTALLY) Modifier.graphicsLayer(scaleX = -1f) else Modifier
+                if (mirrorHorizontally) Modifier.graphicsLayer(scaleX = -1f) else Modifier
             )
             .pointerInput(Unit) {
                 detectTapGestures(onLongPress = { currentOnOpenSettings() })
             },
     ) {
-        when (val phase = phaseOf(uiState)) {
+        val dims = remember(maxWidth, maxHeight) {
+            HudLayoutDimensions.calculate(maxWidth.value, maxHeight.value)
+        }
+        // Blanked by a ring press (here or on the phone). The link, the
+        // frame pipeline and this activity all stay exactly as they
+        // were — only the drawing stops — so revealing it again is
+        // instant. A live safety threshold is the one thing that still
+        // breaks through: a rider who blanked the display to cut glare
+        // must not thereby silence an overspeed or over-temperature
+        // warning.
+        val suppressed = !hudVisible && !uiState.thresholdAlertActive
+        when (val phase = if (suppressed) null else phaseOf(uiState)) {
+            null -> Unit
             HudPhase.AwaitingTarget -> AwaitingTargetMessage(onRetry = currentOnRetry)
             HudPhase.WaitingPhone -> WaitingPhoneMessage(onPair = {
                 currentOnOpenSettings()
@@ -178,9 +215,9 @@ fun HudScreen(
             HudPhase.Scanning -> ScanningMessage()
             HudPhase.Connecting -> ConnectingMessage(targetMac = targetMac)
             is HudPhase.Disconnected -> DisconnectedMessage(reason = phase.reason, onRetry = currentOnRetry)
-            HudPhase.Ready -> ReadyHud(uiState = uiState)
+            HudPhase.Ready -> ReadyHud(uiState = uiState, dims = dims)
         }
-        if (uiState.thresholdAlertActive && phaseOf(uiState) == HudPhase.Ready) {
+        if (uiState.thresholdAlertActive && phaseOf(uiState) == HudPhase.Ready && !suppressed) {
             val flash by rememberAlertFlash()
             Box(
                 Modifier.fillMaxSize().border(8.dp, Color.Red.copy(alpha = flash)),
@@ -190,6 +227,9 @@ fun HudScreen(
             HudSettingsOverlay(
                 thresholds = thresholds,
                 candidates = pairingCandidates,
+                mirrorHorizontally = mirrorHorizontally,
+                isLearningRingKey = isLearningRingKey,
+                ringKeyCode = ringKeyCode,
                 onClose = onCloseSettings,
                 onExit = currentOnExit,
                 onStartPairing = onStartPairing,
@@ -198,6 +238,9 @@ fun HudScreen(
                 onTemperatureLimit = onTemperatureLimit,
                 onLowBatteryLimit = onLowBatteryLimit,
                 onPwmLimit = onPwmLimit,
+                onToggleMirror = onToggleMirror,
+                onStartLearnRing = onStartLearnRing,
+                onResetRingKey = onResetRingKey,
             )
         }
     }
@@ -207,6 +250,9 @@ fun HudScreen(
 private fun HudSettingsOverlay(
     thresholds: AlertThresholds,
     candidates: List<BridgePeerCandidate>,
+    mirrorHorizontally: Boolean,
+    isLearningRingKey: Boolean,
+    ringKeyCode: Int?,
     onClose: () -> Unit,
     onExit: () -> Unit,
     onStartPairing: () -> Unit,
@@ -215,9 +261,16 @@ private fun HudSettingsOverlay(
     onTemperatureLimit: (Float) -> Unit,
     onLowBatteryLimit: (Float) -> Unit,
     onPwmLimit: (Float) -> Unit,
+    onToggleMirror: () -> Unit,
+    onStartLearnRing: () -> Unit,
+    onResetRingKey: () -> Unit,
 ) {
     Column(
-        Modifier.fillMaxSize().background(Color.Black).padding(14.dp),
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .padding(14.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -263,6 +316,41 @@ private fun HudSettingsOverlay(
             SPEED_AND_PERCENT_MAX,
             onPwmLimit,
         )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.hud_settings_mirror), color = Color.White, fontSize = 13.sp)
+            ActionText(
+                if (mirrorHorizontally) stringResource(R.string.hud_settings_on) else stringResource(R.string.hud_settings_off),
+                onToggleMirror,
+            )
+        }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val ringLabel = when {
+                isLearningRingKey -> stringResource(R.string.hud_settings_ring_listening)
+                ringKeyCode != null -> stringResource(R.string.hud_settings_ring_learned, ringKeyCode)
+                else -> stringResource(R.string.hud_settings_ring_default)
+            }
+            Text(
+                stringResource(R.string.hud_settings_ring_key, ringLabel),
+                color = if (isLearningRingKey) HudAmber else Color.White,
+                fontSize = 13.sp,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!isLearningRingKey) {
+                    ActionText(stringResource(R.string.hud_settings_ring_learn), onStartLearnRing)
+                    if (ringKeyCode != null) {
+                        ActionText(stringResource(R.string.hud_settings_ring_reset), onResetRingKey)
+                    }
+                }
+            }
+        }
         ActionText(stringResource(R.string.hud_settings_pair_with_phone), onStartPairing)
         candidates.take(4).forEach { peer ->
             val label = peer.shortCode?.let { "CODE $it" }
@@ -272,7 +360,11 @@ private fun HudSettingsOverlay(
                 stringResource(R.string.hud_peer_row, label, peer.rssi),
                 color = if (peer.shortCode != null) HudGreen else Color.White,
                 fontSize = 12.sp,
-                modifier = Modifier.fillMaxWidth().clickable { onPairPhone(peer) }.padding(5.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
+                    .clickable { onPairPhone(peer) }
+                    .padding(5.dp),
             )
         }
     }
@@ -313,19 +405,68 @@ private fun LimitRow(
     }
 }
 
+/**
+ * Minimum touch target.
+ *
+ * These controls are driven from the glasses' own touchpad or ring,
+ * where the rider cannot see their finger against the target at all —
+ * so the 48 dp Material minimum is a floor here, not a nicety. The
+ * outline stays visually small; only the hit area grows, which keeps
+ * the surface as dark as the AR optics need.
+ */
+private val MIN_TOUCH_TARGET = 48.dp
+
 @Composable
 private fun ActionText(label: String, onClick: () -> Unit) {
-    Text(
-        label,
-        color = HudGreen,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.border(1.dp, HudGreen, RoundedCornerShape(4.dp))
-            .clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 5.dp),
-    )
+    Box(
+        modifier = Modifier
+            .defaultMinSize(minWidth = MIN_TOUCH_TARGET, minHeight = MIN_TOUCH_TARGET)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            color = HudGreen,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .border(1.dp, HudGreen, RoundedCornerShape(4.dp))
+                .padding(horizontal = 8.dp, vertical = 5.dp),
+        )
+    }
 }
 
 // ---------- Phase derivation -------------------------------------------
+
+/**
+ * Maps a failure onto something a rider can act on, in three buckets.
+ *
+ * The HUD used to print the enum constant — a glance at 40 km/h would
+ * show `INTERNAL` or `CHECKSUM_STORM`, which is untranslated, shouty
+ * and tells the rider nothing. Seven reasons collapse to three because
+ * only three distinct actions exist at the roadside: the radio dropped,
+ * the wheel is not talking to us, or the app itself is broken.
+ *
+ * A null reason is a plain disconnect with no diagnosis; callers render
+ * the reason-free string for it, so this returns the internal label
+ * only to keep the lookup unconditional.
+ */
+@androidx.annotation.StringRes
+private fun humanReasonRes(reason: ConnectionState.Failed.Reason?): Int = when (reason) {
+    ConnectionState.Failed.Reason.BLE_LINK_LOST,
+    ConnectionState.Failed.Reason.GATT_ERROR,
+    -> R.string.hud_offline_link_lost
+
+    ConnectionState.Failed.Reason.HANDSHAKE_TIMEOUT,
+    ConnectionState.Failed.Reason.UNKNOWN_FAMILY,
+    ConnectionState.Failed.Reason.CHECKSUM_STORM,
+    ConnectionState.Failed.Reason.AUTHENTICATION_FAILED,
+    -> R.string.hud_offline_handshake
+
+    // `else` rather than naming INTERNAL: Reason is documented as
+    // extensible, and a new constant must not stop this compiling.
+    else -> R.string.hud_offline_internal
+}
 
 private sealed class HudPhase {
     data object AwaitingTarget : HudPhase()
@@ -334,7 +475,7 @@ private sealed class HudPhase {
     data object Scanning : HudPhase()
     data object Connecting : HudPhase()
     data object Ready : HudPhase()
-    data class Disconnected(val reason: String?) : HudPhase()
+    data class Disconnected(val reason: ConnectionState.Failed.Reason?) : HudPhase()
 }
 
 private fun phaseOf(s: HudUiState): HudPhase {
@@ -348,7 +489,7 @@ private fun phaseOf(s: HudUiState): HudPhase {
         ConnectionState.Connecting -> HudPhase.Scanning
         is ConnectionState.Handshaking -> HudPhase.Connecting
         ConnectionState.Ready -> HudPhase.Ready
-        is ConnectionState.Failed -> HudPhase.Disconnected(cs.reason.name)
+        is ConnectionState.Failed -> HudPhase.Disconnected(cs.reason)
         ConnectionState.Disconnected -> HudPhase.Disconnected(reason = null)
     }
 }
@@ -427,11 +568,12 @@ private fun ConnectingMessage(targetMac: String?) {
 }
 
 @Composable
-private fun DisconnectedMessage(reason: String?, onRetry: () -> Unit) {
+private fun DisconnectedMessage(reason: ConnectionState.Failed.Reason?, onRetry: () -> Unit) {
     // Both variants are resolved unconditionally: stringResource is a
     // composable call and must not sit behind a data-dependent branch.
     val offline = stringResource(R.string.hud_offline)
-    val offlineWithReason = stringResource(R.string.hud_offline_reason, reason.orEmpty())
+    val reasonLabel = stringResource(humanReasonRes(reason))
+    val offlineWithReason = stringResource(R.string.hud_offline_reason, reasonLabel)
     CenteredStatus(
         title = stringResource(R.string.hud_brand_title),
         titleColor = HudGreen,
@@ -520,41 +662,41 @@ private fun RetryChip(label: String, onClick: () -> Unit) {
 // ---------- Ready HUD --------------------------------------------------
 
 @Composable
-private fun ReadyHud(uiState: HudUiState) {
+private fun ReadyHud(uiState: HudUiState, dims: HudLayoutDimensions) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            // RV101 exposes 480 x 640 px at 240 dpi (320 dp wide).
-            // Keep only a 4 dp edge inset and avoid the top reflection
-            // band so the side stacks use the full optical width.
             .padding(
-                start = HUD_HORIZONTAL_PADDING,
-                end = HUD_HORIZONTAL_PADDING,
-                top = HUD_TOP_PADDING,
-                bottom = HUD_BOTTOM_PADDING,
+                start = dims.horizontalPaddingDp.dp,
+                end = dims.horizontalPaddingDp.dp,
+                top = dims.topPaddingDp.dp,
+                bottom = dims.bottomPaddingDp.dp,
             ),
     ) {
         LeftColumn(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .width(SIDE_COLUMN_WIDTH),
+                .width(dims.sideColumnWidthDp.dp),
             phoneBatteryPercent = uiState.phoneBatteryPercent,
             glassesBatteryPercent = uiState.glassesBatteryPercent,
             signal = uiState.signalQuality,
+            dims = dims,
         )
         CenterSpeed(
             modifier = Modifier
                 .align(Alignment.Center)
-                .width(CENTER_COLUMN_WIDTH),
+                .width(dims.centerColumnWidthDp.dp),
             speedKmh = uiState.speedKmh,
+            dims = dims,
         )
         RightColumn(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .width(SIDE_COLUMN_WIDTH),
+                .width(dims.sideColumnWidthDp.dp),
             vehicleBatteryPercent = uiState.vehicleBatteryPercent,
             tripDistanceMetres = uiState.tripDistanceMetres,
             tripDurationSeconds = uiState.tripDurationSeconds,
+            dims = dims,
         )
 
         // Stale-data flag floats top-centre so it stays out of the
@@ -592,11 +734,12 @@ private fun LeftColumn(
     phoneBatteryPercent: Int?,
     glassesBatteryPercent: Int?,
     signal: SignalQuality,
+    dims: HudLayoutDimensions,
 ) {
     val clock by rememberWallClock()
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(dims.verticalSpacingDp.dp),
         horizontalAlignment = Alignment.Start,
     ) {
         // Wall clock — primary item in this column. Tinted with the
@@ -607,7 +750,8 @@ private fun LeftColumn(
             iconTint = HudCyan,
             text = clock,
             textColor = HudCyan,
-            fontSize = 20.sp,
+            fontSize = dims.clockFontSizeSp.sp,
+            iconSize = dims.iconSizeDp.dp,
             fontWeight = FontWeight.Black,
         )
         // Phone battery (paired companion device).
@@ -616,7 +760,8 @@ private fun LeftColumn(
             iconTint = HudWhiteSoft,
             text = formatPercent(phoneBatteryPercent?.toFloat()),
             textColor = HudWhiteSoft,
-            fontSize = 14.sp,
+            fontSize = dims.labelFontSizeSp.sp,
+            iconSize = dims.iconSizeDp.dp,
         )
         // Glasses battery (this device).
         IconLabelRow(
@@ -624,15 +769,16 @@ private fun LeftColumn(
             iconTint = HudWhiteSoft,
             text = formatPercent(glassesBatteryPercent?.toFloat()),
             textColor = HudWhiteSoft,
-            fontSize = 14.sp,
+            fontSize = dims.labelFontSizeSp.sp,
+            iconSize = dims.iconSizeDp.dp,
         )
         // BLE signal quality.
-        SignalRow(signal = signal)
+        SignalRow(signal = signal, dims = dims)
     }
 }
 
 @Composable
-private fun SignalRow(signal: SignalQuality) {
+private fun SignalRow(signal: SignalQuality, dims: HudLayoutDimensions? = null) {
     val (icon, tint, labelRes) = when (signal) {
         SignalQuality.GOOD ->
             Triple(Icons.Filled.BluetoothConnected, HudGreen, R.string.hud_signal_good)
@@ -647,13 +793,18 @@ private fun SignalRow(signal: SignalQuality) {
         iconTint = tint,
         text = label,
         textColor = tint,
-        fontSize = 14.sp,
+        fontSize = dims?.labelFontSizeSp?.sp ?: 14.sp,
+        iconSize = dims?.iconSizeDp?.dp ?: 16.dp,
         fontWeight = FontWeight.Bold,
     )
 }
 
 @Composable
-private fun CenterSpeed(modifier: Modifier = Modifier, speedKmh: Float?) {
+private fun CenterSpeed(
+    modifier: Modifier = Modifier,
+    speedKmh: Float?,
+    dims: HudLayoutDimensions,
+) {
     // Guard non-finite telemetry: roundToInt() maps NaN → 0 and
     // +Infinity → Int.MAX_VALUE, which would render "0" or
     // "2147483647" on the primary HUD readout.
@@ -669,9 +820,7 @@ private fun CenterSpeed(modifier: Modifier = Modifier, speedKmh: Float?) {
     ) {
         Text(
             text = display,
-            // 72 sp fits three digits in the exact 320 dp RV101
-            // viewport without pushing either side stack inward.
-            fontSize = 72.sp,
+            fontSize = dims.speedFontSizeSp.sp,
             fontWeight = FontWeight.Black,
             color = HudGreen,
             textAlign = TextAlign.Center,
@@ -679,7 +828,7 @@ private fun CenterSpeed(modifier: Modifier = Modifier, speedKmh: Float?) {
         )
         Text(
             text = stringResource(R.string.unit_kmh),
-            fontSize = 16.sp,
+            fontSize = dims.speedUnitFontSizeSp.sp,
             fontWeight = FontWeight.Medium,
             color = HudWhiteSoft,
         )
@@ -692,13 +841,14 @@ private fun RightColumn(
     vehicleBatteryPercent: Float?,
     tripDistanceMetres: Int?,
     tripDurationSeconds: Long?,
+    dims: HudLayoutDimensions,
 ) {
     val pct = vehicleBatteryPercent?.takeIf { it.isFinite() }?.coerceIn(0f, 100f)
     val tint = batteryTint(pct)
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(dims.verticalSpacingDp.dp),
         horizontalAlignment = Alignment.End,
     ) {
         // Right column is end-aligned, so place the icon after the
@@ -709,7 +859,8 @@ private fun RightColumn(
             iconTint = tint,
             text = pct?.let { "${it.roundToInt()}%" } ?: "--%",
             textColor = tint,
-            fontSize = 22.sp,
+            fontSize = dims.batteryFontSizeSp.sp,
+            iconSize = dims.iconSizeDp.dp,
             fontWeight = FontWeight.Black,
             iconAfter = true,
         )
@@ -719,7 +870,8 @@ private fun RightColumn(
                 iconTint = HudWhiteSoft,
                 text = formatDistance(tripDistanceMetres),
                 textColor = HudWhiteSoft,
-                fontSize = 14.sp,
+                fontSize = dims.labelFontSizeSp.sp,
+                iconSize = dims.iconSizeDp.dp,
                 iconAfter = true,
             )
         }
@@ -729,7 +881,8 @@ private fun RightColumn(
                 iconTint = HudWhiteSoft,
                 text = formatDuration(tripDurationSeconds),
                 textColor = HudWhiteSoft,
-                fontSize = 14.sp,
+                fontSize = dims.labelFontSizeSp.sp,
+                iconSize = dims.iconSizeDp.dp,
                 iconAfter = true,
             )
         }
@@ -745,12 +898,13 @@ private fun IconLabelRow(
     text: String,
     textColor: Color,
     fontSize: TextUnit,
+    iconSize: Dp = 16.dp,
     fontWeight: FontWeight = FontWeight.Bold,
     iconAfter: Boolean = false,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (!iconAfter) {
-            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(iconSize))
             Spacer(Modifier.width(4.dp))
         }
         Text(
@@ -761,7 +915,7 @@ private fun IconLabelRow(
         )
         if (iconAfter) {
             Spacer(Modifier.width(4.dp))
-            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(iconSize))
         }
     }
 }
@@ -861,16 +1015,3 @@ private val HudWhiteSoft: Color = Color.White.copy(alpha = 0.70f)
 
 private const val LOW_BATTERY_THRESHOLD: Float = 20f
 private const val CRITICAL_BATTERY_THRESHOLD: Float = 8f
-
-private val HUD_HORIZONTAL_PADDING = 4.dp
-private val HUD_TOP_PADDING = 32.dp
-private val HUD_BOTTOM_PADDING = 20.dp
-private val SIDE_COLUMN_WIDTH = 88.dp
-private val CENTER_COLUMN_WIDTH = 128.dp
-
-/**
- * Set to `true` if the deployed glasses optical path mirrors the
- * Android display horizontally. Kept as a compile-time flag so it
- * can be flipped per-build without any runtime configuration.
- */
-private const val MIRROR_HORIZONTALLY: Boolean = false

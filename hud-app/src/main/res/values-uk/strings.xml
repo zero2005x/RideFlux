@@ -33,4 +33,17 @@
     <string name="permission_bluetooth_body">RideFlux HUD потребує дозволів на пошук і підключення через Bluetooth, щоб зв\'язатися з моноколесом.</string>
     <string name="permission_location_body">RideFlux HUD потребує доступу до геолокації, щоб виявити моноколесо та підключитися до нього через Bluetooth.</string>
     <string name="action_open_settings">Відкрити налаштування</string>
+    <string name="hud_offline_link_lost">З\'єднання Bluetooth втрачено</string>
+    <string name="hud_offline_handshake">Колесо не відповіло</string>
+    <string name="hud_offline_internal">Внутрішня помилка</string>
+
+    <string name="hud_settings_mirror">ДЗЕРКАЛО: %1$s</string>
+    <string name="hud_settings_on">УВІМК</string>
+    <string name="hud_settings_off">ВИМК</string>
+    <string name="hud_settings_ring_key">КІЛЬЦЕ: %1$s</string>
+    <string name="hud_settings_ring_default">ЗА ЗАМОВЧУВАННЯМ</string>
+    <string name="hud_settings_ring_learn">НАВЧИТИ</string>
+    <string name="hud_settings_ring_listening">НАТИСНІТЬ КІЛЬЦЕ…</string>
+    <string name="hud_settings_ring_reset">СКИДАННЯ</string>
+    <string name="hud_settings_ring_learned">КЛАВІША %1$d</string>
 </resources>
