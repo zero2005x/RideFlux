@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only additions. StoreScreenshotActivity renders the real screens with
+  sample data for Play Store screenshots; it is exported so `adb shell am start`
+  can launch it, and it never ships in release builds.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name="com.rideflux.app.screenshot.StoreScreenshotActivity"
+            android:exported="true"
+            android:theme="@style/Theme.RideFlux" />
+    </application>
+</manifest>
