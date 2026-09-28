@@ -496,5 +496,14 @@ class TripBackupManagerTest {
         override suspend fun setHudPeerMac(value: String?) {
             _settings.value = _settings.value.copy(hudPeerMac = value)
         }
+        override suspend fun setRingKeyCode(value: Int?) {
+            _settings.value = _settings.value.copy(ringKeyCode = value)
+        }
+        override suspend fun setHudMirrorHorizontally(value: Boolean) {
+            _settings.value = _settings.value.copy(hudMirrorHorizontally = value)
+        }
+        override suspend fun setPreferredGlassesMac(value: String?) {
+            _settings.value = _settings.value.copy(preferredGlassesMac = value)
+        }
     }
 }

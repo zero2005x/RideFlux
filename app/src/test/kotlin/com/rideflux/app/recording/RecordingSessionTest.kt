@@ -13,6 +13,7 @@ import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
 import com.rideflux.domain.repository.DiscoveredWheel
 import com.rideflux.domain.repository.WheelRepository
+import com.rideflux.domain.ride.ImportResult
 import com.rideflux.domain.ride.Trip
 import com.rideflux.domain.ride.TripRepository
 import com.rideflux.domain.ride.TripSample
@@ -161,6 +162,13 @@ class RecordingSessionTest {
         override suspend fun deleteTrip(tripId: Long) = Unit
         override suspend fun clearAll() = Unit
         override suspend fun recoverIncompleteTrips() = Unit
+        override suspend fun getAllTrips() = emptyList<Trip>()
+        override suspend fun getAllSamples() = samples.toList()
+        override suspend fun getSamples(tripId: Long) = samples.toList()
+        override suspend fun importTrips(
+            tripsWithSamples: List<Pair<Trip, List<TripSample>>>,
+            replaceAll: Boolean,
+        ) = ImportResult(tripsImported = 0, tripsSkipped = 0, samplesImported = 0)
     }
 
     private class FakeConnection : WheelConnection {

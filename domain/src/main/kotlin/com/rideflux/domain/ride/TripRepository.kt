@@ -16,9 +16,9 @@ interface TripRepository {
     fun observeTrips(wheelAddress: String? = null): Flow<List<Trip>>
     fun observeTrip(tripId: Long): Flow<Trip?>
     fun observeSamples(tripId: Long): Flow<List<TripSample>>
-    suspend fun getAllTrips(): List<Trip> = emptyList()
-    suspend fun getAllSamples(): List<TripSample> = emptyList()
-    suspend fun getSamples(tripId: Long): List<TripSample> = emptyList()
+    suspend fun getAllTrips(): List<Trip>
+    suspend fun getAllSamples(): List<TripSample>
+    suspend fun getSamples(tripId: Long): List<TripSample>
     suspend fun createTrip(trip: Trip): Long
     suspend fun appendSample(sample: TripSample)
     suspend fun finishTrip(trip: Trip)
@@ -28,5 +28,5 @@ interface TripRepository {
     suspend fun importTrips(
         tripsWithSamples: List<Pair<Trip, List<TripSample>>>,
         replaceAll: Boolean,
-    ): ImportResult = ImportResult(0, 0, 0)
+    ): ImportResult
 }
