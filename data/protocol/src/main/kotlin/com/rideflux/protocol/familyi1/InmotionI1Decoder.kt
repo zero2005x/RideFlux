@@ -76,7 +76,8 @@ object InmotionI1Decoder {
         // (8 of the 498 frames in the reference captures).
         val checkRaw: Int
         if (wire[cursor] == InmotionI1Codec.ESCAPE_BYTE) {
-            if (cursor + 1 >= end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.BadEscape)
+            // The escaped byte has not arrived yet.
+            if (cursor + 1 >= end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.TooShort)
             checkRaw = wire[cursor + 1].toInt() and 0xFF
             cursor += 2
         } else {
@@ -146,7 +147,9 @@ object InmotionI1Decoder {
             if (cursor >= end) return Scan.Fail(InmotionI1DecodeError.TooShort)
             val b = wire[cursor]
             if (b == InmotionI1Codec.ESCAPE_BYTE) {
-                if (cursor + 1 >= end) return Scan.Fail(InmotionI1DecodeError.BadEscape)
+                // A buffer ending on the escape marker is a frame still arriving: the byte it
+                // escapes comes in the next notification. Failing here dropped the frame.
+                if (cursor + 1 >= end) return Scan.Fail(InmotionI1DecodeError.TooShort)
                 body.add(wire[cursor + 1])
                 cursor += 2
             } else {
