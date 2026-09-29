@@ -186,11 +186,11 @@ object InmotionI1Decoder {
  * and is surfaced raw.
  */
 data class InmotionI1ExtendedTelemetry(
-    /** Raw U32 at EX-DATA offset 0; degrees = raw / 65536. */
+    /** Raw S32 at EX-DATA offset 0; degrees = raw / 65536. Signed: real frames go negative. */
     val pitchRaw: Long,
-    /** U32 component A at offset 12 (used by speed computation). */
+    /** S32 component A at offset 12 (used by speed computation). */
     val speedARaw: Long,
-    /** U32 component B at offset 16. */
+    /** S32 component B at offset 16. */
     val speedBRaw: Long,
     /** S32 1/100 A at offset 20. */
     val phaseCurrentHundredthsA: Int,
@@ -213,7 +213,7 @@ data class InmotionI1ExtendedTelemetry(
     val tripDistanceMetres: Long,
     /** Raw U32 work-mode / state word at offset 60; §4.3 not yet in spec. */
     val stateWordRaw: Long,
-    /** Raw U32 roll at offset 72; degrees = raw / 90. */
+    /** Raw S32 roll at offset 72; degrees = raw / 90. */
     val rollRaw: Long,
 ) {
     /** Convenience: voltage in volts. */
@@ -274,9 +274,9 @@ data class InmotionI1ExtendedTelemetry(
                 "EX-DATA too short: ${exData.size} < $MIN_EX_DATA_SIZE"
             }
             return InmotionI1ExtendedTelemetry(
-                pitchRaw = ByteReader.u32LE(exData, 0),
-                speedARaw = ByteReader.u32LE(exData, 12),
-                speedBRaw = ByteReader.u32LE(exData, 16),
+                pitchRaw = ByteReader.s32LE(exData, 0).toLong(),
+                speedARaw = ByteReader.s32LE(exData, 12).toLong(),
+                speedBRaw = ByteReader.s32LE(exData, 16).toLong(),
                 phaseCurrentHundredthsA = ByteReader.s32LE(exData, 20),
                 voltageHundredthsV = ByteReader.u32LE(exData, 24),
                 temperature1Celsius = exData[32].toInt(),
@@ -284,7 +284,7 @@ data class InmotionI1ExtendedTelemetry(
                 totalDistanceRaw8 = exData.copyOfRange(44, 52),
                 tripDistanceMetres = ByteReader.u32LE(exData, 48),
                 stateWordRaw = ByteReader.u32LE(exData, 60),
-                rollRaw = ByteReader.u32LE(exData, 72),
+                rollRaw = ByteReader.s32LE(exData, 72).toLong(),
             )
         }
     }
