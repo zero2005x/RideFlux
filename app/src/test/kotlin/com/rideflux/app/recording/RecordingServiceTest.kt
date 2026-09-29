@@ -134,15 +134,24 @@ class RecordingServiceTest {
         coVerify(timeout = 10_000) { wheels.connect(ADDRESS, WheelFamily.K) }
     }
 
+    // The two tests below start one service each on purpose: a second start is ignored while the
+    // first recording job is still finishing, so sharing a service would make them race.
     @Test
     fun anUnknownFamilyHintFallsBackToInference() {
         coEvery { wheels.connect(any(), any()) } throws IOException("wheel unreachable")
 
         start(family = "NOT_A_FAMILY")
+
         coVerify(timeout = 10_000) { wheels.connect(ADDRESS, null) }
+    }
+
+    @Test
+    fun aStartWithoutAFamilyHintFallsBackToInference() {
+        coEvery { wheels.connect(any(), any()) } throws IOException("wheel unreachable")
 
         start(family = null)
-        coVerify(timeout = 10_000, atLeast = 2) { wheels.connect(ADDRESS, null) }
+
+        coVerify(timeout = 10_000) { wheels.connect(ADDRESS, null) }
     }
 
     @Test
