@@ -10,7 +10,7 @@
 |---|---|
 | Version | `0.1.9` (versionCode 10) |
 | License | GPL-3.0-or-later |
-| Language | Kotlin 2.0.21 · Jetpack Compose |
+| Language | Kotlin 2.3.21 · Jetpack Compose |
 | Min / Target / Compile SDK | 28 / 36 / 36 |
 | Modules | 9 Gradle modules (2 apps, 1 domain, 5 data, 1 core) |
 | Languages | 18 (English + 17 translations) |
@@ -290,15 +290,15 @@ coverage test iterates.
 
 **Requirements**
 
-- **JDK 17 or 21.** Kotlin 2.0 cannot parse version strings from JDK 25+. If your system
-  JDK is newer, set `org.gradle.java.home` in your *user-level*
-  `~/.gradle/gradle.properties` (Windows: `%USERPROFILE%\.gradle\gradle.properties`) to a
-  JDK 17 or 21 installation. Recent Android Studio releases bundle a JBR built on JDK 25,
-  which does **not** work — run `<studio>/jbr/bin/java -version` before pointing at it. It
-  is deliberately **not** hardcoded in the project so CI and other contributors are
-  unaffected.
-- Android SDK with API 36 installed; `sdk.dir` in `local.properties`.
-- Gradle wrapper 8.13 (checked in — do not run a system Gradle).
+- **JDK 17 or 21.** AGP 9 needs JDK 17 or newer; the build is only verified on 17 and 21
+  (CI uses 21). If your system JDK is newer, set `org.gradle.java.home` in your
+  *user-level* `~/.gradle/gradle.properties` (Windows:
+  `%USERPROFILE%\.gradle\gradle.properties`) to a JDK 17 or 21 installation. Recent Android
+  Studio releases bundle a JBR built on JDK 25, which is **not** verified — run
+  `<studio>/jbr/bin/java -version` before pointing at it. It is deliberately **not**
+  hardcoded in the project so CI and other contributors are unaffected.
+- Android SDK with API 36 and Build-Tools 36.0.0 installed; `sdk.dir` in `local.properties`.
+- Gradle wrapper 9.6.0 (checked in — do not run a system Gradle).
 
 **Build**
 
@@ -694,14 +694,14 @@ PDU 合併成單一 `ScanRecord`，因此接收端透過 `ScanRecord.getServiceD
 
 **環境需求**
 
-- **JDK 17 或 21。** Kotlin 2.0 無法解析 JDK 25 以上的版本字串。若系統 JDK 較新，請在
-  **使用者層級**的 `~/.gradle/gradle.properties`（Windows：
+- **JDK 17 或 21。** AGP 9 需要 JDK 17 以上；本專案僅驗證過 17 與 21（CI 使用 21）。若
+  系統 JDK 較新，請在**使用者層級**的 `~/.gradle/gradle.properties`（Windows：
   `%USERPROFILE%\.gradle\gradle.properties`）設定 `org.gradle.java.home`，指向 JDK 17
-  或 21 的安裝路徑。請注意近期 Android Studio 內建的 JBR 已改用 JDK 25，**並不適用**——
+  或 21 的安裝路徑。請注意近期 Android Studio 內建的 JBR 已改用 JDK 25，**尚未驗證**——
   指向它之前請先以 `<studio>/jbr/bin/java -version` 確認。專案刻意**不**寫死此路徑，
   以免影響 CI 與其他貢獻者。
-- 已安裝 API 36 的 Android SDK；並在 `local.properties` 中設定 `sdk.dir`。
-- Gradle wrapper 8.13（已納入版控——請勿使用系統安裝的 Gradle）。
+- 已安裝 API 36 與 Build-Tools 36.0.0 的 Android SDK；並在 `local.properties` 中設定 `sdk.dir`。
+- Gradle wrapper 9.6.0（已納入版控——請勿使用系統安裝的 Gradle）。
 
 **建置**
 
