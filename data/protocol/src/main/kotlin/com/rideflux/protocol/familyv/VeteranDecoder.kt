@@ -13,25 +13,27 @@ import com.rideflux.protocol.bytes.ByteReader
 import java.util.zip.CRC32
 
 /**
- * Decoder for Family V (Veteran / Sherman family) length-prefixed
- * frames as specified in `PROTOCOL_SPEC.md` §2.3, §3.3, and §6.2.
+ * Decoder for Family V (Veteran / Sherman family) length-prefixed frames.
  *
- * Wire layout (from the spec). Field offsets follow §3.3 measured
- * from frame byte 0 (`0xDC`) — NOT from the start of the payload —
- * so the voltage field deliberately overlaps the length byte `L`:
+ * Wire layout. Field offsets are measured from frame byte 0 (`0xDC`):
  * ```
  *  offset 0..2 : magic "DC 5A 5C"
- *  offset 3    : magic4 0x20
- *  offset 4    : L       (unsigned payload length) — also read as
- *                         the voltage field's high byte per §3.3
- *  offset 5..  : payload, big-endian except for the two word-swapped
- *                32-bit distance fields at offsets 8 and 12 (§8.3)
- *  [ offset 5+L..8+L : CRC-32/ISO-HDLC trailer, big-endian, present
- *                      when L > 38 or once negotiated for the session ]
+ *  offset 3    : length  (unsigned, counts the bytes after the 4-byte header;
+ *                         0x20 on every real frame seen so far, i.e. 36 bytes in all)
+ *  offset 4..  : fields, big-endian except for the two word-swapped 32-bit
+ *                distance fields at offsets 8 and 12; the voltage starts at offset 4
+ *  [ last 4 bytes : CRC-32/ISO-HDLC over the first `length` bytes, big-endian, present
+ *                   when length > 38 or once a CRC frame has been seen in the session ]
  * ```
+ * A frame is therefore always `length + 4` bytes long, with or without the CRC.
  *
- * CRC-32 is evaluated over bytes `[0..4+L]` (header + payload) using
- * the standard CRC-32/ISO-HDLC variant (§6.2), which is what
+ * Earlier versions read the length from offset 4, which is the voltage's high byte. Real
+ * frames only lined up with that when the voltage happened to give a value near the frame
+ * size, so they were never decoded on their own, every other one was lost in a stream,
+ * and above 99.83 V or below 79.36 V nothing was accepted at all. The CRC geometry above
+ * comes from a community implementation and has no real capture behind it.
+ *
+ * CRC-32 uses the standard CRC-32/ISO-HDLC variant, which is what
  * [java.util.zip.CRC32] implements.
  */
 object VeteranDecoder {
@@ -54,34 +56,28 @@ object VeteranDecoder {
         data class Fail(val error: DecodeError) : DecodeResult()
     }
 
-    private const val HEADER_SIZE = 5
-    private const val CRC_SIZE = 4
+    /** Magic (3 bytes) plus the length byte. */
+    private const val HEADER_SIZE = 4
     private const val CRC_REQUIRED_LENGTH_THRESHOLD = 38
 
-    private val MAGIC = byteArrayOf(
-        0xDC.toByte(), 0x5A.toByte(), 0x5C.toByte(), 0x20.toByte(),
-    )
+    /** The last field (hardware PWM) ends at offset 35, so a frame carries at least 36 bytes. */
+    private const val MIN_LENGTH = 32
+
+    private val MAGIC = byteArrayOf(0xDC.toByte(), 0x5A.toByte(), 0x5C.toByte())
 
     /**
      * Decode a single Family V frame starting at index [offset] of
      * [buffer].
      *
-     * CRC presence is auto-detected from the buffer length relative
-     * to `L`:
-     *  * exactly `5 + L` bytes available -> no CRC;
-     *  * at least `9 + L` bytes available and (`L > 38` **or**
-     *    [expectCrcAlways] is `true`) -> CRC validated.
+     * A frame is `length + 4` bytes; whether its last four bytes are a CRC is decided by the
+     * length (`> 38`) or by [expectCrcAlways].
      *
-     * **CRC caveat:** length-based auto-detection can desynchronise a
-     * stream when the sender's actual CRC policy differs from the
-     * detected one (e.g. a short frame that was CRC-trailed leaves its
-     * 4 trailer bytes to be misread as the next frame's header). The
-     * caller MUST know the negotiated CRC state in advance and pass
-     * [expectCrcAlways] accordingly; do not rely on auto-detection
-     * alone for long-lived streams.
+     * **CRC caveat:** the length-based detection can desynchronise a stream when the sender's
+     * actual CRC policy differs from the detected one. The caller should pass the negotiated
+     * CRC state in [expectCrcAlways] once it knows it.
      *
-     * @param expectCrcAlways force CRC presence even for `L \u2264 38`, to
-     *        model the "once negotiated" session rule in §2.3 / §6.2.
+     * @param expectCrcAlways force CRC presence even for `length\u2264 38`, to model a wheel that
+     *        has already sent a CRC frame in this session.
      */
     fun decode(
         buffer: ByteArray,
@@ -105,43 +101,29 @@ object VeteranDecoder {
             }
         }
 
-        val l = ByteReader.u8(buffer, offset + 4)
-        val headerPlusPayload = HEADER_SIZE + l
-        if (available < headerPlusPayload) {
+        val length = ByteReader.u8(buffer, offset + 3)
+        // Rejected before waiting for the rest: a frame this short cannot hold the fields, so
+        // it is a false magic rather than a frame still arriving.
+        if (length < MIN_LENGTH) {
+            return DecodeResult.Fail(DecodeError.LengthMismatch)
+        }
+        val total = HEADER_SIZE + length
+        if (available < total) {
             return DecodeResult.Fail(DecodeError.TooShort)
         }
 
-        val crcExpected = expectCrcAlways || l > CRC_REQUIRED_LENGTH_THRESHOLD
-        val consumed: Int
-        val crcPresent: Boolean
-
-        if (crcExpected) {
-            if (available < headerPlusPayload + CRC_SIZE) {
-                return DecodeResult.Fail(DecodeError.TooShort)
-            }
-            val computed = computeCrc32(buffer, offset, headerPlusPayload)
-            val received = ByteReader.u32BE(buffer, offset + headerPlusPayload)
+        val crcPresent = expectCrcAlways || length > CRC_REQUIRED_LENGTH_THRESHOLD
+        if (crcPresent) {
+            val computed = computeCrc32(buffer, offset, length)
+            val received = ByteReader.u32BE(buffer, offset + length)
             if (computed != received) {
                 return DecodeResult.Fail(DecodeError.BadCrc(computed, received))
             }
-            consumed = headerPlusPayload + CRC_SIZE
-            crcPresent = true
-        } else {
-            consumed = headerPlusPayload
-            crcPresent = false
         }
-
-        // Field offsets follow §3.3 measured from frame byte 0 (0xDC),
-        // NOT from the start of the payload: the payload occupies frame
-        // offsets 5..4+L, and hardware-PWM lives at frame offsets
-        // 34..35, which requires only L >= 31. Note that voltage
-        // (offset 4) deliberately overlaps the length byte L.
-        if (l < 31) {
-            return DecodeResult.Fail(DecodeError.LengthMismatch)
-        }
+        val consumed = total
 
         val frame = VeteranFrame(
-            payloadLength = l,
+            declaredLength = length,
             voltageHundredthsV = ByteReader.u16BE(buffer, offset + 4),
             speedTenthsKmh = ByteReader.s16BE(buffer, offset + 6),
             tripMeters = wordSwapU32(buffer, offset + 8),
