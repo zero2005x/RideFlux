@@ -76,7 +76,10 @@ sealed class InmotionI1DecodeResult {
 
 /** Enumeration of decode-time failures. */
 sealed class InmotionI1DecodeError {
-    /** Fewer bytes available than the minimum possible frame size. */
+    /**
+     * Fewer bytes available than the frame needs: below the minimum frame size, or the frame is
+     * still arriving (this includes a buffer that ends right after an escape marker `A5`).
+     */
     data object TooShort : InmotionI1DecodeError()
 
     /** Bytes 0..1 were not the `AA AA` preamble. */
@@ -90,9 +93,6 @@ sealed class InmotionI1DecodeError {
 
     /** Value at unstuffed offset 12 is neither `0x08` nor `0xFE`. */
     data class BadLen(val value: Int) : InmotionI1DecodeError()
-
-    /** Wire escape sequence was truncated (lone trailing `A5`). */
-    data object BadEscape : InmotionI1DecodeError()
 
     /** Extended-frame EX-LEN was absurdly large (>= 1 MiB guard). */
     data class BadExLen(val exLen: Long) : InmotionI1DecodeError()
