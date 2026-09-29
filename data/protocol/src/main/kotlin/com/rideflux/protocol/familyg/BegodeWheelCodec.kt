@@ -22,9 +22,16 @@ import com.rideflux.domain.wheel.WheelIdentity
  * Because G frames are fixed 24-byte payloads, the state carries a
  * small reassembly buffer so partial BLE notifications can be
  * accumulated.
+ *
+ * @param seriesCells the number of cells in series of this wheel's battery, as
+ *   stated by the rider, or `null` while unknown. Read on every frame so a
+ *   change applies immediately. The frame carries only a voltage, and the same
+ *   voltage is a full 16-cell pack or a nearly empty 20-cell one, so without
+ *   this the battery percentage stays unknown (`null`) instead of being guessed.
  */
 class BegodeWheelCodec(
     private val deviceAddress: String = "",
+    private val seriesCells: () -> Int? = { null },
 ) : WheelCodec {
 
     override val family: WheelFamily = WheelFamily.G
@@ -92,9 +99,9 @@ class BegodeWheelCodec(
         val phaseA = frame.phaseCurrentAmps.toFloat()
         val tempC = BegodeTemperature
             .celsiusMpu6500(frame.imuTempRaw).toFloat()
-        val battery = BegodeBatteryCurve
-            .refinedPercent(frame.voltageHundredthsV)
-            .toFloat()
+        val battery = seriesCells()
+            ?.let { BegodeBatteryCurve.percentFor(frame.voltageHundredthsV, it) }
+            ?.toFloat()
         val merged = s.last.copy(
             timestampMillis = now,
             speedKmh = frame.speedKmh.toFloat(),

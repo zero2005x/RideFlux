@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">Het aanpassen van de limiet wijzigt de tilt-back drempels. Een limiet lager instellen dan de rijsnelheid kan plotselinge tilt-back veroorzaken. Pas dit alleen aan bij stilstand.</string>
     <string name="dialog_speed_limit_confirm">Limiet toepassen</string>
     <string name="dialog_speed_limit_label">Limiet: %1$d km/u</string>
+
+    <string name="battery_pack_unset_hint">Het batterijpercentage heeft de packgrootte nodig. Waarschuwingen voor een lege batterij staan uit totdat je die instelt.</string>
+    <string name="battery_pack_set">Batterijpack instellen</string>
+    <string name="battery_pack_current">Batterijpack: %1$dS</string>
+    <string name="battery_pack_dialog_title">Batterijpack</string>
+    <string name="battery_pack_dialog_body">Hoeveel cellen in serie heeft deze batterij? Het label op de lader toont de spanning: 67,2 V is 16S, 84 V is 20S, 100,8 V is 24S.</string>
 </resources>

@@ -20,6 +20,7 @@ import com.rideflux.domain.settings.AppSettings
 import com.rideflux.domain.settings.SettingsRepository
 import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.telemetry.WheelTelemetry
+import com.rideflux.domain.wheel.WheelBatteryPackStore
 import com.rideflux.domain.wheel.WheelCapabilities
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelIdentity
@@ -76,6 +77,12 @@ class DashboardViewModelBehaviourTest {
     private val stores = mutableMapOf<DashboardViewModel, ViewModelStore>()
     private val settingsFlow = MutableStateFlow(AppSettings())
     private val settings = mockk<SettingsRepository>()
+
+    /** The battery-pack answer is irrelevant here (see DashboardViewModelBatteryPackTest). */
+    private val noPacks = object : WheelBatteryPackStore {
+        override val seriesCells = MutableStateFlow<Map<String, Int>>(emptyMap())
+        override suspend fun setSeriesCells(address: String, cells: Int?) = Unit
+    }
 
     @Before
     fun setUp() {
@@ -153,6 +160,7 @@ class DashboardViewModelBehaviourTest {
             DashboardViewModel(
                 FakeRepository { FakeConnection() },
                 settings,
+                noPacks,
                 RuntimeEnvironment.getApplication(),
                 SavedStateHandle(),
             )
@@ -426,7 +434,7 @@ class DashboardViewModelBehaviourTest {
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                    DashboardViewModel(repository, settings, RuntimeEnvironment.getApplication(), handle) as T
+                    DashboardViewModel(repository, settings, noPacks, RuntimeEnvironment.getApplication(), handle) as T
             },
         )[DashboardViewModel::class.java]
         stores[viewModel] = store

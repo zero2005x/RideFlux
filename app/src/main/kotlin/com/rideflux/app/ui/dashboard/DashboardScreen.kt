@@ -87,6 +87,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.ContextCompat
 import com.rideflux.app.R
 import com.rideflux.app.ui.dashboard.components.RideFluxColors
+import com.rideflux.app.ui.dashboard.pages.BatteryPackUi
 import com.rideflux.app.ui.dashboard.pages.BmsPage
 import com.rideflux.app.ui.dashboard.pages.EventsPage
 import com.rideflux.app.ui.dashboard.pages.GraphPage
@@ -100,6 +101,8 @@ import com.rideflux.domain.alert.ThresholdAlert
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelAlert
+import com.rideflux.domain.wheel.WheelBatteryPackStore
+import com.rideflux.domain.wheel.WheelFamily
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
@@ -122,6 +125,10 @@ fun DashboardRoute(
     val alertLog by viewModel.alertLog.collectAsStateWithLifecycle()
     val activeAlert by viewModel.activeAlert.collectAsStateWithLifecycle()
     val recordingState by RecordingService.state.collectAsStateWithLifecycle()
+    val batteryPackCells by viewModel.batteryPackCells.collectAsStateWithLifecycle()
+    // Begode frames carry only a voltage, so the rider has to say how many cells the pack has.
+    val family = viewModel.expectedFamily ?: uiState.identity?.family
+    val asksForBatteryPack = family == WheelFamily.G || family == WheelFamily.GX
 
     val context = androidx.compose.ui.platform.LocalContext.current
     var locationPermissionGranted by remember {
@@ -191,6 +198,9 @@ fun DashboardRoute(
         onPowerOff = viewModel::powerOff,
         onCalibrate = viewModel::calibrate,
         onSetMaxSpeedKmh = viewModel::setMaxSpeedKmh,
+        asksForBatteryPack = asksForBatteryPack,
+        batteryPackCells = batteryPackCells,
+        onSetBatteryPack = viewModel::setBatteryPackCells,
     )
 }
 
@@ -239,6 +249,9 @@ fun DashboardScreen(
     onPowerOff: () -> Unit = {},
     onCalibrate: () -> Unit = {},
     onSetMaxSpeedKmh: (Float) -> Unit = {},
+    asksForBatteryPack: Boolean = false,
+    batteryPackCells: Int? = null,
+    onSetBatteryPack: (Int) -> Unit = {},
 ) {
     val localView = LocalView.current
     DisposableEffect(uiState.keepScreenOnDashboard) {
@@ -255,6 +268,7 @@ fun DashboardScreen(
     var showPowerOffDialog by remember { mutableStateOf(false) }
     var showCalibrateDialog by remember { mutableStateOf(false) }
     var showSpeedLimitDialog by remember { mutableStateOf(false) }
+    var showBatteryPackDialog by remember { mutableStateOf(false) }
 
     val isMoving = (uiState.speedKmh ?: 0f) > 0f
     val actionsPermitted = isVehicleActionPermitted(uiState.connectionState, uiState.speedKmh)
@@ -305,6 +319,38 @@ fun DashboardScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showCalibrateDialog = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    if (showBatteryPackDialog) {
+        val volt = stringResource(R.string.unit_volt)
+        AlertDialog(
+            onDismissRequest = { showBatteryPackDialog = false },
+            title = { Text(stringResource(R.string.battery_pack_dialog_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.battery_pack_dialog_body))
+                    WheelBatteryPackStore.SUPPORTED_SERIES_CELLS.forEach { cells ->
+                        FilterChip(
+                            selected = cells == batteryPackCells,
+                            onClick = {
+                                showBatteryPackDialog = false
+                                onSetBatteryPack(cells)
+                            },
+                            label = {
+                                // A fully charged lithium cell is 4.2 V: 16S = 67.2 V, 20S = 84 V.
+                                Text("${cells}S · ${"%.1f".format(Locale.US, cells * 4.2)} $volt")
+                            },
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showBatteryPackDialog = false }) {
                     Text(stringResource(R.string.action_cancel))
                 }
             },
@@ -450,6 +496,11 @@ fun DashboardScreen(
                         MainGaugePage(
                             state = uiState,
                             modifier = Modifier.weight(1f, fill = false),
+                            batteryPack = if (asksForBatteryPack) {
+                                BatteryPackUi(batteryPackCells) { showBatteryPackDialog = true }
+                            } else {
+                                null
+                            },
                         )
                         ControlsCard(
                             headlightOn = uiState.headlightOn,

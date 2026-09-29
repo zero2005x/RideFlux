@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,8 +57,20 @@ import kotlin.math.roundToInt
  * Designed to be glanceable while riding: each value owns at least
  * 30dp of vertical real estate and is colour-coded via [stoplight].
  */
+/**
+ * The rider's battery-pack answer for a wheel whose frame carries only a voltage.
+ *
+ * @param cells cells in series, or `null` while unanswered.
+ * @param onClick opens the pack-size chooser.
+ */
+data class BatteryPackUi(val cells: Int?, val onClick: () -> Unit)
+
 @Composable
-fun MainGaugePage(state: DashboardUiState, modifier: Modifier = Modifier) {
+fun MainGaugePage(
+    state: DashboardUiState,
+    modifier: Modifier = Modifier,
+    batteryPack: BatteryPackUi? = null,
+) {
     val dash = stringResource(R.string.value_unavailable)
     val volt = stringResource(R.string.unit_volt)
     Column(
@@ -101,6 +114,22 @@ fun MainGaugePage(state: DashboardUiState, modifier: Modifier = Modifier) {
             }
             Spacer(Modifier.height(6.dp))
             BatteryBar(percent = state.batteryPercent)
+            if (batteryPack != null) {
+                if (batteryPack.cells == null) {
+                    Text(
+                        text = stringResource(R.string.battery_pack_unset_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                TextButton(onClick = batteryPack.onClick) {
+                    Text(
+                        text = batteryPack.cells
+                            ?.let { stringResource(R.string.battery_pack_current, it) }
+                            ?: stringResource(R.string.battery_pack_set),
+                    )
+                }
+            }
         }
 
         // ---- 2×2 secondary stats grid ---------------------------------

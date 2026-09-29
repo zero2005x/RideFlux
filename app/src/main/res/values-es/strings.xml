@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">Modificar el límite cambia los umbrales de tilt-back. Ajustarlo por debajo de la velocidad actual puede provocar un levantamiento repentino de pedales. Ajusta solo detenido.</string>
     <string name="dialog_speed_limit_confirm">Aplicar límite</string>
     <string name="dialog_speed_limit_label">Límite: %1$d km/h</string>
+
+    <string name="battery_pack_unset_hint">El porcentaje de batería necesita el tamaño del pack. Las alertas de batería baja están en pausa hasta que lo indiques.</string>
+    <string name="battery_pack_set">Configurar la batería</string>
+    <string name="battery_pack_current">Batería: %1$dS</string>
+    <string name="battery_pack_dialog_title">Pack de batería</string>
+    <string name="battery_pack_dialog_body">¿Cuántas celdas en serie tiene esta batería? La etiqueta del cargador muestra el voltaje: 67,2 V son 16S, 84 V son 20S y 100,8 V son 24S.</string>
 </resources>

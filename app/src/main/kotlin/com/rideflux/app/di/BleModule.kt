@@ -12,6 +12,7 @@ import com.rideflux.data.ble.WheelCodecFactoryImpl
 import com.rideflux.data.ble.WheelRepositoryImpl
 import com.rideflux.domain.codec.WheelCodecFactory
 import com.rideflux.domain.repository.WheelRepository
+import com.rideflux.domain.wheel.WheelBatteryPackStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -72,7 +73,10 @@ object BleModule {
 
     @Provides
     @Singleton
-    fun provideWheelCodecFactoryImpl(): WheelCodecFactoryImpl = WheelCodecFactoryImpl()
+    fun provideWheelCodecFactoryImpl(packs: WheelBatteryPackStore): WheelCodecFactoryImpl =
+        WheelCodecFactoryImpl(
+            seriesCellsFor = { address -> packs.seriesCells.value[WheelBatteryPackStore.key(address)] },
+        )
 
     @Provides
     @Singleton

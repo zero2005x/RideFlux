@@ -9,6 +9,7 @@
  */
 package com.rideflux.protocol.familyg
 
+import com.rideflux.domain.wheel.WheelBatteryPackStore
 import com.rideflux.protocol.bytes.ByteReader
 
 /**
@@ -120,7 +121,12 @@ object BegodeBatteryCurve {
         return (voltageHundredthsV - 5290) / 13
     }
 
-    /** Refined three-segment curve. */
+    /**
+     * Refined three-segment curve.
+     *
+     * Calibrated for a **16-cell** pack (67.2 V when full). Do not feed it the
+     * raw voltage of any other pack; use [percentFor], which scales first.
+     */
     fun refinedPercent(voltageHundredthsV: Int): Int = when {
         voltageHundredthsV > 6680 -> 100
         voltageHundredthsV in 5441..6680 ->
@@ -129,4 +135,22 @@ object BegodeBatteryCurve {
             ((voltageHundredthsV - 5120) / 36.0).toInt().coerceIn(0, 100)
         else -> 0
     }
+
+    /**
+     * Battery percentage for a pack of [seriesCells] cells in series.
+     *
+     * The pack voltage is scaled to the 16-cell equivalent (`V × 16 / cells`,
+     * i.e. the same volts per cell) and run through [refinedPercent], so a
+     * 16-cell pack behaves exactly as before.
+     *
+     * @return `null` when [seriesCells] is not a supported pack size: an
+     *   unknown pack has no meaningful percentage.
+     */
+    fun percentFor(voltageHundredthsV: Int, seriesCells: Int): Int? {
+        if (seriesCells !in WheelBatteryPackStore.SUPPORTED_SERIES_CELLS) return null
+        val sixteenCellEquivalent = (voltageHundredthsV.toLong() * REFERENCE_CELLS / seriesCells).toInt()
+        return refinedPercent(sixteenCellEquivalent)
+    }
+
+    private const val REFERENCE_CELLS = 16
 }

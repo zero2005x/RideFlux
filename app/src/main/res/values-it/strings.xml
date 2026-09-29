@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">Modificare il limite di velocità regola le soglie di tilt-back. Ridurlo sotto la velocità attuale può causare un arretramento improvviso dei pedali. Regola solo da fermo.</string>
     <string name="dialog_speed_limit_confirm">Applica limite</string>
     <string name="dialog_speed_limit_label">Limite: %1$d km/h</string>
+
+    <string name="battery_pack_unset_hint">La percentuale della batteria richiede la dimensione del pacco. Gli avvisi di batteria scarica sono sospesi finché non la imposti.</string>
+    <string name="battery_pack_set">Imposta la batteria</string>
+    <string name="battery_pack_current">Batteria: %1$dS</string>
+    <string name="battery_pack_dialog_title">Pacco batteria</string>
+    <string name="battery_pack_dialog_body">Quante celle in serie ha questa batteria? L\'etichetta del caricabatterie indica la tensione: 67,2 V sono 16S, 84 V sono 20S, 100,8 V sono 24S.</string>
 </resources>

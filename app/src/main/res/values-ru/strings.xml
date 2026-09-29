@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">Изменение максимальной скорости меняет порог подъема педалей (tilt-back). Установка лимита ниже текущей скорости может вызвать резкий подъем педалей. Настраивайте только на месте.</string>
     <string name="dialog_speed_limit_confirm">Применить</string>
     <string name="dialog_speed_limit_label">Лимит: %1$d км/ч</string>
+
+    <string name="battery_pack_unset_hint">Для процента заряда нужно знать размер батареи. Оповещения о низком заряде отключены, пока вы не укажете его.</string>
+    <string name="battery_pack_set">Указать батарею</string>
+    <string name="battery_pack_current">Батарея: %1$dS</string>
+    <string name="battery_pack_dialog_title">Батарея</string>
+    <string name="battery_pack_dialog_body">Сколько ячеек включено последовательно в этой батарее? Напряжение указано на зарядном устройстве: 67,2 V — это 16S, 84 V — 20S, 100,8 V — 24S.</string>
 </resources>

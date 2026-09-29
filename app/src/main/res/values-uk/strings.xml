@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">Зміна ліміту швидкості змінює поріг підйому педалей (tilt-back). Встановлення значення нижче поточної швидкості може спричинити раптовий підйом педалей. Змінюйте лише на місці.</string>
     <string name="dialog_speed_limit_confirm">Застосувати</string>
     <string name="dialog_speed_limit_label">Ліміт: %1$d км/год</string>
+
+    <string name="battery_pack_unset_hint">Для відсотка заряду потрібно знати розмір батареї. Сповіщення про низький заряд призупинені, доки ви його не вкажете.</string>
+    <string name="battery_pack_set">Вказати батарею</string>
+    <string name="battery_pack_current">Батарея: %1$dS</string>
+    <string name="battery_pack_dialog_title">Батарея</string>
+    <string name="battery_pack_dialog_body">Скільки комірок з\'єднано послідовно в цій батареї? Напругу вказано на зарядному пристрої: 67,2 V — це 16S, 84 V — 20S, 100,8 V — 24S.</string>
 </resources>

@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">修改最高限速將同時調整翹板警示門檻。若在騎乘時將限速調低於當前車速，可能會觸發突然翹板。請務必在靜止時調整。</string>
     <string name="dialog_speed_limit_confirm">套用限速</string>
     <string name="dialog_speed_limit_label">限速：%1$d km/h</string>
+
+    <string name="battery_pack_unset_hint">電量百分比需要知道電池組的串數。設定之前，低電量警示將暫停。</string>
+    <string name="battery_pack_set">設定電池組</string>
+    <string name="battery_pack_current">電池組：%1$dS</string>
+    <string name="battery_pack_dialog_title">電池組</string>
+    <string name="battery_pack_dialog_body">這顆電池是幾串（串聯電芯數）？充電器標籤上標有電壓：67.2 V 是 16S，84 V 是 20S，100.8 V 是 24S。</string>
 </resources>
