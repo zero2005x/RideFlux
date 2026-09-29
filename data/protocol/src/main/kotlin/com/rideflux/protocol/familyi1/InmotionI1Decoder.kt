@@ -19,7 +19,7 @@ import com.rideflux.protocol.bytes.ByteReader
  *     extended frames (`0xFE`) the body is `16 + EX-LEN`, where
  *     `EX-LEN` is the U32LE at body offset 4..7;
  *  4. keep unescaping until the body reaches its expected length;
- *  5. read one raw wire byte as CHECK and verify the additive sum;
+ *  5. read the CHECK byte (escaped like a body byte) and verify the additive sum;
  *  6. require the next two raw wire bytes to be `55 55`.
  */
 object InmotionI1Decoder {
@@ -72,8 +72,17 @@ object InmotionI1Decoder {
         }
 
         if (cursor >= end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.TooShort)
-        val checkRaw = wire[cursor].toInt() and 0xFF
-        cursor += 1
+        // CHECK is unstuffed like a body byte: a value of 55, AA or A5 is sent as `A5 xx`
+        // (8 of the 498 frames in the reference captures).
+        val checkRaw: Int
+        if (wire[cursor] == InmotionI1Codec.ESCAPE_BYTE) {
+            if (cursor + 1 >= end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.BadEscape)
+            checkRaw = wire[cursor + 1].toInt() and 0xFF
+            cursor += 2
+        } else {
+            checkRaw = wire[cursor].toInt() and 0xFF
+            cursor += 1
+        }
 
         if (cursor + 2 > end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.TooShort)
         if (wire[cursor] != InmotionI1Codec.TRAILER_BYTE ||
