@@ -5,6 +5,7 @@
 package com.rideflux.data.preferences
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -26,11 +27,14 @@ import java.io.IOException
 
 private val Context.rideFluxSettings by preferencesDataStore(name = "rideflux_settings")
 
-class DataStoreSettingsRepository(
-    context: Context,
+class DataStoreSettingsRepository internal constructor(
+    private val dataStore: DataStore<Preferences>,
     scope: CoroutineScope,
 ) : SettingsRepository {
-    private val dataStore = context.applicationContext.rideFluxSettings
+    constructor(
+        context: Context,
+        scope: CoroutineScope,
+    ) : this(context.applicationContext.rideFluxSettings, scope)
 
     override val settings: StateFlow<AppSettings> = dataStore.data
         .catch { error ->
