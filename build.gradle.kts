@@ -159,14 +159,26 @@ tasks.register<JacocoReport>("jacocoTestReport") {
 
     classDirectories.setFrom(
         files(
-            // AGP 9's built-in Kotlin compiles Android modules here. AGP 8 with
-            // the kotlin-android plugin wrote to build/tmp/kotlin-classes/debug,
-            // which no longer exists on a clean checkout: pointing at it left
-            // every Android module without class files, so Sonar counted all of
-            // their lines as uncovered and the main-branch gate failed.
+            // Android modules. The unit tests run against the classes that
+            // come out of AGP's ASM transform (Hilt rewrites the superclass of
+            // every @AndroidEntryPoint class), so those are the ones JaCoCo's
+            // class ids match. Analysing the raw compiler output instead makes
+            // the ids differ and silently drops all coverage of the Hilt
+            // entry points (services, receivers, activities). Modules without
+            // the Hilt plugin have no transform output and fall back to AGP 9's
+            // built-in Kotlin output (AGP 8's build/tmp/kotlin-classes/debug
+            // no longer exists). Chosen lazily: on a clean checkout neither
+            // directory exists yet while the script is configured.
             subprojects.map { sub ->
-                fileTree("${sub.layout.buildDirectory.get().asFile}/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes") {
-                    exclude(coverageExcludes)
+                java.util.concurrent.Callable {
+                    val build = sub.layout.buildDirectory.get().asFile
+                    val transformed = File(build, "intermediates/classes/debug/transformDebugClassesWithAsm/dirs")
+                    val classes = if (transformed.isDirectory) {
+                        transformed
+                    } else {
+                        File(build, "intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes")
+                    }
+                    fileTree(classes) { exclude(coverageExcludes) }
                 }
             },
             subprojects.map { sub ->
