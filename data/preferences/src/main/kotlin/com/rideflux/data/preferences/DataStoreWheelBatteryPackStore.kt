@@ -5,6 +5,7 @@
 package com.rideflux.data.preferences
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
@@ -27,11 +28,14 @@ private val Context.rideFluxWheelPacks by preferencesDataStore(name = "rideflux_
  * per-wheel rather than app-wide, and so that adding it does not touch the settings model
  * that backups and every other consumer depend on.
  */
-class DataStoreWheelBatteryPackStore(
-    context: Context,
+class DataStoreWheelBatteryPackStore internal constructor(
+    private val dataStore: DataStore<Preferences>,
     scope: CoroutineScope,
 ) : WheelBatteryPackStore {
-    private val dataStore = context.applicationContext.rideFluxWheelPacks
+    constructor(
+        context: Context,
+        scope: CoroutineScope,
+    ) : this(context.applicationContext.rideFluxWheelPacks, scope)
 
     override val seriesCells: StateFlow<Map<String, Int>> = dataStore.data
         .catch { error ->
