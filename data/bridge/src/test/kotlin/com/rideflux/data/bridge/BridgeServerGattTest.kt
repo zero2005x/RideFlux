@@ -158,6 +158,60 @@ class BridgeServerGattTest {
         }
     }
 
+    @Test
+    fun handshakeAuthorizesPendingSubscriberAndDescriptorReadReflectsState() {
+        val fixture = Fixture()
+        val token = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+        val states = mutableListOf<Boolean>()
+        val server = BridgeServer(
+            fixture.context,
+            peerAuthorizer = BridgeServerPeerAuthorizer { _, offered ->
+                offered?.contentEquals(token) == true
+            },
+            onSubscriberStateChanged = states::add,
+        )
+        assertTrue(server.open())
+        val descriptor = fixture.service.characteristics
+            .first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+            .getDescriptor(BridgeProtocol.CCCD_UUID)
+        val handshake = fixture.service.characteristics
+            .first { it.uuid == BridgeProtocol.HANDSHAKE_CHAR_UUID }
+
+        fixture.callback.onDescriptorWriteRequest(peer, 1, descriptor, false, true, 0, byteArrayOf(1, 0))
+        assertTrue(server.isPending(peer.address))
+        fixture.callback.onDescriptorReadRequest(peer, 2, 0, descriptor)
+        verify { fixture.gatt.sendResponse(peer, 2, BluetoothGatt.GATT_SUCCESS, 0, byteArrayOf(0, 0)) }
+
+        fixture.callback.onCharacteristicWriteRequest(peer, 3, handshake, false, true, 0, token)
+        assertFalse(server.isPending(peer.address))
+        assertEquals(listOf(true), states)
+        fixture.callback.onDescriptorReadRequest(peer, 4, 1, descriptor)
+        verify { fixture.gatt.sendResponse(peer, 4, BluetoothGatt.GATT_SUCCESS, 1, byteArrayOf(0)) }
+
+        fixture.callback.onConnectionStateChange(peer, BluetoothGatt.GATT_SUCCESS, android.bluetooth.BluetoothProfile.STATE_DISCONNECTED)
+        assertEquals(listOf(true, false), states)
+        server.stop()
+    }
+
+    @Test
+    fun failedAdvertisementRetriesAndModeSwitchUsesLowLatency() {
+        val fixture = Fixture()
+        val server = BridgeServer(fixture.context)
+        assertTrue(server.open())
+        assertEquals(listOf(AdvertiseSettings.ADVERTISE_MODE_BALANCED), fixture.advertiseModes)
+
+        fixture.advertiseCallback.onStartFailure(AdvertiseCallback.ADVERTISE_FAILED_INTERNAL_ERROR)
+        shadowOf(Looper.getMainLooper()).idleFor(2, TimeUnit.SECONDS)
+        assertEquals(2, fixture.advertiseModes.size)
+
+        assertTrue(server.setAdvertiseMode(true))
+        assertEquals(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY, fixture.advertiseModes.last())
+        fixture.advertiseCallback.onStartSuccess(null)
+        server.stop()
+        shadowOf(Looper.getMainLooper()).idleFor(60, TimeUnit.SECONDS)
+        assertEquals(3, fixture.advertiseModes.size)
+    }
+
     private class Fixture(serviceStatus: Int = BluetoothGatt.GATT_SUCCESS) {
         val context = mockk<Context>()
         val manager = mockk<BluetoothManager>()
@@ -167,8 +221,11 @@ class BridgeServerGattTest {
         val events = mutableListOf<String>()
         private val callbackSlot = slot<BluetoothGattServerCallback>()
         private val serviceSlot = slot<BluetoothGattService>()
+        private val advertiseCallbackSlot = slot<AdvertiseCallback>()
+        val advertiseModes = mutableListOf<Int>()
         val callback: BluetoothGattServerCallback get() = callbackSlot.captured
         val service: BluetoothGattService get() = serviceSlot.captured
+        val advertiseCallback: AdvertiseCallback get() = advertiseCallbackSlot.captured
 
         init {
             every { context.getSystemService(Context.BLUETOOTH_SERVICE) } returns manager
@@ -183,9 +240,12 @@ class BridgeServerGattTest {
             }
             every {
                 advertiser.startAdvertising(
-                    any<AdvertiseSettings>(), any<AdvertiseData>(), any<AdvertiseCallback>(),
+                    any<AdvertiseSettings>(), any<AdvertiseData>(), capture(advertiseCallbackSlot),
                 )
-            } answers { events.add("advertise") }
+            } answers {
+                events.add("advertise")
+                advertiseModes.add(firstArg<AdvertiseSettings>().mode)
+            }
         }
     }
 }
