@@ -85,8 +85,7 @@ internal class RokidCxrBridgePublisher(
                 return
             }
             try {
-                // client-m 1.0.4 silently returns when either auth argument
-                // is null. Empty values are intentional for consumer RV101
+                // Empty auth values are intentional for consumer RV101
                 // firmware; provisioned units receive the configured values.
                 api.connectBluetooth(
                     context,
@@ -104,6 +103,13 @@ internal class RokidCxrBridgePublisher(
 
         override fun onConnected() {
             handleConnected()
+        }
+
+        override fun onInActiveConnected(deviceName: String?, macAddress: String?) {
+            if (!running) return
+            // The socket is present but the SDK has not reported an active
+            // telemetry connection. Keep waiting for onConnected or timeout.
+            Log.d(TAG, "CXR Bluetooth connected but inactive")
         }
 
         override fun onDisconnected() {
