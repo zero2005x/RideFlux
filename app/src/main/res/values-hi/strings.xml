@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">अधिकतम गति सीमा बदलने से टिल्ट-बैक सीमाएं बदलती हैं। वर्तमान गति से कम सीमा सेट करने से अचानक टिल्ट-बैक हो सकता है। केवल रुकने पर ही बदलें।</string>
     <string name="dialog_speed_limit_confirm">सीमा लागू करें</string>
     <string name="dialog_speed_limit_label">सीमा: %1$d km/h</string>
+
+    <string name="battery_pack_unset_hint">बैटरी प्रतिशत के लिए पैक का आकार चाहिए। जब तक आप इसे सेट नहीं करते, कम बैटरी की चेतावनियाँ रुकी रहेंगी।</string>
+    <string name="battery_pack_set">बैटरी पैक सेट करें</string>
+    <string name="battery_pack_current">बैटरी पैक: %1$dS</string>
+    <string name="battery_pack_dialog_title">बैटरी पैक</string>
+    <string name="battery_pack_dialog_body">इस बैटरी में श्रृंखला (सीरीज़) में कितने सेल हैं? चार्जर के लेबल पर वोल्टेज लिखा होता है: 67.2 V का मतलब 16S, 84 V का 20S और 100.8 V का 24S है।</string>
 </resources>

@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">Modifier la vitesse limite ajuste les seuils de tilt-back. Réduire la limite sous la vitesse actuelle peut provoquer un redressement brusque. Réglez uniquement à l\'arrêt.</string>
     <string name="dialog_speed_limit_confirm">Appliquer</string>
     <string name="dialog_speed_limit_label">Limite : %1$d km/h</string>
+
+    <string name="battery_pack_unset_hint">Le pourcentage de batterie nécessite la taille du pack. Les alertes de batterie faible sont suspendues tant qu\'elle n\'est pas définie.</string>
+    <string name="battery_pack_set">Définir la batterie</string>
+    <string name="battery_pack_current">Batterie : %1$dS</string>
+    <string name="battery_pack_dialog_title">Pack batterie</string>
+    <string name="battery_pack_dialog_body">Combien de cellules en série contient cette batterie ? L\'étiquette du chargeur indique la tension : 67,2 V correspond à 16S, 84 V à 20S, 100,8 V à 24S.</string>
 </resources>

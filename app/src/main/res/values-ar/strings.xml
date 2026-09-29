@@ -294,4 +294,10 @@
     <string name="dialog_speed_limit_warning">تعديل حد السرعة يغير عتبات الإمالة للخلف (tilt-back). قد يؤدي خفض الحد عن السرعة الحالية إلى حدوث إمالة مفاجئة. اضبط فقط أثناء التوقف.</string>
     <string name="dialog_speed_limit_confirm">تعيين الحد</string>
     <string name="dialog_speed_limit_label">الحد: %1$d كم/ساعة</string>
+
+    <string name="battery_pack_unset_hint">تحتاج نسبة البطارية إلى معرفة حجم حزمة البطارية. تنبيهات انخفاض البطارية متوقفة مؤقتًا حتى تحدده.</string>
+    <string name="battery_pack_set">ضبط حزمة البطارية</string>
+    <string name="battery_pack_current">حزمة البطارية: %1$dS</string>
+    <string name="battery_pack_dialog_title">حزمة البطارية</string>
+    <string name="battery_pack_dialog_body">كم عدد الخلايا المتصلة على التوالي في هذه البطارية؟ يوضح ملصق الشاحن الجهد: 67.2 V يعني 16S و84 V يعني 20S و100.8 V يعني 24S.</string>
 </resources>

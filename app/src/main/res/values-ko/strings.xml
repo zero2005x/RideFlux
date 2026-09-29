@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">속도 제한을 변경하면 틸트백 기준이 변경됩니다. 현재 주행 속도보다 낮게 설정하면 갑작스러운 틸트백이 발생할 수 있습니다. 반드시 정지 상태에서 조정하세요.</string>
     <string name="dialog_speed_limit_confirm">제한 설정</string>
     <string name="dialog_speed_limit_label">제한: %1$d km/h</string>
+
+    <string name="battery_pack_unset_hint">배터리 잔량을 표시하려면 팩 크기가 필요합니다. 설정할 때까지 저배터리 경고가 일시 중지됩니다.</string>
+    <string name="battery_pack_set">배터리 팩 설정</string>
+    <string name="battery_pack_current">배터리 팩: %1$dS</string>
+    <string name="battery_pack_dialog_title">배터리 팩</string>
+    <string name="battery_pack_dialog_body">이 배터리는 직렬로 몇 셀입니까? 충전기 라벨에 전압이 표시되어 있습니다. 67.2 V는 16S, 84 V는 20S, 100.8 V는 24S입니다.</string>
 </resources>

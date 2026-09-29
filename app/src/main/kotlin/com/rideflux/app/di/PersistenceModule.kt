@@ -10,8 +10,10 @@ import com.rideflux.core.location.TripLocationSource
 import com.rideflux.data.database.RideFluxDatabase
 import com.rideflux.data.database.RoomTripRepository
 import com.rideflux.data.preferences.DataStoreSettingsRepository
+import com.rideflux.data.preferences.DataStoreWheelBatteryPackStore
 import com.rideflux.domain.ride.TripRepository
 import com.rideflux.domain.settings.SettingsRepository
+import com.rideflux.domain.wheel.WheelBatteryPackStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -39,6 +41,13 @@ object PersistenceModule {
         @ApplicationContext context: Context,
         @ApplicationScope scope: CoroutineScope,
     ): SettingsRepository = DataStoreSettingsRepository(context, scope)
+
+    @Provides
+    @Singleton
+    fun provideWheelBatteryPackStore(
+        @ApplicationContext context: Context,
+        @ApplicationScope scope: CoroutineScope,
+    ): WheelBatteryPackStore = DataStoreWheelBatteryPackStore(context, scope)
 
     @Provides
     @Singleton

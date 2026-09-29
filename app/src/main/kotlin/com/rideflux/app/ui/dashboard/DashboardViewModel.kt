@@ -22,6 +22,7 @@ import com.rideflux.domain.settings.AlertThresholds
 import com.rideflux.domain.settings.SettingsRepository
 import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelAlert
+import com.rideflux.domain.wheel.WheelBatteryPackStore
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelIdentity
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -166,6 +167,7 @@ data class TimedAlert(val timestampMillis: Long, val alert: DashboardAlert)
 class DashboardViewModel @Inject constructor(
     private val wheelRepository: WheelRepository,
     private val settingsRepository: SettingsRepository,
+    private val batteryPacks: WheelBatteryPackStore,
     @ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -180,6 +182,24 @@ class DashboardViewModel @Inject constructor(
         (savedStateHandle.get<String>(ARG_FAMILY))?.let {
             runCatching { WheelFamily.valueOf(it) }.getOrNull()
         }
+
+    /**
+     * Cells in series of this wheel's battery as stated by the rider, or `null`
+     * until they have said. Families whose frame carries only a voltage (Begode)
+     * cannot report a battery percentage without it.
+     */
+    val batteryPackCells: StateFlow<Int?> = batteryPacks.seriesCells
+        .map { it[WheelBatteryPackStore.key(address)] }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000L),
+            batteryPacks.seriesCells.value[WheelBatteryPackStore.key(address)],
+        )
+
+    /** Records the rider's answer for this wheel; the codec picks it up on the next frame. */
+    fun setBatteryPackCells(cells: Int) {
+        viewModelScope.launch { batteryPacks.setSeriesCells(address, cells) }
+    }
 
     /**
      * Connect exactly once. Subsequent property reads await the same

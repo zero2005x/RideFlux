@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">Alterar o limite ajusta os limiares de tilt-back. Reduzi-lo abaixo da velocidade atual pode causar tilt-back repentino. Ajuste apenas com o veículo parado.</string>
     <string name="dialog_speed_limit_confirm">Aplicar limite</string>
     <string name="dialog_speed_limit_label">Limite: %1$d km/h</string>
+
+    <string name="battery_pack_unset_hint">A porcentagem da bateria precisa do tamanho do pack. Os alertas de bateria fraca ficam em pausa até você defini-lo.</string>
+    <string name="battery_pack_set">Definir a bateria</string>
+    <string name="battery_pack_current">Bateria: %1$dS</string>
+    <string name="battery_pack_dialog_title">Pack de bateria</string>
+    <string name="battery_pack_dialog_body">Quantas células em série esta bateria tem? A etiqueta do carregador mostra a tensão: 67,2 V é 16S, 84 V é 20S e 100,8 V é 24S.</string>
 </resources>

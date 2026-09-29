@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">Das Ändern des Tempolimits passt die Tilt-Back-Schwellenwerte an. Ein Senken unter das aktuelle Tempo kann plötzliches Zurückneigen auslösen. Nur im Stand anpassen.</string>
     <string name="dialog_speed_limit_confirm">Übernehmen</string>
     <string name="dialog_speed_limit_label">Limit: %1$d km/h</string>
+
+    <string name="battery_pack_unset_hint">Für die Akkuanzeige in Prozent wird die Zellenzahl benötigt. Warnungen bei niedrigem Akkustand pausieren, bis sie eingestellt ist.</string>
+    <string name="battery_pack_set">Akkupack einstellen</string>
+    <string name="battery_pack_current">Akkupack: %1$dS</string>
+    <string name="battery_pack_dialog_title">Akkupack</string>
+    <string name="battery_pack_dialog_body">Wie viele Zellen in Reihe hat dieser Akku? Das Etikett des Ladegeräts zeigt die Spannung: 67,2 V sind 16S, 84 V sind 20S, 100,8 V sind 24S.</string>
 </resources>

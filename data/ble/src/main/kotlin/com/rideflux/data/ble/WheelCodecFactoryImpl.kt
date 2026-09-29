@@ -54,7 +54,14 @@ import java.util.UUID
  * MUST pass `expectedFamily` to
  * [com.rideflux.domain.repository.WheelRepository.connect].
  */
-class WheelCodecFactoryImpl : BleWheelCodecFactory {
+class WheelCodecFactoryImpl(
+    /**
+     * Cells in series of the battery of the wheel at `address`, as stated by the
+     * rider, or `null` while unknown. Consulted on every frame by codecs whose
+     * battery percentage depends on it (family G), so a change applies live.
+     */
+    private val seriesCellsFor: (address: String) -> Int? = { null },
+) : BleWheelCodecFactory {
 
     /**
      * Not supported: every codec produced here carries the device MAC
@@ -75,7 +82,10 @@ class WheelCodecFactoryImpl : BleWheelCodecFactory {
     override fun forFamilyWithAddress(family: WheelFamily, address: String): WheelCodec {
         require(address.isNotBlank()) { "address must not be blank" }
         return when (family) {
-            WheelFamily.G, WheelFamily.GX -> BegodeWheelCodec(deviceAddress = address)
+            WheelFamily.G, WheelFamily.GX -> BegodeWheelCodec(
+                deviceAddress = address,
+                seriesCells = { seriesCellsFor(address) },
+            )
             WheelFamily.K -> KingSongWheelCodec(deviceAddress = address)
             WheelFamily.V -> VeteranWheelCodec(deviceAddress = address)
             WheelFamily.N1 -> NinebotN1WheelCodec(deviceAddress = address)

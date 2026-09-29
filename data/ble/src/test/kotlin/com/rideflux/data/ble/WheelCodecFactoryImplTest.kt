@@ -36,6 +36,31 @@ class WheelCodecFactoryImplTest {
         assertTrue(factory.forFamilyWithAddress(WheelFamily.I2, mac) is InmotionI2WheelCodec)
     }
 
+    @Test
+    fun `each wheel's battery pack size reaches its own Begode codec`() {
+        val packs = mutableMapOf("AA:BB:CC:DD:EE:FF" to 20)
+        val withPacks = WheelCodecFactoryImpl { address -> packs[address] }
+        val configured = withPacks.forFamilyWithAddress(WheelFamily.G, "AA:BB:CC:DD:EE:FF")
+        val other = withPacks.forFamilyWithAddress(WheelFamily.G, "11:22:33:44:55:66")
+        // A live frame reporting 66.88 V.
+        val frame = intArrayOf(
+            0x55, 0xAA, 0x1A, 0x20, 0, 0, 0, 0, 0, 0, 0x01, 0x2C, 0xFD, 0xCA, 0x00, 0x01,
+            0xFF, 0xF8, 0x00, 0x18, 0x5A, 0x5A, 0x5A, 0x5A,
+        ).map { it.toByte() }.toByteArray()
+
+        fun percentOf(codec: com.rideflux.domain.codec.WheelCodec): Float? =
+            codec.decode(codec.newState(), frame)
+                .filterIsInstance<com.rideflux.domain.codec.DecodeEvent.TelemetryUpdate>()
+                .single().snapshot.batteryPercent
+
+        assertEquals(6f, percentOf(configured))
+        assertNull(percentOf(other)) // another wheel: not answered, so not guessed
+        packs["AA:BB:CC:DD:EE:FF"] = 16
+        assertEquals(100f, percentOf(configured)) // a change applies to the running codec
+        // The default factory has no answers at all.
+        assertNull(percentOf(factory.forFamilyWithAddress(WheelFamily.G, "AA:BB:CC:DD:EE:FF")))
+    }
+
     @Test(expected = UnsupportedOperationException::class)
     fun `forFamily rejects the address-less overload instead of emitting a blank MAC`() {
         factory.forFamily(WheelFamily.G)

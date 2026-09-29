@@ -293,4 +293,10 @@
     <string name="dialog_speed_limit_warning">速度制限を変更するとチルトバックの閾値が変わります。現在の走行速度未満に設定すると急なチルトバックが発生する危険があります。必ず停止中に変更してください。</string>
     <string name="dialog_speed_limit_confirm">設定</string>
     <string name="dialog_speed_limit_label">制限: %1$d km/h</string>
+
+    <string name="battery_pack_unset_hint">バッテリー残量の表示にはパックのセル数が必要です。設定するまで、低バッテリー警告は一時停止されます。</string>
+    <string name="battery_pack_set">バッテリーパックを設定</string>
+    <string name="battery_pack_current">バッテリーパック: %1$dS</string>
+    <string name="battery_pack_dialog_title">バッテリーパック</string>
+    <string name="battery_pack_dialog_body">このバッテリーは直列で何セルですか？充電器のラベルに電圧が表示されています。67.2 V は 16S、84 V は 20S、100.8 V は 24S です。</string>
 </resources>
