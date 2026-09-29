@@ -61,7 +61,7 @@ class BridgeClientGattTest {
         }
         fixture.gattCallback.onDescriptorWrite(fixture.gatt, fixture.cccd, BluetoothGatt.GATT_SUCCESS)
 
-        val sent = BridgeFrame.EMPTY.copy(timestampMillis = 1, speedKmh = 20f)
+        val sent = BridgeFrame.EMPTY.copy(timestampMillis = 1_000L, speedKmh = 20f)
         fixture.gattCallback.onCharacteristicChanged(fixture.gatt, fixture.telemetry, BridgeCodec.encode(sent))
         runCurrent()
         assertEquals(listOf(sent), frames)
