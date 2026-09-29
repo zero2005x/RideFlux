@@ -212,6 +212,176 @@ class BridgeServerGattTest {
         assertEquals(3, fixture.advertiseModes.size)
     }
 
+    // ---------------------------------------------------------------- open() failures
+
+    @Test
+    fun unavailableBluetoothManagerAbortsOpen() {
+        val context = mockk<Context>()
+        every { context.getSystemService(Context.BLUETOOTH_SERVICE) } returns null
+        assertFalse(BridgeServer(context).open())
+    }
+
+    @Test
+    fun aNullGattServerAbortsOpen() {
+        val fixture = Fixture()
+        every { fixture.manager.openGattServer(fixture.context, any()) } returns null
+        assertFalse(BridgeServer(fixture.context).open())
+        assertTrue(fixture.events.isEmpty())
+    }
+
+    @Test
+    fun aServiceThePlatformRefusesToRegisterClosesTheGatt() {
+        val fixture = Fixture()
+        every { fixture.gatt.addService(any()) } returns false
+        assertFalse(BridgeServer(fixture.context).open())
+        verify(exactly = 1) { fixture.gatt.close() }
+    }
+
+    @Test
+    fun anInterruptedWaitAbortsOpenEvenWhenClosingTheGattThrows() {
+        val fixture = Fixture()
+        every { fixture.gatt.close() } throws IllegalStateException("gone")
+        val server = BridgeServer(fixture.context)
+        Thread.currentThread().interrupt()
+        try {
+            assertFalse(server.open())
+        } finally {
+            Thread.interrupted() // do not leak the flag into other tests
+        }
+        assertFalse(Thread.currentThread().isInterrupted)
+    }
+
+    @Test
+    fun missingAdvertiserAbortsOpenAndClosesTheGatt() {
+        val fixture = Fixture()
+        every { fixture.adapter.bluetoothLeAdvertiser } returns null
+        assertFalse(BridgeServer(fixture.context).open())
+        verify(exactly = 1) { fixture.gatt.close() }
+    }
+
+    @Test
+    fun pairingTokenIsPublishedInTheScanResponse() {
+        val fixture = Fixture()
+        val server = BridgeServer(
+            fixture.context,
+            pairingToken = ByteArray(BridgeProtocol.PAIRING_TOKEN_SIZE) { 7 },
+        )
+        assertTrue(server.open())
+        verify(exactly = 1) {
+            fixture.advertiser.startAdvertising(
+                any<AdvertiseSettings>(), any<AdvertiseData>(), any<AdvertiseData>(), any<AdvertiseCallback>(),
+            )
+        }
+        server.stop()
+    }
+
+    // ---------------------------------------------------------------- characteristic writes
+
+    @Test
+    fun malformedHandshakeWritesAreRejectedOnlyWhenAResponseIsWanted() {
+        val fixture = Fixture()
+        val server = BridgeServer(fixture.context)
+        assertTrue(server.open())
+        val handshake = fixture.service.characteristics.first { it.uuid == BridgeProtocol.HANDSHAKE_CHAR_UUID }
+
+        fixture.callback.onCharacteristicWriteRequest(peer, 1, handshake, false, true, 0, ByteArray(3))
+        fixture.callback.onCharacteristicWriteRequest(
+            peer, 2, handshake, false, true, 1, ByteArray(BridgeProtocol.PAIRING_TOKEN_SIZE),
+        )
+        fixture.callback.onCharacteristicWriteRequest(peer, 3, handshake, false, false, 0, ByteArray(3))
+
+        verify {
+            fixture.gatt.sendResponse(peer, 1, BluetoothGatt.GATT_INVALID_ATTRIBUTE_LENGTH, 0, null)
+            fixture.gatt.sendResponse(peer, 2, BluetoothGatt.GATT_INVALID_ATTRIBUTE_LENGTH, 1, null)
+        }
+        verify(exactly = 0) { fixture.gatt.sendResponse(peer, 3, any(), any(), any()) }
+        server.stop()
+    }
+
+    @Test
+    fun writesToOtherCharacteristicsAreNotSupported() {
+        val fixture = Fixture()
+        val server = BridgeServer(fixture.context)
+        assertTrue(server.open())
+        val telemetry = fixture.service.characteristics.first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+
+        fixture.callback.onCharacteristicWriteRequest(peer, 4, telemetry, false, true, 0, byteArrayOf(1))
+        fixture.callback.onCharacteristicWriteRequest(peer, 5, telemetry, false, false, 0, byteArrayOf(1))
+
+        verify { fixture.gatt.sendResponse(peer, 4, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, 0, null) }
+        verify(exactly = 0) { fixture.gatt.sendResponse(peer, 5, any(), any(), any()) }
+        server.stop()
+    }
+
+    // ---------------------------------------------------------------- pending approval
+
+    @Test
+    fun rejectingAPendingPeerDisconnectsItEvenIfTheStackThrows() {
+        val fixture = Fixture()
+        every { fixture.gatt.cancelConnection(peer) } throws IllegalStateException("gone")
+        val server = BridgeServer(fixture.context, peerAuthorizer = BridgeServerPeerAuthorizer.RejectAll)
+        assertTrue(server.open())
+        val descriptor = fixture.service.characteristics
+            .first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+            .getDescriptor(BridgeProtocol.CCCD_UUID)
+        fixture.callback.onDescriptorWriteRequest(peer, 1, descriptor, false, false, 0, byteArrayOf(1, 0))
+        assertTrue(server.isPending(peer.address))
+
+        assertTrue(server.rejectPeer(peer.address))
+        assertFalse(server.isPending(peer.address))
+        assertFalse(server.rejectPeer(peer.address)) // already gone
+        verify(exactly = 1) { fixture.gatt.cancelConnection(peer) }
+        server.stop()
+    }
+
+    @Test
+    fun aTimeoutIsStillReportedWhenDisconnectingThrows() {
+        val fixture = Fixture()
+        every { fixture.gatt.cancelConnection(peer) } throws IllegalStateException("gone")
+        val timedOut = mutableListOf<BluetoothDevice>()
+        val server = BridgeServer(
+            fixture.context,
+            peerAuthorizer = BridgeServerPeerAuthorizer.RejectAll,
+            onAuthorizationTimedOut = timedOut::add,
+        )
+        assertTrue(server.open())
+        val descriptor = fixture.service.characteristics
+            .first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+            .getDescriptor(BridgeProtocol.CCCD_UUID)
+        fixture.callback.onDescriptorWriteRequest(peer, 1, descriptor, false, false, 0, byteArrayOf(1, 0))
+
+        shadowOf(Looper.getMainLooper()).idleFor(60, TimeUnit.SECONDS)
+
+        assertEquals(listOf(peer), timedOut)
+        server.stop()
+    }
+
+    @Test
+    fun anUnapprovedHandshakeTokenRaisesAnotherApprovalRequest() {
+        val fixture = Fixture()
+        val token = byteArrayOf(9, 8, 7, 6, 5, 4, 3, 2)
+        val requests = mutableListOf<ByteArray?>()
+        val server = BridgeServer(
+            fixture.context,
+            peerAuthorizer = BridgeServerPeerAuthorizer.RejectAll,
+            onAuthorizationRequested = { _, offered -> requests.add(offered) },
+        )
+        assertTrue(server.open())
+        val descriptor = fixture.service.characteristics
+            .first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+            .getDescriptor(BridgeProtocol.CCCD_UUID)
+        val handshake = fixture.service.characteristics.first { it.uuid == BridgeProtocol.HANDSHAKE_CHAR_UUID }
+
+        fixture.callback.onDescriptorWriteRequest(peer, 1, descriptor, false, false, 0, byteArrayOf(1, 0))
+        assertEquals(listOf<ByteArray?>(null), requests)
+
+        fixture.callback.onCharacteristicWriteRequest(peer, 2, handshake, false, false, 0, token)
+        assertEquals(2, requests.size)
+        assertTrue(requests[1]!!.contentEquals(token))
+        assertTrue(server.isPending(peer.address))
+        server.stop()
+    }
+
     private class Fixture(serviceStatus: Int = BluetoothGatt.GATT_SUCCESS) {
         val context = mockk<Context>()
         val manager = mockk<BluetoothManager>()

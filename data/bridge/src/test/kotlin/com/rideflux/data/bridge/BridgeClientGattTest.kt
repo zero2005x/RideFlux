@@ -24,13 +24,18 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -156,6 +161,242 @@ class BridgeClientGattTest {
         assertTrue(error is IllegalStateException)
         assertTrue(error?.message?.contains("CCCD write failed") == true)
         job.cancelAndJoin()
+        verify(exactly = 1) { fixture.gatt.close() }
+    }
+
+    // ---------------------------------------------------------------- failure paths
+
+    private class Collected(val job: Job) {
+        var error: Throwable? = null
+        fun message(): String = error?.message.orEmpty()
+    }
+
+    private fun TestScope.collectErrors(client: BridgeClient): Collected {
+        lateinit var holder: Collected
+        val job = backgroundScope.launch {
+            try {
+                client.frames().collect()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (t: Throwable) {
+                holder.error = t
+            }
+        }
+        holder = Collected(job)
+        return holder
+    }
+
+    private fun newClient(
+        fixture: Fixture,
+        token: ByteArray? = null,
+        throttle: BleScanThrottle = BleScanThrottle(now = { 0L }),
+    ) = BridgeClient(fixture.context, scanThrottle = throttle, clientToken = token)
+
+    /** Scan hit, link up, services discovered: the point where the client subscribes. */
+    private fun connectAndDiscover(fixture: Fixture) {
+        fixture.scanCallback.onScanResult(0, fixture.scanResult)
+        fixture.gattCallback.onConnectionStateChange(
+            fixture.gatt, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_CONNECTED,
+        )
+        fixture.gattCallback.onServicesDiscovered(fixture.gatt, BluetoothGatt.GATT_SUCCESS)
+    }
+
+    @Test
+    fun status133DisconnectsAreRetriedTwiceThenSurfaced() = runTest {
+        val fixture = Fixture()
+        every { fixture.gatt.device } returns fixture.device
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        fixture.scanCallback.onScanResult(0, fixture.scanResult)
+
+        repeat(2) {
+            fixture.gattCallback.onConnectionStateChange(fixture.gatt, 133, BluetoothProfile.STATE_DISCONNECTED)
+            advanceTimeBy(700)
+            runCurrent()
+        }
+        verify(exactly = 3) {
+            fixture.device.connectGatt(fixture.context, false, any(), BluetoothDevice.TRANSPORT_LE)
+        }
+        verify(exactly = 2) { fixture.gatt.disconnect() }
+        assertNull(run.error)
+
+        fixture.gattCallback.onConnectionStateChange(fixture.gatt, 133, BluetoothProfile.STATE_DISCONNECTED)
+        runCurrent()
+        assertTrue(run.message(), run.message().contains("disconnected status=133"))
+    }
+
+    @Test
+    fun plainDisconnectEndsTheFlow() = runTest {
+        val fixture = Fixture()
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        fixture.scanCallback.onScanResult(0, fixture.scanResult)
+        fixture.gattCallback.onConnectionStateChange(fixture.gatt, 8, BluetoothProfile.STATE_DISCONNECTED)
+        runCurrent()
+        assertTrue(run.message(), run.message().contains("disconnected status=8"))
+    }
+
+    @Test
+    fun rejectedNotificationRegistrationIsReported() = runTest {
+        val fixture = Fixture()
+        every { fixture.gatt.setCharacteristicNotification(fixture.telemetry, true) } returns false
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        connectAndDiscover(fixture)
+        runCurrent()
+        assertTrue(run.message(), run.message().contains("setCharacteristicNotification failed"))
+    }
+
+    @Test
+    fun missingCccdIsReported() = runTest {
+        val fixture = Fixture()
+        val bare = BluetoothGattCharacteristic(BridgeProtocol.TELEMETRY_CHAR_UUID, BluetoothGattCharacteristic.PROPERTY_NOTIFY, 0)
+        val bareService = BluetoothGattService(BridgeProtocol.SERVICE_UUID, BluetoothGattService.SERVICE_TYPE_PRIMARY)
+            .apply { addCharacteristic(bare) }
+        every { fixture.gatt.getService(BridgeProtocol.SERVICE_UUID) } returns bareService
+        every { fixture.gatt.setCharacteristicNotification(bare, true) } returns true
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        connectAndDiscover(fixture)
+        runCurrent()
+        assertTrue(run.message(), run.message().contains("CCCD missing"))
+    }
+
+    @Test
+    fun rejectedCccdWriteIsReported() = runTest {
+        val fixture = Fixture()
+        every {
+            fixture.gatt.writeDescriptor(fixture.cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        } returns BluetoothGatt.GATT_FAILURE
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        connectAndDiscover(fixture)
+        runCurrent()
+        assertTrue(run.message(), run.message().contains("writeDescriptor returned"))
+    }
+
+    @Test
+    fun revokedPermissionDuringSubscribeIsReported() = runTest {
+        val fixture = Fixture()
+        every {
+            fixture.gatt.writeDescriptor(fixture.cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        } throws SecurityException("denied")
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        connectAndDiscover(fixture)
+        runCurrent()
+        assertTrue(run.message(), run.message().contains("CCCD subscribe failed: denied"))
+    }
+
+    @Test
+    fun throwingHandshakeWriteFallsBackToSubscribingDirectly() = runTest {
+        val fixture = Fixture()
+        every {
+            fixture.gatt.writeCharacteristic(fixture.handshake, any(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+        } throws IllegalStateException("busy")
+        val run = collectErrors(newClient(fixture, token = ByteArray(8) { it.toByte() }))
+        runCurrent()
+        connectAndDiscover(fixture)
+        verify(exactly = 1) {
+            fixture.gatt.writeDescriptor(fixture.cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        }
+        assertNull(run.error)
+    }
+
+    @Test
+    fun failedHandshakeConfirmationStillSubscribes() = runTest {
+        val fixture = Fixture()
+        val run = collectErrors(newClient(fixture, token = ByteArray(8) { it.toByte() }))
+        runCurrent()
+        connectAndDiscover(fixture)
+        fixture.gattCallback.onCharacteristicWrite(fixture.gatt, fixture.handshake, BluetoothGatt.GATT_FAILURE)
+        verify(exactly = 1) {
+            fixture.gatt.writeDescriptor(fixture.cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        }
+        assertNull(run.error)
+    }
+
+    @Test
+    fun telemetryCharacteristicVanishingAfterHandshakeIsReported() = runTest {
+        val fixture = Fixture()
+        val run = collectErrors(newClient(fixture, token = ByteArray(8) { it.toByte() }))
+        runCurrent()
+        connectAndDiscover(fixture)
+        every { fixture.gatt.getService(BridgeProtocol.SERVICE_UUID) } returns
+            BluetoothGattService(BridgeProtocol.SERVICE_UUID, BluetoothGattService.SERVICE_TYPE_PRIMARY)
+        fixture.gattCallback.onCharacteristicWrite(fixture.gatt, fixture.handshake, BluetoothGatt.GATT_SUCCESS)
+        runCurrent()
+        assertTrue(run.message(), run.message().contains("telemetry characteristic missing after handshake"))
+    }
+
+    @Test
+    fun connectGattThrowingIsReported() = runTest {
+        val fixture = Fixture()
+        every {
+            fixture.device.connectGatt(fixture.context, false, any(), BluetoothDevice.TRANSPORT_LE)
+        } throws SecurityException("revoked")
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        fixture.scanCallback.onScanResult(0, fixture.scanResult)
+        runCurrent()
+        assertTrue(run.message(), run.message().contains("connectGatt failed: revoked"))
+    }
+
+    @Test
+    fun connectGattReturningNullIsReported() = runTest {
+        val fixture = Fixture()
+        every {
+            fixture.device.connectGatt(fixture.context, false, any(), BluetoothDevice.TRANSPORT_LE)
+        } returns null
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        fixture.scanCallback.onScanResult(0, fixture.scanResult)
+        runCurrent()
+        assertTrue(run.message(), run.message().contains("connectGatt returned null"))
+    }
+
+    @Test
+    fun startScanThrowingIsReported() = runTest {
+        val fixture = Fixture()
+        every { fixture.scanner.startScan(any(), any(), any<ScanCallback>()) } throws SecurityException("no scan")
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        assertTrue(run.error is SecurityException)
+        assertEquals("no scan", run.error?.message)
+    }
+
+    @Test
+    fun scanIsHeldBackWhileTheThrottleBudgetIsSpent() = runTest {
+        val fixture = Fixture()
+        val throttle = BleScanThrottle(maxStarts = 1, now = { 0L })
+        throttle.reserve() // Budget used up: the next reservation must wait a full window.
+        collectErrors(newClient(fixture, throttle = throttle))
+        runCurrent()
+        verify(exactly = 0) { fixture.scanner.startScan(any(), any(), any<ScanCallback>()) }
+
+        advanceTimeBy(BleScanThrottle.WINDOW_MILLIS + 1)
+        runCurrent()
+        verify(exactly = 1) { fixture.scanner.startScan(any(), any(), any<ScanCallback>()) }
+    }
+
+    @Test
+    fun teardownSurvivesABluetoothStackThatThrows() = runTest {
+        val fixture = Fixture()
+        every { fixture.scanner.stopScan(any<ScanCallback>()) } throws IllegalStateException("scanner gone")
+        every { fixture.gatt.disconnect() } throws IllegalStateException("gatt gone")
+        every { fixture.gatt.close() } throws IllegalStateException("gatt gone")
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        fixture.scanCallback.onScanResult(0, fixture.scanResult)
+        fixture.gattCallback.onConnectionStateChange(
+            fixture.gatt, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_CONNECTED,
+        )
+
+        run.job.cancelAndJoin()
+
+        assertNull(run.error)
+        verify(atLeast = 1) { fixture.scanner.stopScan(any<ScanCallback>()) }
+        verify(exactly = 1) { fixture.gatt.disconnect() }
         verify(exactly = 1) { fixture.gatt.close() }
     }
 
