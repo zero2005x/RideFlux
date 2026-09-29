@@ -147,8 +147,13 @@ tasks.register<JacocoReport>("jacocoTestReport") {
 
     classDirectories.setFrom(
         files(
+            // AGP 9's built-in Kotlin compiles Android modules here. AGP 8 with
+            // the kotlin-android plugin wrote to build/tmp/kotlin-classes/debug,
+            // which no longer exists on a clean checkout: pointing at it left
+            // every Android module without class files, so Sonar counted all of
+            // their lines as uncovered and the main-branch gate failed.
             subprojects.map { sub ->
-                fileTree("${sub.layout.buildDirectory.get().asFile}/tmp/kotlin-classes/debug") {
+                fileTree("${sub.layout.buildDirectory.get().asFile}/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes") {
                     exclude(coverageExcludes)
                 }
             },
