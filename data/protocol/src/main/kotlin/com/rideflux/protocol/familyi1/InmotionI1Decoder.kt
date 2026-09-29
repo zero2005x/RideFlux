@@ -19,7 +19,7 @@ import com.rideflux.protocol.bytes.ByteReader
  *     extended frames (`0xFE`) the body is `16 + EX-LEN`, where
  *     `EX-LEN` is the U32LE at body offset 4..7;
  *  4. keep unescaping until the body reaches its expected length;
- *  5. read one raw wire byte as CHECK and verify the additive sum;
+ *  5. read the CHECK byte (escaped like a body byte) and verify the additive sum;
  *  6. require the next two raw wire bytes to be `55 55`.
  */
 object InmotionI1Decoder {
@@ -72,8 +72,18 @@ object InmotionI1Decoder {
         }
 
         if (cursor >= end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.TooShort)
-        val checkRaw = wire[cursor].toInt() and 0xFF
-        cursor += 1
+        // CHECK is unstuffed like a body byte: a value of 55, AA or A5 is sent as `A5 xx`
+        // (8 of the 498 frames in the reference captures).
+        val checkRaw: Int
+        if (wire[cursor] == InmotionI1Codec.ESCAPE_BYTE) {
+            // The escaped byte has not arrived yet.
+            if (cursor + 1 >= end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.TooShort)
+            checkRaw = wire[cursor + 1].toInt() and 0xFF
+            cursor += 2
+        } else {
+            checkRaw = wire[cursor].toInt() and 0xFF
+            cursor += 1
+        }
 
         if (cursor + 2 > end) return InmotionI1DecodeResult.Fail(InmotionI1DecodeError.TooShort)
         if (wire[cursor] != InmotionI1Codec.TRAILER_BYTE ||
@@ -137,7 +147,9 @@ object InmotionI1Decoder {
             if (cursor >= end) return Scan.Fail(InmotionI1DecodeError.TooShort)
             val b = wire[cursor]
             if (b == InmotionI1Codec.ESCAPE_BYTE) {
-                if (cursor + 1 >= end) return Scan.Fail(InmotionI1DecodeError.BadEscape)
+                // A buffer ending on the escape marker is a frame still arriving: the byte it
+                // escapes comes in the next notification. Failing here dropped the frame.
+                if (cursor + 1 >= end) return Scan.Fail(InmotionI1DecodeError.TooShort)
                 body.add(wire[cursor + 1])
                 cursor += 2
             } else {
@@ -177,11 +189,11 @@ object InmotionI1Decoder {
  * and is surfaced raw.
  */
 data class InmotionI1ExtendedTelemetry(
-    /** Raw U32 at EX-DATA offset 0; degrees = raw / 65536. */
+    /** Raw S32 at EX-DATA offset 0; degrees = raw / 65536. Signed: real frames go negative. */
     val pitchRaw: Long,
-    /** U32 component A at offset 12 (used by speed computation). */
+    /** S32 component A at offset 12 (used by speed computation). */
     val speedARaw: Long,
-    /** U32 component B at offset 16. */
+    /** S32 component B at offset 16. */
     val speedBRaw: Long,
     /** S32 1/100 A at offset 20. */
     val phaseCurrentHundredthsA: Int,
@@ -204,7 +216,7 @@ data class InmotionI1ExtendedTelemetry(
     val tripDistanceMetres: Long,
     /** Raw U32 work-mode / state word at offset 60; §4.3 not yet in spec. */
     val stateWordRaw: Long,
-    /** Raw U32 roll at offset 72; degrees = raw / 90. */
+    /** Raw S32 roll at offset 72; degrees = raw / 90. */
     val rollRaw: Long,
 ) {
     /** Convenience: voltage in volts. */
@@ -265,9 +277,9 @@ data class InmotionI1ExtendedTelemetry(
                 "EX-DATA too short: ${exData.size} < $MIN_EX_DATA_SIZE"
             }
             return InmotionI1ExtendedTelemetry(
-                pitchRaw = ByteReader.u32LE(exData, 0),
-                speedARaw = ByteReader.u32LE(exData, 12),
-                speedBRaw = ByteReader.u32LE(exData, 16),
+                pitchRaw = ByteReader.s32LE(exData, 0).toLong(),
+                speedARaw = ByteReader.s32LE(exData, 12).toLong(),
+                speedBRaw = ByteReader.s32LE(exData, 16).toLong(),
                 phaseCurrentHundredthsA = ByteReader.s32LE(exData, 20),
                 voltageHundredthsV = ByteReader.u32LE(exData, 24),
                 temperature1Celsius = exData[32].toInt(),
@@ -275,7 +287,7 @@ data class InmotionI1ExtendedTelemetry(
                 totalDistanceRaw8 = exData.copyOfRange(44, 52),
                 tripDistanceMetres = ByteReader.u32LE(exData, 48),
                 stateWordRaw = ByteReader.u32LE(exData, 60),
-                rollRaw = ByteReader.u32LE(exData, 72),
+                rollRaw = ByteReader.s32LE(exData, 72).toLong(),
             )
         }
     }

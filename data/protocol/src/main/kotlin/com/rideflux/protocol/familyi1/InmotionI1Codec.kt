@@ -10,9 +10,13 @@ package com.rideflux.protocol.familyi1
  * (`PROTOCOL_SPEC.md` §2.6.2 and §6.4.1).
  *
  * I1 escapes three byte values — `0xAA`, `0x55`, `0xA5` — each by
- * prefixing the payload byte with an escape byte `0xA5`. The CHECK
- * byte that follows the escaped body is transmitted raw (never
- * escaped). Preamble `AA AA` and trailer `55 55` are also raw.
+ * prefixing the payload byte with an escape byte `0xA5`. Frames received
+ * from a wheel escape the CHECK byte that follows the body in the same way
+ * (real captures: a CHECK of `55` arrives as `A5 55`), so [InmotionI1Decoder]
+ * unstuffs it. The command builder still writes the CHECK raw towards the
+ * wheel, as the reference implementation does; whether the wheel expects it
+ * escaped in that direction is not shown by any capture. Preamble `AA AA` and
+ * trailer `55 55` are raw in both directions.
  */
 internal object InmotionI1Codec {
 

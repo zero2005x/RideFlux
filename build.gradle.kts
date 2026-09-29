@@ -165,16 +165,17 @@ tasks.register<JacocoReport>("jacocoTestReport") {
             // class ids match. Analysing the raw compiler output instead makes
             // the ids differ and silently drops all coverage of the Hilt
             // entry points (services, receivers, activities). Modules without
-            // the Hilt plugin have no transform output and fall back to AGP 9's
+            // the Hilt plugin have no transform output and use AGP 9's
             // built-in Kotlin output (AGP 8's build/tmp/kotlin-classes/debug
-            // no longer exists). Chosen lazily: on a clean checkout neither
-            // directory exists yet while the script is configured.
+            // no longer exists). The choice must not depend on whether a
+            // directory exists yet: the configuration cache resolves this
+            // collection when it stores the entry, before anything has been
+            // built on a clean checkout, and would pick the raw output.
             subprojects.map { sub ->
                 java.util.concurrent.Callable {
                     val build = sub.layout.buildDirectory.get().asFile
-                    val transformed = File(build, "intermediates/classes/debug/transformDebugClassesWithAsm/dirs")
-                    val classes = if (transformed.isDirectory) {
-                        transformed
+                    val classes = if (sub.pluginManager.hasPlugin("com.google.dagger.hilt.android")) {
+                        File(build, "intermediates/classes/debug/transformDebugClassesWithAsm/dirs")
                     } else {
                         File(build, "intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes")
                     }

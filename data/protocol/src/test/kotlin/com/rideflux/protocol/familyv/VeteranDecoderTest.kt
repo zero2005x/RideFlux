@@ -18,25 +18,25 @@ import org.junit.Test
  */
 class VeteranDecoderTest {
 
-    @Test fun `vector section 4 decodes without CRC`() {
-        // 42-byte Sherman frame (L = 0x25 = 37). The final six bytes
-        // at offsets 36..41 are reserved and zeroed per §3.3.
+    @Test fun `a real 36-byte frame decodes without CRC`() {
+        // Complete frame as a wheel sends it: length byte 0x20, so 4 + 32 = 36 bytes. (An earlier
+        // version of this vector had six zero bytes appended to fit a length read from offset 4.)
         val frame = hex(
             """
             DC 5A 5C 20 25 CD 00 00  07 1F 00 00 C7 78 00 28
             00 00 11 0B 0E 10 00 01  0A F0 0A F0 04 22 00 03
-            00 14 00 00 00 00 00 00  00 00
+            00 14 00 00
             """,
         )
 
         val result = VeteranDecoder.decode(frame)
         assertTrue(result is VeteranDecoder.DecodeResult.Ok)
         result as VeteranDecoder.DecodeResult.Ok
-        assertEquals(42, result.consumedBytes)
+        assertEquals(36, result.consumedBytes)
 
         val decoded = result.frame
         assertFalse(decoded.crc32Present)
-        assertEquals(37, decoded.payloadLength)
+        assertEquals(32, decoded.declaredLength)
 
         assertEquals(9677, decoded.voltageHundredthsV)
         assertEquals(96.77, decoded.voltageVolts, 1e-9)
@@ -83,83 +83,87 @@ class VeteranDecoderTest {
         )
     }
 
-    @Test fun `frame with CRC is accepted when CRC matches`() {
-        // Build a synthetic minimum-size frame (L = 32, payload all
-        // zeros except firmware word so the decoded fields are well
-        // defined) and append the matching CRC32 trailer. The
-        // `expectCrcAlways=true` path exercises the "once negotiated"
-        // branch even though L < 38.
-        val payload = ByteArray(32)
-        // firmware version at frame offset 28 (= payload offset 23)
-        // set to 4321 -> "004.3.21".
-        payload[23] = 0x10; payload[24] = 0xE1.toByte()
+    /**
+     * A synthetic frame of `length + 4` bytes whose last four bytes are the CRC-32 of the first
+     * `length` bytes (the geometry of the community implementation; no real capture backs it).
+     * The firmware word at offset 28 is set to 4321 -> "004.3.21" so the decoded fields are
+     * well defined. For `length` = 32 the CRC overlaps the pitch/PWM fields, which no test reads.
+     */
+    private fun crcFrame(length: Int, crc: Long? = null): ByteArray {
+        val frame = ByteArray(length + 4)
+        frame[0] = 0xDC.toByte()
+        frame[1] = 0x5A.toByte()
+        frame[2] = 0x5C.toByte()
+        frame[3] = length.toByte()
+        frame[28] = 0x10
+        frame[29] = 0xE1.toByte()
+        val value = crc ?: VeteranDecoder.computeCrc32(frame, 0, length)
+        frame[length] = (value ushr 24).toByte()
+        frame[length + 1] = (value ushr 16).toByte()
+        frame[length + 2] = (value ushr 8).toByte()
+        frame[length + 3] = value.toByte()
+        return frame
+    }
 
-        val withoutCrc = ByteArray(5 + payload.size).also {
-            it[0] = 0xDC.toByte()
-            it[1] = 0x5A.toByte()
-            it[2] = 0x5C.toByte()
-            it[3] = 0x20.toByte()
-            it[4] = payload.size.toByte()
-            System.arraycopy(payload, 0, it, 5, payload.size)
-        }
-        val expectedCrc = VeteranDecoder.computeCrc32(withoutCrc, 0, withoutCrc.size)
-        val withCrc = ByteArray(withoutCrc.size + 4).also {
-            System.arraycopy(withoutCrc, 0, it, 0, withoutCrc.size)
-            it[withoutCrc.size]     = (expectedCrc ushr 24).toByte()
-            it[withoutCrc.size + 1] = (expectedCrc ushr 16).toByte()
-            it[withoutCrc.size + 2] = (expectedCrc ushr 8).toByte()
-            it[withoutCrc.size + 3] = expectedCrc.toByte()
-        }
+    @Test fun `a long frame carries a CRC that is checked and consumed`() {
+        val withCrc = crcFrame(length = 40)
 
-        val result = VeteranDecoder.decode(withCrc, expectCrcAlways = true)
+        val result = VeteranDecoder.decode(withCrc)
+
         assertTrue(result is VeteranDecoder.DecodeResult.Ok)
         result as VeteranDecoder.DecodeResult.Ok
-        assertEquals(withCrc.size, result.consumedBytes)
+        assertEquals(44, result.consumedBytes)
         assertTrue(result.frame.crc32Present)
+        assertEquals(40, result.frame.declaredLength)
         assertEquals(4321, result.frame.firmwareVersionRaw)
         assertEquals("004.3.21", result.frame.firmwareVersionString)
     }
 
-    @Test fun `frame with bad CRC is rejected`() {
-        val payload = ByteArray(32)
-        val withoutCrc = ByteArray(5 + payload.size).also {
-            it[0] = 0xDC.toByte()
-            it[1] = 0x5A.toByte()
-            it[2] = 0x5C.toByte()
-            it[3] = 0x20.toByte()
-            it[4] = payload.size.toByte()
-        }
-        val withCrc = ByteArray(withoutCrc.size + 4).also {
-            System.arraycopy(withoutCrc, 0, it, 0, withoutCrc.size)
-            // Deliberately incorrect CRC.
-            it[withoutCrc.size]     = 0x00
-            it[withoutCrc.size + 1] = 0x00
-            it[withoutCrc.size + 2] = 0x00
-            it[withoutCrc.size + 3] = 0x00
-        }
+    @Test fun `a short frame is checked for a CRC once the session has shown one`() {
+        val withCrc = crcFrame(length = 32)
 
-        val result = VeteranDecoder.decode(withCrc, expectCrcAlways = true)
+        val strict = VeteranDecoder.decode(withCrc, expectCrcAlways = true)
+        assertTrue(strict is VeteranDecoder.DecodeResult.Ok)
+        assertTrue((strict as VeteranDecoder.DecodeResult.Ok).frame.crc32Present)
+        assertEquals(36, strict.consumedBytes)
+
+        // Without the latch the same bytes are an ordinary CRC-less frame.
+        val lenient = VeteranDecoder.decode(withCrc)
+        assertTrue(lenient is VeteranDecoder.DecodeResult.Ok)
+        assertFalse((lenient as VeteranDecoder.DecodeResult.Ok).frame.crc32Present)
+    }
+
+    @Test fun `frame with bad CRC is rejected`() {
+        val result = VeteranDecoder.decode(crcFrame(length = 40, crc = 0L))
+
         assertTrue(result is VeteranDecoder.DecodeResult.Fail)
         result as VeteranDecoder.DecodeResult.Fail
         assertTrue(result.error is VeteranDecoder.DecodeError.BadCrc)
     }
 
-    @Test fun `frame with L greater than 38 requires CRC`() {
-        // L = 40 triggers the `L > 38` branch in §2.3 / §6.2 so that a
-        // CRC trailer is mandatory.
-        val payload = ByteArray(40)
-        val buf = ByteArray(5 + payload.size).also {
-            it[0] = 0xDC.toByte()
-            it[1] = 0x5A.toByte()
-            it[2] = 0x5C.toByte()
-            it[3] = 0x20.toByte()
-            it[4] = payload.size.toByte()
-        }
-        val result = VeteranDecoder.decode(buf)
-        // CRC expected but not present -> TooShort.
+    @Test fun `a frame that is one byte short waits for the rest`() {
+        val complete = crcFrame(length = 40)
+
+        val result = VeteranDecoder.decode(complete.copyOf(complete.size - 1))
+
         assertTrue(result is VeteranDecoder.DecodeResult.Fail)
         result as VeteranDecoder.DecodeResult.Fail
         assertEquals(VeteranDecoder.DecodeError.TooShort, result.error)
+    }
+
+    @Test fun `a length that cannot hold the fields is a false magic, not a frame to wait for`() {
+        val bogus = ByteArray(40).also {
+            it[0] = 0xDC.toByte()
+            it[1] = 0x5A.toByte()
+            it[2] = 0x5C.toByte()
+            it[3] = 0x10
+        }
+
+        val result = VeteranDecoder.decode(bogus)
+
+        assertTrue(result is VeteranDecoder.DecodeResult.Fail)
+        result as VeteranDecoder.DecodeResult.Fail
+        assertEquals(VeteranDecoder.DecodeError.LengthMismatch, result.error)
     }
 
     @Test fun `bad magic is rejected`() {
@@ -189,7 +193,7 @@ class VeteranDecoderTest {
         )
         for ((raw, expected) in cases) {
             val frame = VeteranFrame(
-                payloadLength = 32,
+                declaredLength = 32,
                 voltageHundredthsV = 0,
                 speedTenthsKmh = 0,
                 tripMeters = 0,
