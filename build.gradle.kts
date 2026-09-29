@@ -73,6 +73,18 @@ subprojects {
     // (build/jacoco/<task>.exec). The aggregate report task below
     // collects each module's exec and produces a single XML for Sonar.
     tasks.withType<Test>().configureEach {
+        // Robolectric needs JDK internals opened when tests run on JDK 17+.
+        jvmArgs(
+            "--add-opens=java.base/java.lang=ALL-UNNAMED",
+            "--add-opens=java.base/java.util=ALL-UNNAMED",
+            "--add-opens=java.base/java.io=ALL-UNNAMED",
+            "--add-opens=java.base/java.net=ALL-UNNAMED",
+            "--add-opens=java.base/java.security=ALL-UNNAMED",
+            "--add-opens=java.base/java.text=ALL-UNNAMED",
+            "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+            "--add-opens=java.desktop/java.awt.font=ALL-UNNAMED",
+            "--add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+        )
         configure<JacocoTaskExtension> {
             isIncludeNoLocationClasses = true
             // jdk.internal.* is loaded by the JVM and cannot be instrumented.
@@ -241,6 +253,37 @@ sonar {
             listOf(
                 "**/src/main/res/values/strings.xml",
                 "**/src/main/res/values-*/strings.xml",
+            ).joinToString(","),
+        )
+
+        // Coverage denominator: Compose UI and debug-only tooling are not
+        // unit-tested (that would need Robolectric + Compose UI tests for
+        // little logic), so keep them out of the coverage metric. Files are
+        // listed one by one on purpose, so a logic file added next to a screen
+        // is measured by default. Every file below contains @Composable
+        // functions or lives in a debug-only source set.
+        property(
+            "sonar.coverage.exclusions",
+            listOf(
+                // Debug-only Play Store screenshot tooling (not shipped).
+                "**/src/debug/**",
+                // :app Compose UI.
+                "**/com/rideflux/app/navigation/RideFluxNavHost.kt",
+                "**/com/rideflux/app/ui/theme/Theme.kt",
+                "**/com/rideflux/app/ui/permission/BlePermissionGate.kt",
+                "**/com/rideflux/app/ui/hud/HudScreen.kt",
+                "**/com/rideflux/app/ui/trips/TripScreens.kt",
+                "**/com/rideflux/app/ui/scanner/ScannerScreen.kt",
+                "**/com/rideflux/app/ui/settings/SettingsScreen.kt",
+                "**/com/rideflux/app/ui/settings/GlassesSetupScreen.kt",
+                "**/com/rideflux/app/ui/dashboard/DashboardScreen.kt",
+                "**/com/rideflux/app/ui/dashboard/components/MetricCard.kt",
+                "**/com/rideflux/app/ui/dashboard/components/SpeedGauge.kt",
+                "**/com/rideflux/app/ui/dashboard/components/TelemetryChart.kt",
+                "**/com/rideflux/app/ui/dashboard/pages/*Page.kt",
+                // :hud-app Compose UI.
+                "**/com/rideflux/hud/HudScreen.kt",
+                "**/com/rideflux/hud/permission/BlePermissionGate.kt",
             ).joinToString(","),
         )
 
