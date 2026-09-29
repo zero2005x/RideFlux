@@ -22,7 +22,8 @@ import java.util.Locale
  * Convenience accessors expose SI units and decoded strings.
  */
 data class VeteranFrame(
-    val payloadLength: Int,
+    /** The length byte at offset 3: the frame is this many bytes plus the 4-byte header. */
+    val declaredLength: Int,
     val voltageHundredthsV: Int,
     val speedTenthsKmh: Int,
     val tripMeters: Long,

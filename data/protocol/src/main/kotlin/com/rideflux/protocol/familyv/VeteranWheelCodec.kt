@@ -153,8 +153,8 @@ class VeteranWheelCodec(
         }
 
     companion object {
-        /** Four-byte magic + length + largest u8 payload + optional CRC32. */
-        internal const val MAX_FRAME_BUFFER_SIZE: Int = 5 + 255 + 4
+        /** Four-byte header + the largest length byte (which already counts a CRC trailer). */
+        internal const val MAX_FRAME_BUFFER_SIZE: Int = 4 + 255
 
         val DEFAULT_CAPABILITIES: WheelCapabilities = WheelCapabilities(
             headlight = false,
