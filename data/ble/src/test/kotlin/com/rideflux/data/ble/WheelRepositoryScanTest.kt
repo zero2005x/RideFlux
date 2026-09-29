@@ -36,7 +36,7 @@ import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [36])
 class WheelRepositoryScanTest {
     @Test
     fun mergesAdvertisementAndScanResponseWithoutEmittingForRssiOnlyChanges() = runTest {

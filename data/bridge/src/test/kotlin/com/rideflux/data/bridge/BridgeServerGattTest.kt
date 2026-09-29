@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
 import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [36])
 class BridgeServerGattTest {
     private val peer = mockk<BluetoothDevice> {
         every { address } returns "AA:BB:CC:DD:EE:FF"

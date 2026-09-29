@@ -34,7 +34,7 @@ import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [36])
 class BridgePeerScannerTest {
     @Test
     fun filtersByServiceAndDeduplicatesRotatingAddressesByPairingToken() = runTest {

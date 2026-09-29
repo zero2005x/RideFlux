@@ -13,6 +13,7 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanRecord
@@ -38,7 +39,7 @@ import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [36])
 class BridgeClientGattTest {
     @Test
     fun connectsSubscribesDeliversFramesAndClosesGattOnCancellation() = runTest {
@@ -62,6 +63,9 @@ class BridgeClientGattTest {
         fixture.gattCallback.onDescriptorWrite(fixture.gatt, fixture.cccd, BluetoothGatt.GATT_SUCCESS)
 
         val sent = BridgeFrame.EMPTY.copy(timestampMillis = 1_000L, speedKmh = 20f)
+        fixture.gattCallback.onCharacteristicChanged(fixture.gatt, fixture.telemetry, byteArrayOf(1, 2))
+        runCurrent()
+        assertTrue(frames.isEmpty())
         fixture.gattCallback.onCharacteristicChanged(fixture.gatt, fixture.telemetry, BridgeCodec.encode(sent))
         runCurrent()
         assertEquals(listOf(sent), frames)
@@ -109,6 +113,52 @@ class BridgeClientGattTest {
         job.cancelAndJoin()
     }
 
+    @Test
+    fun writesHandshakeBeforeSubscribingAndSurfacesCccdFailure() = runTest {
+        val fixture = Fixture()
+        val token = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+        val client = BridgeClient(
+            fixture.context,
+            scanThrottle = BleScanThrottle(now = { 0L }),
+            clientToken = token,
+        )
+        var error: Throwable? = null
+        val job = backgroundScope.launch {
+            try {
+                client.frames().collect()
+            } catch (t: Throwable) {
+                error = t
+            }
+        }
+        runCurrent()
+        fixture.scanCallback.onScanResult(0, fixture.scanResult)
+        fixture.gattCallback.onConnectionStateChange(
+            fixture.gatt, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_CONNECTED,
+        )
+        fixture.gattCallback.onServicesDiscovered(fixture.gatt, BluetoothGatt.GATT_SUCCESS)
+        verify(exactly = 1) {
+            fixture.gatt.writeCharacteristic(
+                fixture.handshake, token, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
+            )
+        }
+        verify(exactly = 0) {
+            fixture.gatt.writeDescriptor(fixture.cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        }
+
+        fixture.gattCallback.onCharacteristicWrite(
+            fixture.gatt, fixture.handshake, BluetoothGatt.GATT_SUCCESS,
+        )
+        verify(exactly = 1) {
+            fixture.gatt.writeDescriptor(fixture.cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        }
+        fixture.gattCallback.onDescriptorWrite(fixture.gatt, fixture.cccd, BluetoothGatt.GATT_FAILURE)
+        runCurrent()
+        assertTrue(error is IllegalStateException)
+        assertTrue(error?.message?.contains("CCCD write failed") == true)
+        job.cancelAndJoin()
+        verify(exactly = 1) { fixture.gatt.close() }
+    }
+
     private class Fixture {
         val context = mockk<Context>()
         val manager = mockk<BluetoothManager>()
@@ -123,6 +173,11 @@ class BridgeClientGattTest {
             BluetoothGattCharacteristic.PROPERTY_NOTIFY,
             0,
         )
+        val handshake = BluetoothGattCharacteristic(
+            BridgeProtocol.HANDSHAKE_CHAR_UUID,
+            BluetoothGattCharacteristic.PROPERTY_WRITE,
+            BluetoothGattCharacteristic.PERMISSION_WRITE,
+        )
         val cccd = BluetoothGattDescriptor(BridgeProtocol.CCCD_UUID, BluetoothGattDescriptor.PERMISSION_WRITE)
         private val service = BluetoothGattService(
             BridgeProtocol.SERVICE_UUID, BluetoothGattService.SERVICE_TYPE_PRIMARY,
@@ -135,6 +190,7 @@ class BridgeClientGattTest {
         init {
             telemetry.addDescriptor(cccd)
             service.addCharacteristic(telemetry)
+            service.addCharacteristic(handshake)
             every { context.applicationContext } returns context
             every { context.getSystemService(Context.BLUETOOTH_SERVICE) } returns manager
             every { manager.adapter } returns adapter
@@ -153,6 +209,11 @@ class BridgeClientGattTest {
             every { gatt.discoverServices() } returns true
             every { gatt.getService(BridgeProtocol.SERVICE_UUID) } returns service
             every { gatt.setCharacteristicNotification(telemetry, true) } returns true
+            every {
+                gatt.writeCharacteristic(
+                    handshake, any(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
+                )
+            } returns BluetoothStatusCodes.SUCCESS
             every {
                 gatt.writeDescriptor(cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
             } returns BluetoothGatt.GATT_SUCCESS

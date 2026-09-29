@@ -20,7 +20,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [36])
 class RoomTripRepositoryTest {
     private lateinit var database: RideFluxDatabase
     private lateinit var repository: RoomTripRepository
