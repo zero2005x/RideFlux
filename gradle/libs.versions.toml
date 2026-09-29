@@ -59,6 +59,8 @@ junit                  = "4.13.2"
 androidxJunit          = "1.2.1"
 espressoCore           = "3.6.1"
 turbine                = "1.1.0"
+robolectric            = "4.17"
+mockk                  = "1.14.11"
 
 # --- Code quality ---
 # Sonar Gradle plugin. Must be >= 6.0.1 for Gradle 9 (fix for
@@ -132,6 +134,8 @@ androidx-junit              = { group = "androidx.test.ext",    name = "junit", 
 androidx-espresso-core      = { group = "androidx.test.espresso", name = "espresso-core",  version.ref = "espressoCore" }
 kotlinx-coroutines-test    = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 turbine                     = { group = "app.cash.turbine",     name = "turbine",          version.ref = "turbine" }
+robolectric                 = { group = "org.robolectric",      name = "robolectric",      version.ref = "robolectric" }
+mockk                       = { group = "io.mockk",            name = "mockk",            version.ref = "mockk" }
 
 # ============================================================================
 [plugins]

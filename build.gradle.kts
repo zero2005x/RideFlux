@@ -73,6 +73,18 @@ subprojects {
     // (build/jacoco/<task>.exec). The aggregate report task below
     // collects each module's exec and produces a single XML for Sonar.
     tasks.withType<Test>().configureEach {
+        // Robolectric needs JDK internals opened when tests run on JDK 17+.
+        jvmArgs(
+            "--add-opens=java.base/java.lang=ALL-UNNAMED",
+            "--add-opens=java.base/java.util=ALL-UNNAMED",
+            "--add-opens=java.base/java.io=ALL-UNNAMED",
+            "--add-opens=java.base/java.net=ALL-UNNAMED",
+            "--add-opens=java.base/java.security=ALL-UNNAMED",
+            "--add-opens=java.base/java.text=ALL-UNNAMED",
+            "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+            "--add-opens=java.desktop/java.awt.font=ALL-UNNAMED",
+            "--add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+        )
         configure<JacocoTaskExtension> {
             isIncludeNoLocationClasses = true
             // jdk.internal.* is loaded by the JVM and cannot be instrumented.
@@ -147,14 +159,26 @@ tasks.register<JacocoReport>("jacocoTestReport") {
 
     classDirectories.setFrom(
         files(
-            // AGP 9's built-in Kotlin compiles Android modules here. AGP 8 with
-            // the kotlin-android plugin wrote to build/tmp/kotlin-classes/debug,
-            // which no longer exists on a clean checkout: pointing at it left
-            // every Android module without class files, so Sonar counted all of
-            // their lines as uncovered and the main-branch gate failed.
+            // Android modules. The unit tests run against the classes that
+            // come out of AGP's ASM transform (Hilt rewrites the superclass of
+            // every @AndroidEntryPoint class), so those are the ones JaCoCo's
+            // class ids match. Analysing the raw compiler output instead makes
+            // the ids differ and silently drops all coverage of the Hilt
+            // entry points (services, receivers, activities). Modules without
+            // the Hilt plugin have no transform output and fall back to AGP 9's
+            // built-in Kotlin output (AGP 8's build/tmp/kotlin-classes/debug
+            // no longer exists). Chosen lazily: on a clean checkout neither
+            // directory exists yet while the script is configured.
             subprojects.map { sub ->
-                fileTree("${sub.layout.buildDirectory.get().asFile}/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes") {
-                    exclude(coverageExcludes)
+                java.util.concurrent.Callable {
+                    val build = sub.layout.buildDirectory.get().asFile
+                    val transformed = File(build, "intermediates/classes/debug/transformDebugClassesWithAsm/dirs")
+                    val classes = if (transformed.isDirectory) {
+                        transformed
+                    } else {
+                        File(build, "intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes")
+                    }
+                    fileTree(classes) { exclude(coverageExcludes) }
                 }
             },
             subprojects.map { sub ->
@@ -241,6 +265,37 @@ sonar {
             listOf(
                 "**/src/main/res/values/strings.xml",
                 "**/src/main/res/values-*/strings.xml",
+            ).joinToString(","),
+        )
+
+        // Coverage denominator: Compose UI and debug-only tooling are not
+        // unit-tested (that would need Robolectric + Compose UI tests for
+        // little logic), so keep them out of the coverage metric. Files are
+        // listed one by one on purpose, so a logic file added next to a screen
+        // is measured by default. Every file below contains @Composable
+        // functions or lives in a debug-only source set.
+        property(
+            "sonar.coverage.exclusions",
+            listOf(
+                // Debug-only Play Store screenshot tooling (not shipped).
+                "**/src/debug/**",
+                // :app Compose UI.
+                "**/com/rideflux/app/navigation/RideFluxNavHost.kt",
+                "**/com/rideflux/app/ui/theme/Theme.kt",
+                "**/com/rideflux/app/ui/permission/BlePermissionGate.kt",
+                "**/com/rideflux/app/ui/hud/HudScreen.kt",
+                "**/com/rideflux/app/ui/trips/TripScreens.kt",
+                "**/com/rideflux/app/ui/scanner/ScannerScreen.kt",
+                "**/com/rideflux/app/ui/settings/SettingsScreen.kt",
+                "**/com/rideflux/app/ui/settings/GlassesSetupScreen.kt",
+                "**/com/rideflux/app/ui/dashboard/DashboardScreen.kt",
+                "**/com/rideflux/app/ui/dashboard/components/MetricCard.kt",
+                "**/com/rideflux/app/ui/dashboard/components/SpeedGauge.kt",
+                "**/com/rideflux/app/ui/dashboard/components/TelemetryChart.kt",
+                "**/com/rideflux/app/ui/dashboard/pages/*Page.kt",
+                // :hud-app Compose UI.
+                "**/com/rideflux/hud/HudScreen.kt",
+                "**/com/rideflux/hud/permission/BlePermissionGate.kt",
             ).joinToString(","),
         )
 
