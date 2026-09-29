@@ -63,8 +63,10 @@ turbine                = "1.1.0"
 # --- Code quality ---
 # Sonar Gradle plugin. Must be >= 6.0.1 for Gradle 9 (fix for
 # NoSuchMethodError on org.gradle.api.plugins.Convention.getConvention(),
-# which was removed in Gradle 9).
-sonarqube              = "6.2.0.5505"
+# which was removed in Gradle 9) and >= 7.3.0 for AGP 9: 6.x looks up the
+# removed AppExtension and fails with "Extension of type 'AppExtension' does
+# not exist" while resolving the :sonar task.
+sonarqube              = "7.5.0.8588"
 
 # ============================================================================
 [libraries]
