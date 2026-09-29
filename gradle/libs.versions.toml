@@ -37,7 +37,7 @@ coroutines             = "1.8.1"
 kable                  = "0.31.1"
 
 # --- Rokid consumer CXR (RV101) ---
-rokidCxrClient         = "1.0.4"
+rokidCxrClient         = "1.2.2"
 # Pin the release, not the 1.0-SNAPSHOT timestamp build: Gradle's
 # dependency-verification writer cannot merge Maven unique-snapshot
 # identifiers ("Multiple entries with same key" in
