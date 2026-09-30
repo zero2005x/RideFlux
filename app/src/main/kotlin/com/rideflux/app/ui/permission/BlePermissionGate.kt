@@ -137,6 +137,41 @@ fun BlePermissionGate(content: @Composable () -> Unit) {
     }
 }
 
+/**
+ * Returns a function that offers the notification permission, where Android asks for it, before
+ * running an action.
+ *
+ * Notifications carry the bridge's foreground-service entry and the request to approve a pair of
+ * glasses. Without the permission they are dropped silently, so a rider with the phone in a pocket
+ * never sees the request. It is asked for when a feature that needs it is turned on rather than at
+ * first launch, when the reason would not be clear, and it never blocks that feature: the action
+ * runs whatever the answer is.
+ */
+@Composable
+fun rememberNotificationPermissionPrompt(): (onDone: () -> Unit) -> Unit {
+    val context = LocalContext.current
+    val prompt = remember(context) {
+        NotificationPermissionPrompt(
+            // Before Android 13 notifications are granted at install time, so there is nothing to ask.
+            needsPrompt = {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED
+            },
+        )
+    }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        prompt.onResult()
+    }
+    prompt.launchDialog = {
+        // Only reached when needsPrompt() said so, which needs Android 13.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    return remember(prompt) { prompt::request }
+}
+
 private fun requiredBlePermissions(): Array<String> =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // BLUETOOTH_ADVERTISE is needed by the phone↔glasses bridge
