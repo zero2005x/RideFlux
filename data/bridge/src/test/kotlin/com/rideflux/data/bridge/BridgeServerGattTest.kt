@@ -385,7 +385,7 @@ class BridgeServerGattTest {
     // ---------------------------------------------------------------- withdrawn approval
 
     @Test
-    fun aSubscriberWhoseApprovalWasWithdrawnIsDisconnectedAndNoLongerFed() {
+    fun aSubscriberWhoseApprovalWasWithdrawnIsDroppedAndNoLongerFed() {
         val fixture = Fixture()
         every {
             fixture.gatt.notifyCharacteristicChanged(peer, any(), false, any())
@@ -415,6 +415,8 @@ class BridgeServerGattTest {
         approved.clear()
         assertEquals(1, server.dropUnapprovedSubscribers())
 
+        // The stack is asked to disconnect, but the stream must not depend on it obeying (it does
+        // not always: see dropUnapprovedSubscribers), so the asserts below are what ends the stream.
         verify(exactly = 1) { fixture.gatt.cancelConnection(peer) }
         assertEquals(listOf(true, false), states)
         assertEquals(0, server.dropUnapprovedSubscribers()) // nothing left to drop

@@ -42,7 +42,10 @@ internal interface BridgePublisher {
     fun approvePeer(address: String): Boolean = false
     fun rejectPeer(address: String): Boolean = false
 
-    /** Disconnects peers that are streaming but are no longer on the approved list. */
+    /**
+     * Stops streaming to peers that are no longer on the approved list and asks the stack to
+     * disconnect them.
+     */
     fun dropUnapprovedPeers() = Unit
 }
 

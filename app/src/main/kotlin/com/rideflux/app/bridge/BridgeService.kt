@@ -785,9 +785,9 @@ class BridgeService : Service() {
         }
 
         /**
-         * Disconnects glasses that are still streaming although they are no longer on the approved
-         * list. Does nothing while the bridge is stopped: there is no link to cut, and a stopped
-         * bridge must not be started just to say so.
+         * Stops the stream to glasses that are still subscribed although they are no longer on the
+         * approved list. Does nothing while the bridge is stopped: there is nothing streaming, and a
+         * stopped bridge must not be started just to say so.
          */
         fun dropUnapprovedGlasses(context: Context) {
             if (_state.value == BridgeState.STOPPED) return

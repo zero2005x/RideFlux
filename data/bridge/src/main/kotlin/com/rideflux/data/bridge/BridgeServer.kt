@@ -791,22 +791,28 @@ class BridgeServer(
         pendingSubscribers.any { it.address.equals(address, ignoreCase = true) }
 
     /**
-     * Disconnects every subscribed central that [peerAuthorizer] no longer accepts and returns how
-     * many were dropped.
+     * Stops feeding every subscribed central that [peerAuthorizer] no longer accepts, asks the
+     * stack to disconnect it, and returns how many were dropped.
      *
      * A central is only checked when it writes the CCCD, so taking it off the approved list would
      * otherwise leave a link that is already streaming untouched until the glasses happened to
      * reconnect. The authorizer reads the approved list afresh on every call, which keeps one rule
      * for both directions: a peer is dropped exactly when it could no longer subscribe.
      *
-     * The dropped central reconnects by itself and is then treated like any stranger, held pending
-     * until the rider approves it again.
+     * The stream ends at once, because the central leaves the subscriber set and nothing is
+     * notified to it any more (the telemetry characteristic is notify-only, so it cannot be read
+     * either). The disconnect is best effort: on the Android 13 stack this was checked on,
+     * `cancelConnection` finds no hold of this server on a link the central dialled in on ("attempt
+     * to remove non-existing gatt_if") and leaves it up, and asking for the link first made the
+     * phone dial the glasses itself. A central that stays connected is silent, and if it writes
+     * the CCCD again it meets the authorizer like any stranger, held pending until the rider
+     * approves it.
      */
     fun dropUnapprovedSubscribers(): Int {
         var dropped = 0
         for (device in subscribers) {
             if (peerAuthorizer.isAuthorized(device, deviceHandshakeTokens[device])) continue
-            Log.i(TAG, "approval withdrawn for ${device.address}; disconnecting")
+            Log.i(TAG, "approval withdrawn for ${device.address}; ending its stream")
             subscribers.remove(device)
             notificationsInFlight.remove(device)
             lastSubmittedPayload.remove(device)
