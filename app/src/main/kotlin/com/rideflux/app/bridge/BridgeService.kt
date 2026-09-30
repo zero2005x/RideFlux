@@ -465,17 +465,15 @@ class BridgeService : Service() {
     }
 
     private fun ensureAuthNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
-            val channel = NotificationChannel(
-                AUTH_CHANNEL_ID,
-                getString(com.rideflux.app.R.string.glasses_auth_notification_title),
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                description = getString(com.rideflux.app.R.string.glasses_auth_notification_title)
-            }
-            manager.createNotificationChannel(channel)
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        val channel = NotificationChannel(
+            AUTH_CHANNEL_ID,
+            getString(com.rideflux.app.R.string.glasses_auth_notification_title),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = getString(com.rideflux.app.R.string.glasses_auth_notification_title)
         }
+        manager.createNotificationChannel(channel)
     }
 
     private fun postAuthorizationNotification(request: GlassesAuthorizationRequest) {
@@ -524,14 +522,7 @@ class BridgeService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, AUTH_CHANNEL_ID)
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
-
-        val notification = builder
+        val notification = Notification.Builder(this, AUTH_CHANNEL_ID)
             .setContentTitle(getString(com.rideflux.app.R.string.glasses_auth_notification_title))
             .setContentText(getString(com.rideflux.app.R.string.glasses_auth_notification_text, request.shortCode))
             .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
@@ -588,15 +579,13 @@ class BridgeService : Service() {
 
     private fun startForegroundCompat() {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            manager.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    getString(com.rideflux.app.R.string.notification_channel_bridge),
-                    NotificationManager.IMPORTANCE_LOW,
-                ),
-            )
-        }
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                getString(com.rideflux.app.R.string.notification_channel_bridge),
+                NotificationManager.IMPORTANCE_LOW,
+            ),
+        )
         val notification = buildNotification(_state.value)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(
@@ -611,12 +600,6 @@ class BridgeService : Service() {
     }
 
     private fun buildNotification(state: BridgeState): Notification {
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, CHANNEL_ID)
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
         val detail = getString(
             when (state) {
                 BridgeState.STOPPED, BridgeState.STANDBY ->
@@ -626,7 +609,7 @@ class BridgeService : Service() {
                 BridgeState.DEGRADED -> com.rideflux.app.R.string.notification_bridge_degraded
             },
         )
-        return builder
+        return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(com.rideflux.app.R.string.notification_bridge_title))
             .setContentText(detail)
             .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
@@ -803,11 +786,7 @@ class BridgeService : Service() {
         }
 
         private fun launch(context: Context, intent: Intent) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         }
     }
 }
