@@ -382,6 +382,125 @@ class BridgeServerGattTest {
         server.stop()
     }
 
+    // ---------------------------------------------------------------- withdrawn approval
+
+    @Test
+    fun aSubscriberWhoseApprovalWasWithdrawnIsDisconnectedAndNoLongerFed() {
+        val fixture = Fixture()
+        every {
+            fixture.gatt.notifyCharacteristicChanged(peer, any(), false, any())
+        } returns BluetoothStatusCodes.SUCCESS
+        val token = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+        val approved = mutableSetOf(BridgePairingToken.toHex(token))
+        val states = mutableListOf<Boolean>()
+        val server = BridgeServer(
+            fixture.context,
+            peerAuthorizer = BridgeServerPeerAuthorizer.fromApproved(approvedTokens = { approved.toSet() }),
+            onSubscriberStateChanged = states::add,
+        )
+        assertTrue(server.open())
+        val descriptor = fixture.service.characteristics
+            .first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+            .getDescriptor(BridgeProtocol.CCCD_UUID)
+        val handshake = fixture.service.characteristics.first { it.uuid == BridgeProtocol.HANDSHAKE_CHAR_UUID }
+        fixture.callback.onCharacteristicWriteRequest(peer, 1, handshake, false, false, 0, token)
+        fixture.callback.onDescriptorWriteRequest(peer, 2, descriptor, false, false, 0, byteArrayOf(1, 0))
+        assertEquals(listOf(true), states)
+
+        // Still approved: the link is left alone.
+        assertEquals(0, server.dropUnapprovedSubscribers())
+        verify(exactly = 0) { fixture.gatt.cancelConnection(peer) }
+        assertEquals(listOf(true), states)
+
+        approved.clear()
+        assertEquals(1, server.dropUnapprovedSubscribers())
+
+        verify(exactly = 1) { fixture.gatt.cancelConnection(peer) }
+        assertEquals(listOf(true, false), states)
+        assertEquals(0, server.dropUnapprovedSubscribers()) // nothing left to drop
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        try {
+            server.attachSource(scope, flowOf(BridgeFrame.EMPTY.copy(timestampMillis = 2, speedKmh = 30f)))
+            verify(exactly = 0) { fixture.gatt.notifyCharacteristicChanged(peer, any(), false, any()) }
+        } finally {
+            scope.cancel()
+            server.stop()
+        }
+    }
+
+    @Test
+    fun aLegacyCentralApprovedByAddressIsDroppedWhenItsAddressIsWithdrawn() {
+        val fixture = Fixture()
+        val approvedMacs = mutableSetOf(peer.address)
+        val states = mutableListOf<Boolean>()
+        val server = BridgeServer(
+            fixture.context,
+            peerAuthorizer = BridgeServerPeerAuthorizer.fromApproved(
+                approvedTokens = { emptySet() },
+                approvedMacs = { approvedMacs.toSet() },
+            ),
+            onSubscriberStateChanged = states::add,
+        )
+        assertTrue(server.open())
+        val descriptor = fixture.service.characteristics
+            .first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+            .getDescriptor(BridgeProtocol.CCCD_UUID)
+        fixture.callback.onDescriptorWriteRequest(peer, 1, descriptor, false, false, 0, byteArrayOf(1, 0))
+        assertEquals(listOf(true), states)
+
+        approvedMacs.clear()
+
+        assertEquals(1, server.dropUnapprovedSubscribers())
+        verify(exactly = 1) { fixture.gatt.cancelConnection(peer) }
+        assertEquals(listOf(true, false), states)
+        server.stop()
+    }
+
+    @Test
+    fun aDisconnectThatThrowsStillStopsTheStream() {
+        val fixture = Fixture()
+        every { fixture.gatt.cancelConnection(peer) } throws IllegalStateException("gone")
+        val approved = mutableSetOf(peer.address)
+        val states = mutableListOf<Boolean>()
+        val server = BridgeServer(
+            fixture.context,
+            peerAuthorizer = BridgeServerPeerAuthorizer.fromApproved(
+                approvedTokens = { emptySet() },
+                approvedMacs = { approved.toSet() },
+            ),
+            onSubscriberStateChanged = states::add,
+        )
+        assertTrue(server.open())
+        val descriptor = fixture.service.characteristics
+            .first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+            .getDescriptor(BridgeProtocol.CCCD_UUID)
+        fixture.callback.onDescriptorWriteRequest(peer, 1, descriptor, false, false, 0, byteArrayOf(1, 0))
+        approved.clear()
+
+        assertEquals(1, server.dropUnapprovedSubscribers())
+
+        assertEquals(listOf(true, false), states)
+        server.stop()
+    }
+
+    @Test
+    fun peersStillWaitingForApprovalAreNotTouchedByTheSweep() {
+        val fixture = Fixture()
+        val server = BridgeServer(fixture.context, peerAuthorizer = BridgeServerPeerAuthorizer.RejectAll)
+        assertTrue(server.open())
+        val descriptor = fixture.service.characteristics
+            .first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+            .getDescriptor(BridgeProtocol.CCCD_UUID)
+        fixture.callback.onDescriptorWriteRequest(peer, 1, descriptor, false, false, 0, byteArrayOf(1, 0))
+        assertTrue(server.isPending(peer.address))
+
+        assertEquals(0, server.dropUnapprovedSubscribers())
+
+        assertTrue(server.isPending(peer.address)) // the rider can still answer the prompt
+        verify(exactly = 0) { fixture.gatt.cancelConnection(peer) }
+        server.stop()
+    }
+
     private class Fixture(serviceStatus: Int = BluetoothGatt.GATT_SUCCESS) {
         val context = mockk<Context>()
         val manager = mockk<BluetoothManager>()

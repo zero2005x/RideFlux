@@ -91,6 +91,7 @@ class BridgeServiceActionsTest {
         every { anyConstructed<NativeBleBridgePublisher>().setLowLatency(any()) } just Runs
         every { anyConstructed<NativeBleBridgePublisher>().approvePeer(any()) } returns true
         every { anyConstructed<NativeBleBridgePublisher>().rejectPeer(any()) } returns true
+        every { anyConstructed<NativeBleBridgePublisher>().dropUnapprovedPeers() } just Runs
     }
 
     private fun stubRokid(opens: List<Boolean>) {
@@ -232,6 +233,39 @@ class BridgeServiceActionsTest {
         verify { anyConstructed<NativeBleBridgePublisher>().rejectPeer(ADDRESS) }
         assertNull(BridgeService.pendingAuthorization.value)
         assertTrue(ApprovedGlassesStore.getAll(app).none { it.mac == ADDRESS })
+    }
+
+    @Test
+    fun dropUnapprovedActionReachesTheLivePublisher() {
+        send(Intent(BridgeService.ACTION_START))
+        verify(timeout = 10_000) { anyConstructed<NativeBleBridgePublisher>().attachSource(any(), any()) }
+
+        send(Intent(BridgeService.ACTION_DROP_UNAPPROVED))
+
+        verify(exactly = 1) { anyConstructed<NativeBleBridgePublisher>().dropUnapprovedPeers() }
+    }
+
+    @Test
+    fun dropUnapprovedBeforeAnyPublisherIsUpIsHarmless() {
+        stubBle(opens = listOf(false, true))
+
+        assertEquals(Service.START_STICKY, send(Intent(BridgeService.ACTION_DROP_UNAPPROVED)))
+
+        verify(exactly = 0) { anyConstructed<NativeBleBridgePublisher>().dropUnapprovedPeers() }
+    }
+
+    @Test
+    fun dropUnapprovedGlassesOnlyReachesABridgeThatIsRunning() {
+        val shadow = shadowOf(app)
+        assertEquals(BridgeState.STOPPED, BridgeService.state.value)
+
+        // A stopped bridge has no link to cut and must not be started just to be told so.
+        BridgeService.dropUnapprovedGlasses(app)
+        assertNull(shadow.nextStartedService)
+
+        send(Intent(BridgeService.ACTION_SET_TARGET).putExtra(BridgeService.EXTRA_MAC, ADDRESS))
+        BridgeService.dropUnapprovedGlasses(app)
+        assertEquals(BridgeService.ACTION_DROP_UNAPPROVED, shadow.nextStartedService.action)
     }
 
     @Test

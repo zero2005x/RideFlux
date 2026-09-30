@@ -11,6 +11,8 @@ import androidx.lifecycle.ViewModelStore
 import com.rideflux.app.backup.TripBackupManager
 import com.rideflux.app.bridge.ApprovedGlasses
 import com.rideflux.app.bridge.ApprovedGlassesStore
+import com.rideflux.app.bridge.BridgeService
+import com.rideflux.app.bridge.BridgeState
 import com.rideflux.domain.settings.AppSettings
 import com.rideflux.domain.settings.SettingsRepository
 import io.mockk.coVerify
@@ -25,6 +27,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -113,5 +116,42 @@ class SettingsViewModelActionsTest {
         model.removeApprovedGlasses(glasses)
 
         assertFalse(model.approvedGlasses.value.contains(glasses))
+    }
+
+    /** The bridge's state lives in a private static flow; the service itself is not running here. */
+    @Suppress("UNCHECKED_CAST")
+    private fun bridgeState(): MutableStateFlow<BridgeState> =
+        BridgeService::class.java.getDeclaredField("_state")
+            .apply { isAccessible = true }
+            .get(null) as MutableStateFlow<BridgeState>
+
+    @Test
+    fun removingApprovedGlassesAlsoTellsARunningBridgeToDropThem() {
+        val app = RuntimeEnvironment.getApplication()
+        val glasses = ApprovedGlasses(tokenHex = "0102030405060708", mac = "AA:BB:CC:DD:EE:FF", shortCode = "A1B2")
+        ApprovedGlassesStore.add(app, glasses)
+        val state = bridgeState()
+        state.value = BridgeState.STANDBY
+        try {
+            model.removeApprovedGlasses(glasses)
+
+            // The list was updated first, so the bridge's re-check already sees the glasses gone.
+            assertFalse(ApprovedGlassesStore.getAll(app).contains(glasses))
+            assertEquals(BridgeService.ACTION_DROP_UNAPPROVED, shadowOf(app).nextStartedService.action)
+        } finally {
+            state.value = BridgeState.STOPPED
+        }
+    }
+
+    @Test
+    fun removingApprovedGlassesDoesNotStartABridgeThatIsStopped() {
+        val app = RuntimeEnvironment.getApplication()
+        val glasses = ApprovedGlasses(tokenHex = "0102030405060708", mac = "AA:BB:CC:DD:EE:FF", shortCode = "A1B2")
+        ApprovedGlassesStore.add(app, glasses)
+        assertEquals(BridgeState.STOPPED, bridgeState().value)
+
+        model.removeApprovedGlasses(glasses)
+
+        assertNull(shadowOf(app).nextStartedService)
     }
 }

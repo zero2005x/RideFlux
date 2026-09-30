@@ -790,6 +790,38 @@ class BridgeServer(
     fun isPending(address: String): Boolean =
         pendingSubscribers.any { it.address.equals(address, ignoreCase = true) }
 
+    /**
+     * Disconnects every subscribed central that [peerAuthorizer] no longer accepts and returns how
+     * many were dropped.
+     *
+     * A central is only checked when it writes the CCCD, so taking it off the approved list would
+     * otherwise leave a link that is already streaming untouched until the glasses happened to
+     * reconnect. The authorizer reads the approved list afresh on every call, which keeps one rule
+     * for both directions: a peer is dropped exactly when it could no longer subscribe.
+     *
+     * The dropped central reconnects by itself and is then treated like any stranger, held pending
+     * until the rider approves it again.
+     */
+    fun dropUnapprovedSubscribers(): Int {
+        var dropped = 0
+        for (device in subscribers) {
+            if (peerAuthorizer.isAuthorized(device, deviceHandshakeTokens[device])) continue
+            Log.i(TAG, "approval withdrawn for ${device.address}; disconnecting")
+            subscribers.remove(device)
+            notificationsInFlight.remove(device)
+            lastSubmittedPayload.remove(device)
+            deviceHandshakeTokens.remove(device)
+            try {
+                gattServer?.cancelConnection(device)
+            } catch (t: Throwable) {
+                Log.w(TAG, "cancelConnection on withdrawal threw", t)
+            }
+            dropped++
+        }
+        if (dropped > 0) dispatchSubscriberState()
+        return dropped
+    }
+
     private companion object {
         const val TAG = "BridgeServer"
         const val ADVERTISE_RETRY_BASE_MILLIS = 2_000
