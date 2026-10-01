@@ -43,9 +43,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.RideFlux">
 
+        <!-- configChanges: a Bluetooth peripheral that registers as an input device (earbuds
+             with media keys, the ring remote, a keyboard) changes the keyboard and navigation
+             configuration every time it connects or drops, and without these flags Android
+             destroys and recreates the activity, losing whatever sits in `remember` (for
+             example the answer to a permission prompt that is still open). Nothing on screen
+             depends on these three values, so the activity is left running. -->
         <activity
             android:name="com.rideflux.app.MainActivity"
             android:exported="true"
+            android:configChanges="keyboard|keyboardHidden|navigation"
             android:theme="@style/Theme.RideFlux">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
