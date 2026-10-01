@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">Verbinden met de wheel</string>
     <string name="bridge_state_relaying">Telemetrie doorsturen</string>
     <string name="bridge_state_degraded">Wheel niet beschikbaar · brug blijft vindbaar</string>
+    <string name="bridge_notifications_off_hint">Meldingen staan uit, dus een koppelingsverzoek van de bril verschijnt alleen zolang deze app open is.</string>
     <string name="glasses_link_stopped">transport gestopt</string>
     <string name="glasses_link_starting">brilverbinding starten</string>
     <string name="glasses_link_ready">wacht op de bril</string>

@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">Verbinde mit dem Wheel</string>
     <string name="bridge_state_relaying">Telemetrie wird übertragen</string>
     <string name="bridge_state_degraded">Wheel nicht verfügbar · weiterhin auffindbar</string>
+    <string name="bridge_notifications_off_hint">Benachrichtigungen sind aus, deshalb erscheint eine Kopplungsanfrage der Brille nur, solange diese App geöffnet ist.</string>
     <string name="glasses_link_stopped">Übertragung gestoppt</string>
     <string name="glasses_link_starting">Brillenverbindung wird gestartet</string>
     <string name="glasses_link_ready">Warten auf die Brille</string>

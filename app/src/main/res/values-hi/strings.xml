@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">व्हील से जुड़ रहा है</string>
     <string name="bridge_state_relaying">टेलीमेट्री भेजी जा रही है</string>
     <string name="bridge_state_degraded">व्हील उपलब्ध नहीं · फिर भी खोजा जा सकता है</string>
+    <string name="bridge_notifications_off_hint">सूचनाएँ बंद हैं, इसलिए चश्मे का युग्मन अनुरोध केवल तभी दिखता है जब ऐप खुला हो।</string>
     <string name="glasses_link_stopped">ट्रांसपोर्ट रुका</string>
     <string name="glasses_link_starting">ग्लासेज़ लिंक शुरू हो रहा है</string>
     <string name="glasses_link_ready">ग्लासेज़ की प्रतीक्षा</string>

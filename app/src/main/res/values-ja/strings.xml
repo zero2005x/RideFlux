@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">ホイールに接続中</string>
     <string name="bridge_state_relaying">テレメトリを中継中</string>
     <string name="bridge_state_degraded">ホイール利用不可 · ブリッジは検出可能</string>
+    <string name="bridge_notifications_off_hint">通知がオフのため、グラスからのペアリング要求はこのアプリを開いている間だけ表示されます。</string>
     <string name="glasses_link_stopped">トランスポート停止</string>
     <string name="glasses_link_starting">グラス接続を開始中</string>
     <string name="glasses_link_ready">グラスを待機中</string>

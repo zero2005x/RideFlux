@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.rideflux.app.R
@@ -170,6 +171,24 @@ fun rememberNotificationPermissionPrompt(): (onDone: () -> Unit) -> Unit {
         }
     }
     return remember(prompt) { prompt::request }
+}
+
+/**
+ * Whether this app may post notifications, read again every time the screen resumes so that a
+ * change made in the system settings, or by the permission dialog, shows when the rider comes back.
+ *
+ * Unlike the runtime permission alone this also covers a rider who switched the app's
+ * notifications off in the system settings, which is the same silence for a pairing request.
+ */
+@Composable
+fun rememberNotificationsEnabled(): Boolean {
+    val context = LocalContext.current
+    var enabled by remember { mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled()) }
+    LifecycleResumeEffect(Unit) {
+        enabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+        onPauseOrDispose { }
+    }
+    return enabled
 }
 
 private fun requiredBlePermissions(): Array<String> =

@@ -35,6 +35,7 @@
     <string name="bridge_state_attaching">جارٍ الاتصال بالعجلة</string>
     <string name="bridge_state_relaying">جارٍ نقل بيانات القياس</string>
     <string name="bridge_state_degraded">العجلة غير متاحة · لا يزال الجسر ظاهرًا</string>
+    <string name="bridge_notifications_off_hint">الإشعارات متوقفة، لذلك يظهر طلب اقتران النظارات فقط أثناء فتح التطبيق.</string>
     <string name="glasses_link_stopped">تم إيقاف النقل</string>
     <string name="glasses_link_starting">جارٍ بدء الاتصال بالنظارة</string>
     <string name="glasses_link_ready">في انتظار النظارة</string>

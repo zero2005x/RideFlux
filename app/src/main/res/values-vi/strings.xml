@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">Đang kết nối với xe</string>
     <string name="bridge_state_relaying">Đang chuyển tiếp dữ liệu</string>
     <string name="bridge_state_degraded">Không có xe · cầu nối vẫn hiển thị</string>
+    <string name="bridge_notifications_off_hint">Thông báo đang tắt nên yêu cầu ghép đôi từ kính chỉ hiện khi ứng dụng đang mở.</string>
     <string name="glasses_link_stopped">đã dừng truyền</string>
     <string name="glasses_link_starting">đang khởi động liên kết kính</string>
     <string name="glasses_link_ready">đang chờ kính</string>

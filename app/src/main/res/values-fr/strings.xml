@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">Connexion à la roue</string>
     <string name="bridge_state_relaying">Retransmission de la télémétrie</string>
     <string name="bridge_state_degraded">Roue indisponible · toujours détectable</string>
+    <string name="bridge_notifications_off_hint">Notifications désactivées : une demande de jumelage des lunettes apparaît seulement lorsque cette application est ouverte.</string>
     <string name="glasses_link_stopped">transport arrêté</string>
     <string name="glasses_link_starting">démarrage de la liaison lunettes</string>
     <string name="glasses_link_ready">en attente des lunettes</string>

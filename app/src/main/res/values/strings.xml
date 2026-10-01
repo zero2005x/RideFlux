@@ -59,6 +59,7 @@
     <string name="bridge_state_attaching">Connecting to wheel</string>
     <string name="bridge_state_relaying">Relaying telemetry</string>
     <string name="bridge_state_degraded">Wheel unavailable · still discoverable</string>
+    <string name="bridge_notifications_off_hint">Notifications are off, so a pairing request from your glasses only appears while this app is open.</string>
     <string name="glasses_link_stopped">transport stopped</string>
     <string name="glasses_link_starting">starting glasses link</string>
     <string name="glasses_link_ready">waiting for glasses</string>
