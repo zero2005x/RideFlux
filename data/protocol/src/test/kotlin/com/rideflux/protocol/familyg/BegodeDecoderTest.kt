@@ -21,6 +21,8 @@ import org.junit.Test
 class BegodeDecoderTest {
 
     @Test fun `live telemetry type 0x00 matches TEST_VECTORS section 1`() {
+        // Sample frame "A" from the "Gotway/Begode reverse-engineered protocol" comment in
+        // WheelLog's GotwayAdapter.java (see NOTICE).
         val frame = hex(
             """
             55 AA 19 F0 00 00 00 00  00 00 01 2C FD CA 00 01
@@ -59,6 +61,7 @@ class BegodeDecoderTest {
     }
 
     @Test fun `settings frame type 0x04 matches TEST_VECTORS section 2`() {
+        // Sample frame "B" from the same comment in WheelLog's GotwayAdapter.java (see NOTICE).
         val frame = hex(
             """
             55 AA 00 0A 4A 12 48 00  1C 20 00 2A 00 03 00 07

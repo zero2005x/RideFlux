@@ -18,7 +18,10 @@ import org.junit.Test
  */
 class BegodeBatteryPackTest {
 
-    /** A live-telemetry frame reporting 66.88 V (raw 6688 = 0x1A20). */
+    /**
+     * A live-telemetry frame reporting 66.88 V (raw 6688 = 0x1A20): sample frame "A" from
+     * WheelLog's GotwayAdapter.java with only the voltage field changed (see NOTICE).
+     */
     private val frameAt6688 = hex(
         """
         55 AA 1A 20 00 00 00 00  00 00 01 2C FD CA 00 01

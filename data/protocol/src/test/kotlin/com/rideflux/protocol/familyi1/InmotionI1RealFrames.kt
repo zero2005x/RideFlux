@@ -9,10 +9,10 @@ import com.rideflux.protocol.testutil.hex
 
 /**
  * Complete family I1 live-telemetry frames as they appeared on the wire, copied from raw
- * serial captures of a V5F published with another open-source app's tests (the capture rows
- * are not frame-aligned; these are the rows of one frame joined). Every frame is
- * `AA AA` + escaped body + escaped CHECK + `55 55`, carries CAN id `0x0F550113` and 96 bytes of
- * extended data.
+ * serial captures of a V5F published with WheelLog's tests (GPL-3.0, `RAW_inmotion_V5F.csv`;
+ * see NOTICE). The capture rows are not frame-aligned; these are the rows of one frame joined.
+ * Every frame is `AA AA` + escaped body + escaped CHECK + `55 55`, carries CAN id `0x0F550113`
+ * and 96 bytes of extended data.
  *
  * The wheel was standing still on a bench, so the values are small and only the sign and the
  * framing are informative, not the physical quantities.

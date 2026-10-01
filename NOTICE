@@ -1,0 +1,75 @@
+RideFlux
+Copyright (C) 2026 RideFlux project contributors
+
+RideFlux is free software, licensed under the GNU General Public License,
+version 3 or (at your option) any later version. The full text is in the file
+LICENSE. This file does not change that license; it records where third-party
+material in this repository, and in the apps built from it, comes from.
+
+
+1. WheelLog (Wheellog.Android): protocol test data
+--------------------------------------------------
+
+   Project:  WheelLog for Android
+   Source:   https://github.com/Wheellog/Wheellog.Android
+   License:  GNU General Public License, version 3 (GPL-3.0)
+
+Some of the protocol test vectors in RideFlux's unit tests were taken from
+WheelLog's repository, and are credited here. They are used by the tests only:
+they are not part of the phone app, the glasses HUD app, or any APK or AAB built
+from this repository. To the extent this material is protected by copyright,
+WheelLog's license applies to it.
+
+File paths below are relative to
+data/protocol/src/test/kotlin/com/rideflux/protocol/ in this repository; the
+paths after "Taken from" are relative to app/src/ in the WheelLog repository.
+
+   familyg/BegodeDecoderTest.kt
+       The two sample frames "A" (live telemetry) and "B" (settings and
+       odometer).
+       Taken from: main/java/com/cooper/wheellog/utils/GotwayAdapter.java, the
+       comment titled "Gotway/Begode reverse-engineered protocol".
+
+   familyg/BegodeBatteryPackTest.kt
+       Sample frame "A" from the same comment, with its voltage field changed.
+
+   familyv/VeteranRealFrameTest.kt
+   familyv/VeteranDecoderTest.kt
+       Real Veteran frames: three in the first file; the second file uses one
+       of the same three.
+       Taken from: test/java/com/cooper/wheellog/utils/VeteranAdapterTest.kt
+
+   familyi1/InmotionI1RealFrames.kt
+       Five InMotion V5F frames, shared by InmotionI1EscapedCheckTest.kt,
+       InmotionI1SignednessTest.kt and InmotionI1SplitEscapeTest.kt.
+       Taken from: test/resources/RAW_inmotion_V5F.csv
+
+Beyond these test vectors, RideFlux's decoders are its own Kotlin code, but they
+were written with reference to open-source projects, WheelLog among them. The
+phone app's dashboard (top toolbar and half-disc speedometer) is styled after
+WheelLog's.
+
+
+2. Rokid CXR SDK: proprietary, not covered by RideFlux's license
+----------------------------------------------------------------
+
+   Publisher:  Rokid
+   Libraries:  com.rokid.cxr:client-m          (phone app)
+               com.rokid.cxr:cxr-service-bridge (glasses HUD app)
+   Obtained:   https://maven.rokid.com/repository/maven-public/
+
+These are Rokid's binary libraries. They are proprietary, are not licensed under
+the GPL, and are not part of this repository's source; Gradle downloads them at
+build time, and they are contained in the apps this project publishes. The POM
+files Rokid publishes for these artifacts carry no license information, and
+this project has not found published terms for redistributing them. Rokid's own
+terms govern their use and redistribution.
+
+
+3. Libraries downloaded by Gradle
+---------------------------------
+
+The other libraries RideFlux builds on (AndroidX, Kotlin, Jetpack Compose and
+so on) are fetched by Gradle and are used under their publishers' own licenses.
+They are listed in gradle/libs.versions.toml and
+gradle/verification-metadata.xml.

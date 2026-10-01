@@ -16,6 +16,7 @@
 | Languages | 18 (English + 17 translations) |
 | Distribution | Phone app: Google Play · Glasses HUD: GitHub Releases |
 | Privacy | [Privacy policy / 隱私權政策](PRIVACY.md) |
+| Notices | [NOTICE / 第三方聲明與致謝](NOTICE) — WheelLog test data, Rokid SDK |
 
 ---
 
