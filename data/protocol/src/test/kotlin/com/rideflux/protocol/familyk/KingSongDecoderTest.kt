@@ -14,7 +14,7 @@ import org.junit.Test
 
 /**
  * Pins decoder behaviour to the hex vector in
- * `clean-room/spec/TEST_VECTORS.md` §3 and the Family K live-page-B
+ * `TEST_VECTORS.md` §3 and the Family K live-page-B
  * field layout from `PROTOCOL_SPEC.md` §3.2.2.
  */
 class KingSongDecoderTest {

@@ -127,9 +127,15 @@ bootstrap handshake after connect. Callers that already know the family should p
 `expectedFamily` to `WheelRepository.connect()`.
 
 > **Note on `§` references.** KDoc throughout the codebase cites section numbers
-> (`§1.1`, `§2.6`, `§9.*`) from a clean-room protocol specification
-> (`clean-room/spec/PROTOCOL_SPEC.md`). That document is **not** part of this source tree;
-> the citations are kept so the two can be cross-read when the spec is available.
+> (`§1.1`, `§2.6`, `§9.*`) from the project's own protocol notes (`PROTOCOL_SPEC.md`, with
+> test vectors in `TEST_VECTORS.md`). Those notes are **not** part of this source tree and
+> are not published, so the citations cannot be followed from this repository; they only
+> label which part of the protocol each piece of code implements.
+>
+> **Where the protocol knowledge comes from.** The decoders are RideFlux's own Kotlin code,
+> written with reference to open-source projects such as
+> [WheelLog](https://github.com/Wheellog/Wheellog.Android) (GPL-3.0). Some test vectors are
+> taken from WheelLog; see [`NOTICE`](NOTICE).
 
 ### Architecture
 
@@ -568,9 +574,14 @@ RideFlux 透過藍牙低功耗（BLE）連線至電動獨輪車（EUC），解�
 僅憑 UUID 的推測永遠不是定論——真正的家族要等連線後的啟動握手才會確認。若呼叫端已經知道
 家族，應將 `expectedFamily` 傳入 `WheelRepository.connect()`。
 
-> **關於 `§` 章節編號。** 程式碼中的 KDoc 大量引用某份淨室（clean-room）協定規格
-> （`clean-room/spec/PROTOCOL_SPEC.md`）的章節編號（`§1.1`、`§2.6`、`§9.*`）。該文件
-> **並不在**本原始碼樹中；保留這些引用是為了在取得規格時能相互對照閱讀。
+> **關於 `§` 章節編號。** 程式碼中的 KDoc 大量引用本專案自己的協定筆記（`PROTOCOL_SPEC.md`，
+> 測試向量在 `TEST_VECTORS.md`）的章節編號（`§1.1`、`§2.6`、`§9.*`）。這些筆記**並不在**本
+> 原始碼樹中，也未公開，因此無法從本儲存庫查閱這些引用；它們只用來標示各段程式碼實作的是協定
+> 的哪一部分。
+>
+> **協定知識的來源。** 各解碼器是 RideFlux 自行以 Kotlin 撰寫的程式碼，撰寫時參考了
+> [WheelLog](https://github.com/Wheellog/Wheellog.Android)（GPL-3.0）等開源專案。部分測試向量
+> 取自 WheelLog，詳見 [`NOTICE`](NOTICE)。
 
 ### 架構
 

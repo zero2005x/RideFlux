@@ -9,7 +9,7 @@ package com.rideflux.domain.wheel
  * Wire-protocol family of an electric-unicycle mainboard.
  *
  * Values correspond one-to-one with the family keys defined in the
- * family-key table at the top of `clean-room/spec/PROTOCOL_SPEC.md`
+ * family-key table at the top of `PROTOCOL_SPEC.md`
  * (the unnumbered table preceding `## 1`) and are the single source
  * of truth used by the domain layer to route to a specific
  * [com.rideflux.domain.codec.WheelCodec] implementation.

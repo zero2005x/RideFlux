@@ -12,9 +12,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pins decoder behaviour to `clean-room/spec/TEST_VECTORS.md` §4 and
- * §7, and to the field map in `PROTOCOL_SPEC.md` §3.3 / §6.2 / §8.3 /
- * §8.4.
+ * Pins decoder behaviour to `TEST_VECTORS.md` §4 and §7, and to the
+ * field map in `PROTOCOL_SPEC.md` §3.3 / §6.2 / §8.3 / §8.4.
  */
 class VeteranDecoderTest {
 
