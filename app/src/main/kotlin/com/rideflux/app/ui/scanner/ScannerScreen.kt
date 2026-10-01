@@ -61,6 +61,7 @@ import com.rideflux.app.bridge.BridgeState
 import com.rideflux.app.bridge.GlassesAuthorizationRequest
 import com.rideflux.app.bridge.GlassesLinkMode
 import com.rideflux.app.bridge.GlassesLinkState
+import com.rideflux.app.ui.permission.rememberNotificationPermissionPrompt
 import com.rideflux.domain.repository.DiscoveredWheel
 import com.rideflux.domain.wheel.WheelFamily
 import kotlinx.coroutines.flow.filter
@@ -88,6 +89,7 @@ fun ScannerRoute(
     val pendingAuth by BridgeService.pendingAuthorization.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val promptForNotifications = rememberNotificationPermissionPrompt()
     ScannerScreen(
         uiState = uiState,
         bridgeState = bridgeState,
@@ -115,7 +117,13 @@ fun ScannerRoute(
         },
         onStopScan = viewModel::stopScan,
         onToggleBridge = { enabled ->
-            if (enabled) BridgeService.startStandby(context) else BridgeService.stop(context)
+            if (enabled) {
+                // Notifications carry the pairing-approval request; ask before the bridge starts,
+                // but start it whatever the answer is.
+                promptForNotifications { BridgeService.startStandby(context) }
+            } else {
+                BridgeService.stop(context)
+            }
         },
         onSelectLinkMode = { mode -> BridgeService.setLinkMode(context, mode) },
         onDeviceSelected = { onDeviceSelected(it.address, it.family) },

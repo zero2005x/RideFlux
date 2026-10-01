@@ -41,6 +41,7 @@ import com.rideflux.app.R
 import com.rideflux.app.bridge.ApprovedGlasses
 import com.rideflux.app.bridge.BridgeService
 import com.rideflux.app.bridge.GlassesLinkMode
+import com.rideflux.app.ui.permission.rememberNotificationPermissionPrompt
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -91,6 +92,7 @@ fun SettingsRoute(
 
     val isLearningRingKey by viewModel.isLearningRingKey.collectAsStateWithLifecycle()
     val bondedDevices = remember { viewModel.getBondedBluetoothDevices() }
+    val promptForNotifications = rememberNotificationPermissionPrompt()
 
     SettingsScreen(
         settings = settings,
@@ -113,7 +115,15 @@ fun SettingsRoute(
         onAlertsEnabled = viewModel::setAlertsEnabled,
         onUseMetric = viewModel::setUseMetric,
         onKeepScreenOn = viewModel::setKeepScreenOn,
-        onBridgeAutostart = viewModel::setBridgeAutostart,
+        onBridgeAutostart = { enabled ->
+            if (enabled) {
+                // An autostart the system blocks can only be reported through a notification, and a
+                // boot has no screen to ask on, so ask now. The setting is saved whatever the answer is.
+                promptForNotifications { viewModel.setBridgeAutostart(true) }
+            } else {
+                viewModel.setBridgeAutostart(false)
+            }
+        },
         onStandbyLowLatency = viewModel::setStandbyLowLatency,
         onToggleMirror = { viewModel.setHudMirrorHorizontally(!settings.hudMirrorHorizontally) },
         onStartLearnRingKey = viewModel::startLearningRingKey,
