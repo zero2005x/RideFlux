@@ -55,6 +55,7 @@ class NativeBleBridgePublisherTest {
         every { anyConstructed<BridgeServer>().setAdvertiseMode(any()) } returns true
         every { anyConstructed<BridgeServer>().approvePeer(any<String>()) } returns true
         every { anyConstructed<BridgeServer>().rejectPeer(any<String>()) } returns false
+        every { anyConstructed<BridgeServer>().dropUnapprovedSubscribers() } returns 0
         publisher = NativeBleBridgePublisher(
             RuntimeEnvironment.getApplication(),
             onState = states::add,
@@ -108,6 +109,17 @@ class NativeBleBridgePublisherTest {
         publisher.stop()
         assertEquals(listOf(GlassesLinkState.STOPPED), states)
         verify(exactly = 1) { anyConstructed<BridgeServer>().stop() }
+    }
+
+    @Test
+    fun droppingUnapprovedPeersIsHandedToTheServer() {
+        every { anyConstructed<BridgeServer>().dropUnapprovedSubscribers() } returns 2
+
+        publisher.dropUnapprovedPeers()
+
+        verify(exactly = 1) { anyConstructed<BridgeServer>().dropUnapprovedSubscribers() }
+        // Dropping a link is not a change of the publisher's own state.
+        assertTrue(states.isEmpty())
     }
 
     @Test

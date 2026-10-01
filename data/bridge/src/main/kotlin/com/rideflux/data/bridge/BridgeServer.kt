@@ -622,66 +622,16 @@ class BridgeServer(
             offset: Int,
             value: ByteArray,
         ) {
-            if (descriptor.uuid == BridgeProtocol.CCCD_UUID) {
-                // Prepared (long) writes are acknowledged but never
-                // committed: there is no onExecuteWrite override, so a
-                // central using a prepared write would receive success
-                // yet never subscribe. Worse, the strict 2-byte check
-                // below rejects the first fragment of a split prepared
-                // write. Reject prepared writes explicitly instead.
-                if (preparedWrite) {
-                    Log.w(TAG, "rejecting prepared CCCD write from ${device.address}")
+            val isCccd = descriptor.uuid == BridgeProtocol.CCCD_UUID
+            if (isCccd) {
+                val refusal = cccdWriteRefusal(device, preparedWrite, value)
+                if (refusal != null) {
                     if (responseNeeded) {
-                        gattServer?.sendResponse(
-                            device,
-                            requestId,
-                            BluetoothGatt.GATT_WRITE_NOT_PERMITTED,
-                            offset,
-                            null,
-                        )
+                        gattServer?.sendResponse(device, requestId, refusal, offset, null)
                     }
                     return
                 }
-                // Validate the 2-byte standard pattern: 0x01 0x00 =
-                // notify on, 0x00 0x00 = off. Anything else is
-                // malformed (single-byte writes, indicate-only 0x02,
-                // etc.) and must be rejected rather than accepted.
-                val valid = value.size == 2 && value[1].toInt() == 0 &&
-                    (value[0].toInt() == 0 || value[0].toInt() == 1)
-                if (!valid) {
-                    Log.w(TAG, "malformed CCCD write ${device.address}: " +
-                        value.joinToString { "%02x".format(it) })
-                    if (responseNeeded) {
-                        gattServer?.sendResponse(
-                            device,
-                            requestId,
-                            BluetoothGatt.GATT_INVALID_ATTRIBUTE_LENGTH,
-                            offset,
-                            null,
-                        )
-                    }
-                    return
-                }
-                val enable = value[0].toInt() != 0
-                if (enable) {
-                    val token = deviceHandshakeTokens[device]
-                    if (peerAuthorizer.isAuthorized(device, token)) {
-                        subscribers.add(device)
-                        pendingSubscribers.remove(device)
-                        cancelPendingTimeout(device)
-                        dispatchSubscriberState()
-                        Log.i(TAG, "telemetry subscription authorized for ${device.address}")
-                    } else {
-                        Log.i(TAG, "telemetry subscription pending authorization for ${device.address}")
-                        enterPending(device, token)
-                    }
-                } else {
-                    subscribers.remove(device)
-                    pendingSubscribers.remove(device)
-                    cancelPendingTimeout(device)
-                    dispatchSubscriberState()
-                    Log.i(TAG, "CCCD write ${device.address} enable=false")
-                }
+                applyCccdWrite(device, enable = value[0].toInt() != 0)
             }
             // Acknowledge the write before notifying anything so the
             // central never sees a notification for an unacknowledged
@@ -695,9 +645,61 @@ class BridgeServer(
                     null,
                 )
             }
-            if (descriptor.uuid == BridgeProtocol.CCCD_UUID && subscribers.contains(device)) {
+            if (isCccd && subscribers.contains(device)) {
                 notifyLatest(device)
             }
+        }
+    }
+
+    /**
+     * The GATT status a CCCD write has to be refused with, or null when it is a well-formed
+     * two-byte write that may be applied.
+     */
+    private fun cccdWriteRefusal(device: BluetoothDevice, preparedWrite: Boolean, value: ByteArray): Int? {
+        // Prepared (long) writes are acknowledged but never
+        // committed: there is no onExecuteWrite override, so a
+        // central using a prepared write would receive success
+        // yet never subscribe. Worse, the strict 2-byte check
+        // below rejects the first fragment of a split prepared
+        // write. Reject prepared writes explicitly instead.
+        if (preparedWrite) {
+            Log.w(TAG, "rejecting prepared CCCD write from ${device.address}")
+            return BluetoothGatt.GATT_WRITE_NOT_PERMITTED
+        }
+        // Validate the 2-byte standard pattern: 0x01 0x00 =
+        // notify on, 0x00 0x00 = off. Anything else is
+        // malformed (single-byte writes, indicate-only 0x02,
+        // etc.) and must be rejected rather than accepted.
+        val valid = value.size == 2 && value[1].toInt() == 0 &&
+            (value[0].toInt() == 0 || value[0].toInt() == 1)
+        if (!valid) {
+            Log.w(TAG, "malformed CCCD write ${device.address}: " +
+                value.joinToString { "%02x".format(it) })
+            return BluetoothGatt.GATT_INVALID_ATTRIBUTE_LENGTH
+        }
+        return null
+    }
+
+    /** Applies a validated CCCD write: turns notifications off, or admits / holds the central. */
+    private fun applyCccdWrite(device: BluetoothDevice, enable: Boolean) {
+        if (!enable) {
+            subscribers.remove(device)
+            pendingSubscribers.remove(device)
+            cancelPendingTimeout(device)
+            dispatchSubscriberState()
+            Log.i(TAG, "CCCD write ${device.address} enable=false")
+            return
+        }
+        val token = deviceHandshakeTokens[device]
+        if (peerAuthorizer.isAuthorized(device, token)) {
+            subscribers.add(device)
+            pendingSubscribers.remove(device)
+            cancelPendingTimeout(device)
+            dispatchSubscriberState()
+            Log.i(TAG, "telemetry subscription authorized for ${device.address}")
+        } else {
+            Log.i(TAG, "telemetry subscription pending authorization for ${device.address}")
+            enterPending(device, token)
         }
     }
 
@@ -789,6 +791,44 @@ class BridgeServer(
 
     fun isPending(address: String): Boolean =
         pendingSubscribers.any { it.address.equals(address, ignoreCase = true) }
+
+    /**
+     * Stops feeding every subscribed central that [peerAuthorizer] no longer accepts, asks the
+     * stack to disconnect it, and returns how many were dropped.
+     *
+     * A central is only checked when it writes the CCCD, so taking it off the approved list would
+     * otherwise leave a link that is already streaming untouched until the glasses happened to
+     * reconnect. The authorizer reads the approved list afresh on every call, which keeps one rule
+     * for both directions: a peer is dropped exactly when it could no longer subscribe.
+     *
+     * The stream ends at once, because the central leaves the subscriber set and nothing is
+     * notified to it any more (the telemetry characteristic is notify-only, so it cannot be read
+     * either). The disconnect is best effort: on the Android 13 stack this was checked on,
+     * `cancelConnection` finds no hold of this server on a link the central dialled in on ("attempt
+     * to remove non-existing gatt_if") and leaves it up, and asking for the link first made the
+     * phone dial the glasses itself. A central that stays connected is silent, and if it writes
+     * the CCCD again it meets the authorizer like any stranger, held pending until the rider
+     * approves it.
+     */
+    fun dropUnapprovedSubscribers(): Int {
+        var dropped = 0
+        for (device in subscribers) {
+            if (peerAuthorizer.isAuthorized(device, deviceHandshakeTokens[device])) continue
+            Log.i(TAG, "approval withdrawn for ${device.address}; ending its stream")
+            subscribers.remove(device)
+            notificationsInFlight.remove(device)
+            lastSubmittedPayload.remove(device)
+            deviceHandshakeTokens.remove(device)
+            try {
+                gattServer?.cancelConnection(device)
+            } catch (t: Throwable) {
+                Log.w(TAG, "cancelConnection on withdrawal threw", t)
+            }
+            dropped++
+        }
+        if (dropped > 0) dispatchSubscriberState()
+        return dropped
+    }
 
     private companion object {
         const val TAG = "BridgeServer"

@@ -179,6 +179,7 @@ class BridgeService : Service() {
                     Log.i(TAG, "peer rejected: $address")
                 }
             }
+            ACTION_DROP_UNAPPROVED -> publisher?.dropUnapprovedPeers()
             ACTION_START, null -> Unit
             else -> Log.w(TAG, "ignoring unknown action ${intent.action}")
         }
@@ -689,6 +690,7 @@ class BridgeService : Service() {
         const val ACTION_SET_LINK_MODE = "com.rideflux.app.bridge.SET_LINK_MODE"
         const val ACTION_APPROVE_PEER = "com.rideflux.app.bridge.APPROVE_PEER"
         const val ACTION_REJECT_PEER = "com.rideflux.app.bridge.REJECT_PEER"
+        const val ACTION_DROP_UNAPPROVED = "com.rideflux.app.bridge.DROP_UNAPPROVED"
 
         private const val AUTH_CHANNEL_ID = "rideflux_bridge_auth"
         private const val AUTH_NOTIF_ID = 7422
@@ -817,6 +819,19 @@ class BridgeService : Service() {
                     action = ACTION_REJECT_PEER
                     putExtra(EXTRA_AUTH_ADDRESS, request.deviceAddress)
                 },
+            )
+        }
+
+        /**
+         * Stops the stream to glasses that are still subscribed although they are no longer on the
+         * approved list. Does nothing while the bridge is stopped: there is nothing streaming, and a
+         * stopped bridge must not be started just to say so.
+         */
+        fun dropUnapprovedGlasses(context: Context) {
+            if (_state.value == BridgeState.STOPPED) return
+            launch(
+                context,
+                Intent(context, BridgeService::class.java).apply { action = ACTION_DROP_UNAPPROVED },
             )
         }
 

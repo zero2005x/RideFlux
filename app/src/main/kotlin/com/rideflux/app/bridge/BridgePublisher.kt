@@ -41,6 +41,12 @@ internal interface BridgePublisher {
     fun setLowLatency(enabled: Boolean) = Unit
     fun approvePeer(address: String): Boolean = false
     fun rejectPeer(address: String): Boolean = false
+
+    /**
+     * Stops streaming to peers that are no longer on the approved list and asks the stack to
+     * disconnect them.
+     */
+    fun dropUnapprovedPeers() = Unit
 }
 
 internal class NativeBleBridgePublisher(
@@ -95,6 +101,10 @@ internal class NativeBleBridgePublisher(
     override fun approvePeer(address: String): Boolean = server.approvePeer(address)
 
     override fun rejectPeer(address: String): Boolean = server.rejectPeer(address)
+
+    override fun dropUnapprovedPeers() {
+        server.dropUnapprovedSubscribers()
+    }
 
     override suspend fun open(): Boolean {
         onState(GlassesLinkState.STARTING)

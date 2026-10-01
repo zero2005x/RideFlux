@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.rideflux.app.bridge.ApprovedGlasses
 import com.rideflux.app.bridge.ApprovedGlassesStore
 import com.rideflux.app.bridge.BridgePairingStore
+import com.rideflux.app.bridge.BridgeService
 import com.rideflux.domain.settings.AppSettings
 import com.rideflux.domain.settings.SettingsRepository
 import android.net.Uri
@@ -121,6 +122,9 @@ class SettingsViewModel @Inject constructor(
 
     fun removeApprovedGlasses(item: ApprovedGlasses) {
         ApprovedGlassesStore.remove(appContext, item)
+        // Approval is only checked when glasses subscribe, so a link that is already streaming would
+        // carry on. Ask a running bridge to drop whoever is no longer on the list.
+        BridgeService.dropUnapprovedGlasses(appContext)
     }
 
     fun exportBackup(uri: Uri) {
