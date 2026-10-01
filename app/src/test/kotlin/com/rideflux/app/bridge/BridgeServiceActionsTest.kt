@@ -9,8 +9,10 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.Service
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
+import android.os.Looper
 import com.rideflux.app.R
 import com.rideflux.data.bridge.BridgePairingToken
 import com.rideflux.domain.repository.WheelRepository
@@ -307,6 +309,112 @@ class BridgeServiceActionsTest {
         assertEquals(GlassesLinkMode.ROKID_CXR, GlassesLinkPreferences.read(app))
         verify { anyConstructed<NativeBleBridgePublisher>().stop() }
         verify(timeout = 10_000) { anyConstructed<RokidCxrBridgePublisher>().attachSource(any(), any()) }
+    }
+
+    // ------------------------------------------------- Bluetooth restarts
+
+    private fun broadcastBluetoothState(state: Int) {
+        app.sendBroadcast(
+            Intent(BluetoothAdapter.ACTION_STATE_CHANGED).putExtra(BluetoothAdapter.EXTRA_STATE, state),
+        )
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    private fun bluetoothReceiverRegistered(): Boolean =
+        shadowOf(app).registeredReceivers.any { it.intentFilter.hasAction(BluetoothAdapter.ACTION_STATE_CHANGED) }
+
+    @Test
+    fun aBluetoothRestartRebuildsThePublisher() {
+        stubBle(opens = listOf(true, true))
+        send(Intent(BridgeService.ACTION_START))
+        verify(timeout = 10_000, exactly = 1) { anyConstructed<NativeBleBridgePublisher>().attachSource(any(), any()) }
+        awaitTrue { BridgeService.state.value == BridgeState.STANDBY }
+
+        // The GATT server dies with the radio, so the publisher is released at once.
+        broadcastBluetoothState(BluetoothAdapter.STATE_TURNING_OFF)
+        verify(exactly = 1) { anyConstructed<NativeBleBridgePublisher>().stop() }
+        assertEquals(BridgeState.DEGRADED, BridgeService.state.value)
+        assertEquals(GlassesLinkState.STOPPED, BridgeService.linkState.value)
+
+        // Half-way states change nothing; only a fully-on adapter brings a fresh server up.
+        broadcastBluetoothState(BluetoothAdapter.STATE_TURNING_ON)
+        verify(exactly = 1) { anyConstructed<NativeBleBridgePublisher>().attachSource(any(), any()) }
+        broadcastBluetoothState(BluetoothAdapter.STATE_ON)
+        verify(timeout = 10_000, exactly = 2) { anyConstructed<NativeBleBridgePublisher>().attachSource(any(), any()) }
+        awaitTrue { BridgeService.state.value == BridgeState.STANDBY }
+    }
+
+    @Test
+    fun theWheelTargetSurvivesABluetoothRestart() {
+        stubBle(opens = listOf(true, true))
+        send(
+            Intent(BridgeService.ACTION_SET_TARGET)
+                .putExtra(BridgeService.EXTRA_MAC, ADDRESS)
+                .putExtra(BridgeService.EXTRA_FAMILY, WheelFamily.G.name),
+        )
+        verify(timeout = 10_000, exactly = 1) { anyConstructed<NativeBleBridgePublisher>().attachSource(any(), any()) }
+
+        broadcastBluetoothState(BluetoothAdapter.STATE_OFF)
+        broadcastBluetoothState(BluetoothAdapter.STATE_ON)
+
+        verify(timeout = 10_000, exactly = 2) { anyConstructed<NativeBleBridgePublisher>().attachSource(any(), any()) }
+        assertEquals(ADDRESS, BridgeService.activeMac.value)
+    }
+
+    @Test
+    fun bluetoothComingOnWhileThePublisherIsUpChangesNothing() {
+        send(Intent(BridgeService.ACTION_START))
+        verify(timeout = 10_000) { anyConstructed<NativeBleBridgePublisher>().attachSource(any(), any()) }
+
+        broadcastBluetoothState(BluetoothAdapter.STATE_ON)
+
+        verify(exactly = 1) { anyConstructed<NativeBleBridgePublisher>().attachSource(any(), any()) }
+        verify(exactly = 0) { anyConstructed<NativeBleBridgePublisher>().stop() }
+    }
+
+    @Test
+    fun aBluetoothShutdownDropsAnApprovalPromptTheRadioTookDown() {
+        shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        send(Intent(BridgeService.ACTION_START))
+        awaitTrue { BridgeService.state.value == BridgeState.STANDBY }
+        invoke("handleAuthorizationRequested", GlassesAuthorizationRequest::class.java, request())
+        assertNotNull(BridgeService.pendingAuthorization.value)
+        assertNotNull(shadowOf(notifications).getNotification(AUTH_NOTIFICATION_ID))
+
+        broadcastBluetoothState(BluetoothAdapter.STATE_OFF)
+
+        assertNull(BridgeService.pendingAuthorization.value)
+        assertNull(shadowOf(notifications).getNotification(AUTH_NOTIFICATION_ID))
+    }
+
+    @Test
+    fun unrelatedBroadcastsAndUnknownStatesAreIgnored() {
+        send(Intent(BridgeService.ACTION_START))
+        verify(timeout = 10_000) { anyConstructed<NativeBleBridgePublisher>().attachSource(any(), any()) }
+
+        app.sendBroadcast(Intent(BluetoothAdapter.ACTION_STATE_CHANGED)) // no state extra at all
+        shadowOf(Looper.getMainLooper()).idle()
+        broadcastBluetoothState(BluetoothAdapter.ERROR)
+
+        verify(exactly = 0) { anyConstructed<NativeBleBridgePublisher>().stop() }
+    }
+
+    @Test
+    fun theBluetoothReceiverLivesExactlyAsLongAsTheService() {
+        assertTrue(bluetoothReceiverRegistered())
+
+        service.onDestroy()
+
+        assertFalse(bluetoothReceiverRegistered())
+    }
+
+    @Test
+    fun adapterStatesMapToTheBridgesReaction() {
+        assertEquals(BluetoothStateAction.RELEASE_PUBLISHER, bluetoothStateAction(BluetoothAdapter.STATE_TURNING_OFF))
+        assertEquals(BluetoothStateAction.RELEASE_PUBLISHER, bluetoothStateAction(BluetoothAdapter.STATE_OFF))
+        assertEquals(BluetoothStateAction.REOPEN_PUBLISHER, bluetoothStateAction(BluetoothAdapter.STATE_ON))
+        assertEquals(BluetoothStateAction.IGNORE, bluetoothStateAction(BluetoothAdapter.STATE_TURNING_ON))
+        assertEquals(BluetoothStateAction.IGNORE, bluetoothStateAction(BluetoothAdapter.ERROR))
     }
 
     // ------------------------------------------------- static entry points

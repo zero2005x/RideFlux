@@ -12,8 +12,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.content.pm.PackageManager
 import android.os.Build
@@ -21,6 +23,7 @@ import android.os.BatteryManager
 import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.rideflux.app.MainActivity
 import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.BridgePairingToken
@@ -93,11 +96,34 @@ class BridgeService : Service() {
     @Volatile private var publisherGeneration = 0L
     @Volatile private var foregroundStarted = false
 
+    /**
+     * The GATT server and the advertiser die with the Bluetooth stack: once the adapter has been
+     * switched off, the server handle held by the publisher is dead for good and switching it back
+     * on does not revive it. Left alone, the phone would advertise again with no bridge service in
+     * its GATT database, so the glasses connect, fail their handshake with "invalid handle" and
+     * wait for ever. The publisher is therefore released when the radio goes down and rebuilt when
+     * it is back.
+     */
+    private val bluetoothStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != BluetoothAdapter.ACTION_STATE_CHANGED) return
+            onBluetoothStateChanged(
+                intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR),
+            )
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         _linkMode.value = GlassesLinkPreferences.read(this)
+        ContextCompat.registerReceiver(
+            this,
+            bluetoothStateReceiver,
+            IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         scope.launch {
             settingsRepository.settings.collect {
                 applyAdvertiseMode()
@@ -195,6 +221,34 @@ class BridgeService : Service() {
             initialDelayMillis = if (previous == null) 0L else PUBLISHER_SWITCH_SETTLE_MILLIS,
         )
         Log.i(TAG, "glasses link mode changed to $mode")
+    }
+
+    private fun onBluetoothStateChanged(adapterState: Int) {
+        when (bluetoothStateAction(adapterState)) {
+            BluetoothStateAction.RELEASE_PUBLISHER -> releasePublisher()
+            BluetoothStateAction.REOPEN_PUBLISHER -> ensureBridgeOpen()
+            BluetoothStateAction.IGNORE -> Unit
+        }
+    }
+
+    /**
+     * Drops the publisher whose GATT server no longer exists. The wheel target is kept, so the
+     * pipeline that [ensureBridgeOpen] builds next picks the same wheel up again.
+     */
+    @Synchronized
+    private fun releasePublisher() {
+        publisherGeneration += 1L
+        openJob?.cancel()
+        openJob = null
+        val previous = publisher
+        publisher = null
+        previous?.stop()
+        _linkState.value = GlassesLinkState.STOPPED
+        // An approval prompt belonged to a connection that went down with the radio.
+        _pendingAuthorization.value = null
+        cancelAuthorizationNotification()
+        setBridgeState(BridgeState.DEGRADED)
+        Log.i(TAG, "Bluetooth went down; bridge publisher released until it is back")
     }
 
     /** Opens the server with an infinite capped retry; callers never own this job. */
@@ -432,6 +486,7 @@ class BridgeService : Service() {
     }
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(bluetoothStateReceiver) }
         publisherGeneration += 1L
         openJob?.cancel()
         publisher?.stop()
@@ -464,17 +519,15 @@ class BridgeService : Service() {
     }
 
     private fun ensureAuthNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
-            val channel = NotificationChannel(
-                AUTH_CHANNEL_ID,
-                getString(com.rideflux.app.R.string.glasses_auth_notification_title),
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                description = getString(com.rideflux.app.R.string.glasses_auth_notification_title)
-            }
-            manager.createNotificationChannel(channel)
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        val channel = NotificationChannel(
+            AUTH_CHANNEL_ID,
+            getString(com.rideflux.app.R.string.glasses_auth_notification_title),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = getString(com.rideflux.app.R.string.glasses_auth_notification_title)
         }
+        manager.createNotificationChannel(channel)
     }
 
     private fun postAuthorizationNotification(request: GlassesAuthorizationRequest) {
@@ -523,14 +576,7 @@ class BridgeService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, AUTH_CHANNEL_ID)
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
-
-        val notification = builder
+        val notification = Notification.Builder(this, AUTH_CHANNEL_ID)
             .setContentTitle(getString(com.rideflux.app.R.string.glasses_auth_notification_title))
             .setContentText(getString(com.rideflux.app.R.string.glasses_auth_notification_text, request.shortCode))
             .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
@@ -587,15 +633,13 @@ class BridgeService : Service() {
 
     private fun startForegroundCompat() {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            manager.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    getString(com.rideflux.app.R.string.notification_channel_bridge),
-                    NotificationManager.IMPORTANCE_LOW,
-                ),
-            )
-        }
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                getString(com.rideflux.app.R.string.notification_channel_bridge),
+                NotificationManager.IMPORTANCE_LOW,
+            ),
+        )
         val notification = buildNotification(_state.value)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(
@@ -610,12 +654,6 @@ class BridgeService : Service() {
     }
 
     private fun buildNotification(state: BridgeState): Notification {
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, CHANNEL_ID)
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
         val detail = getString(
             when (state) {
                 BridgeState.STOPPED, BridgeState.STANDBY ->
@@ -625,7 +663,7 @@ class BridgeService : Service() {
                 BridgeState.DEGRADED -> com.rideflux.app.R.string.notification_bridge_degraded
             },
         )
-        return builder
+        return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(com.rideflux.app.R.string.notification_bridge_title))
             .setContentText(detail)
             .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
@@ -788,11 +826,7 @@ class BridgeService : Service() {
         }
 
         private fun launch(context: Context, intent: Intent) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         }
     }
 }
@@ -826,6 +860,25 @@ private const val CXR_OPEN_FAILURE_LIMIT = 1
 
 internal fun shouldDegradeFromCxr(consecutiveFailures: Int): Boolean =
     consecutiveFailures >= CXR_OPEN_FAILURE_LIMIT
+
+/** What the bridge does when the Bluetooth adapter changes state. */
+internal enum class BluetoothStateAction { IGNORE, RELEASE_PUBLISHER, REOPEN_PUBLISHER }
+
+/**
+ * Maps an adapter state from `ACTION_STATE_CHANGED` to the bridge's reaction.
+ *
+ * The publisher is released as soon as the radio starts shutting down and rebuilt only once the
+ * adapter is fully on; the transitional states say nothing about whether a GATT server would
+ * survive, so they are ignored. (When Android keeps the radio in its low-energy-only scanning
+ * mode it reports the adapter as off to applications, which is the case that matters here.)
+ */
+internal fun bluetoothStateAction(adapterState: Int): BluetoothStateAction = when (adapterState) {
+    BluetoothAdapter.STATE_TURNING_OFF,
+    BluetoothAdapter.STATE_OFF,
+    -> BluetoothStateAction.RELEASE_PUBLISHER
+    BluetoothAdapter.STATE_ON -> BluetoothStateAction.REOPEN_PUBLISHER
+    else -> BluetoothStateAction.IGNORE
+}
 
 internal fun reconnectBackoffMillis(attempt: Long): Long =
     (1_000L * (1L shl attempt.coerceIn(0L, 4L).toInt())).coerceAtMost(15_000L)
