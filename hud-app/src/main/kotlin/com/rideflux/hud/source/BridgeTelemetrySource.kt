@@ -11,6 +11,7 @@ import com.rideflux.data.bridge.BridgeClient
 import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.BridgePeerFilter
 import com.rideflux.data.bridge.SignalLevel
+import com.rideflux.data.bridge.endWhenSilent
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.hud.BridgeLinkState
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Receives bridge frames from either the official Rokid CXR transport or
@@ -60,6 +62,10 @@ class BridgeTelemetrySource private constructor(
         rokidFrames: () -> Flow<BridgeFrame>,
         testOnly: Unit,
     ) : this(clientFrames = clientFrames, rokidFrames = rokidFrames)
+
+    // Native BLE attempts in a row that stayed open but never delivered a frame. It has to outlive
+    // the retries made in frames(), which is why it lives here.
+    private val unansweredConnections = AtomicInteger(0)
 
     override fun frames(): Flow<HudTelemetryFrame> = channelFlow {
         var telemetryExpiryJob: Job? = null
@@ -116,7 +122,9 @@ class BridgeTelemetrySource private constructor(
                 var attempt = 0
                 while (true) {
                     try {
-                        clientFrames().collect { frame ->
+                        // A link that stays open but goes quiet ends with an error, so the retry
+                        // below reconnects instead of waiting on it for good.
+                        clientFrames().endWhenSilent(unansweredConnections).collect { frame ->
                             attempt = 0
                             publishFrame(frame)
                         }

@@ -127,6 +127,15 @@ object BridgeProtocol {
      */
     const val PREFERRED_MTU: Int = 64
 
+    /**
+     * How long the phone holds a subscription that waits for the rider to approve the glasses
+     * before it gives the request up.
+     *
+     * [BridgeClient] waits a little longer than this for a first frame before it starts over, so a
+     * request that lapsed is raised again instead of leaving the glasses quiet for good.
+     */
+    const val PENDING_AUTHORIZATION_TIMEOUT_MILLIS: Long = 60_000L
+
     /** Sentinel used by codec to encode "no value" for a u8 percent slot. */
     const val PERCENT_NULL: Int = 0xFF
 
