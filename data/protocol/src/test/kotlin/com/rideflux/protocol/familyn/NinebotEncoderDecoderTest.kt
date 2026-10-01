@@ -14,10 +14,10 @@ import org.junit.Test
 /**
  * End-to-end encoder/decoder tests for Families N1 / N2.
  *
- * Anchored on the 禮5 (checksum derivation) and 禮6 (XOR round-trip)
- * vectors of `TEST_VECTORS.md`: the 禮5 vector is a complete N1 frame
- * once the `55 AA D4 FF` prefix/trailer are considered, and the 禮6
- * vector is the same frame encrypted for N2 with a non-zero 帠.
+ * Anchored on the §5 (checksum derivation) and §6 (XOR round-trip)
+ * vectors of `TEST_VECTORS.md`: the §5 vector is a complete N1 frame
+ * once the `55 AA D4 FF` prefix/trailer are considered, and the §6
+ * vector is the same frame encrypted for N2 with a non-zero γ.
  */
 class NinebotEncoderDecoderTest {
 
@@ -25,11 +25,11 @@ class NinebotEncoderDecoderTest {
 
     // --- N1 frames (identity keystream) ------------------------------
 
-    @Test fun `decode N1 frame built from 禮5 vector`() {
-        // Post-prefix bytes: 03 09 01 10 0E D4 FF (禮5 + 禮6.1 checksum)
+    @Test fun `decode N1 frame built from §5 vector`() {
+        // Post-prefix bytes: 03 09 01 10 0E D4 FF (§5 + §6.1 checksum)
         val wire = hex("55 AA 03 09 01 10 0E D4 FF")
         val res = NinebotDecoder.decode(wire, NinebotFamily.N1)
-        assertTrue("N1 禮5 vector must decode", res is NinebotDecodeResult.Ok)
+        assertTrue("N1 §5 vector must decode", res is NinebotDecodeResult.Ok)
         res as NinebotDecodeResult.Ok
         assertEquals(9, res.consumedBytes)
         val f = res.frame
@@ -41,7 +41,7 @@ class NinebotEncoderDecoderTest {
         assertArrayEquals(byteArrayOf(0x0E), f.data)
     }
 
-    @Test fun `encode N1 frame reproduces 禮5 wire bytes exactly`() {
+    @Test fun `encode N1 frame reproduces §5 wire bytes exactly`() {
         val frame = NinebotFrame(
             family = NinebotFamily.N1,
             src = 0x09, dst = 0x01, cmd = null, param = 0x10,
@@ -65,15 +65,15 @@ class NinebotEncoderDecoderTest {
 
     // --- N2 frames (non-zero keystream) ------------------------------
 
-    @Test fun `decode N2 frame built from 禮6 wire bytes with 帠`() {
-        // TEST_VECTORS.md 禮6 wire (after 55 AA): 03 08 03 13 0A D1 F9.
+    @Test fun `decode N2 frame built from §6 wire bytes with γ`() {
+        // TEST_VECTORS.md §6 wire (after 55 AA): 03 08 03 13 0A D1 F9.
         // In N2 interpretation, the deobfuscated bytes
         // 03 09 01 10 0E D4 FF map to:
         //   LEN=03, SRC=09, DST=01, CMD=10, PARAM=0E,
         //   DATA=[], CHK=D4 FF.
         val wire = hex("55 AA 03 08 03 13 0A D1 F9")
         val res = NinebotDecoder.decode(wire, NinebotFamily.N2, gammaV6)
-        assertTrue("N2 禮6 vector must decode with 帠", res is NinebotDecodeResult.Ok)
+        assertTrue("N2 §6 vector must decode with γ", res is NinebotDecodeResult.Ok)
         res as NinebotDecodeResult.Ok
         val f = res.frame
         assertEquals(NinebotFamily.N2, f.family)
@@ -84,7 +84,7 @@ class NinebotEncoderDecoderTest {
         assertEquals(0, f.data.size)
     }
 
-    @Test fun `encode N2 frame with 帠 reproduces 禮6 wire exactly`() {
+    @Test fun `encode N2 frame with γ reproduces §6 wire exactly`() {
         val frame = NinebotFrame(
             family = NinebotFamily.N2,
             src = 0x09, dst = 0x01, cmd = 0x10, param = 0x0E,
@@ -94,7 +94,7 @@ class NinebotEncoderDecoderTest {
         assertArrayEquals(hex("55 AA 03 08 03 13 0A D1 F9"), wire)
     }
 
-    @Test fun `N2 round-trip under non-zero 帠 preserves every field`() {
+    @Test fun `N2 round-trip under non-zero γ preserves every field`() {
         val gamma = ByteArray(16) { (it * 7 + 3).toByte() }
         val original = NinebotFrame(
             family = NinebotFamily.N2,
@@ -148,7 +148,7 @@ class NinebotEncoderDecoderTest {
 
     @Test fun `getKey produces an N2 handshake to the KeyGenerator endpoint`() {
         val wire = NinebotCommandBuilder.getKey()
-        // 帠 defaults to zero, so wire is plaintext: prefix + LEN=02
+        // γ defaults to zero, so wire is plaintext: prefix + LEN=02
         // + SRC(09) + DST(16) + CMD(5B) + PARAM(5B) + CHK.
         val res = NinebotDecoder.decode(wire, NinebotFamily.N2)
         assertTrue(res is NinebotDecodeResult.Ok)
@@ -186,7 +186,7 @@ class NinebotEncoderDecoderTest {
     }
 
     @Test fun `encoder then decoder under session key round-trips GetKey response`() {
-        // Simulate: host sends GetKey with 帠=0, device reply contains
+        // Simulate: host sends GetKey with γ=0, device reply contains
         // a 16-byte key, host adopts that key for the NEXT request.
         val newGamma = ByteArray(16) { (0xA0 + it).toByte() }
 
@@ -201,7 +201,7 @@ class NinebotEncoderDecoderTest {
         assertEquals(NinebotCommandBuilder.PARAM_FIRMWARE_VERSION, f.param)
     }
 
-    // --- 禮3.4.1 telemetry page ---------------------------------------
+    // --- §3.4.1 telemetry page ---------------------------------------
 
     @Test fun `B0 page parses documented offsets`() {
         // Hand-assembled DATA: battery=0x0064=100% at 8, speed(std)=
@@ -237,10 +237,10 @@ class NinebotEncoderDecoderTest {
         assertEquals(20.0, tel.speedS2Kmh, 1e-9)
     }
 
-    // --- 禮3.4.2 activation date --------------------------------------
+    // --- §3.4.2 activation date --------------------------------------
 
-    @Test fun `activation date decodes per 禮3-4-2 formula`() {
-        // (year 2026, month 4, day 19) ??D = (26<<9) | (4<<5) | 19
+    @Test fun `activation date decodes per §3-4-2 formula`() {
+        // (year 2026, month 4, day 19) → D = (26<<9) | (4<<5) | 19
         val d = (26 shl 9) or (4 shl 5) or 19
         val ymd = NinebotActivationDate.decode(d)
         assertEquals(2026, ymd.year)
