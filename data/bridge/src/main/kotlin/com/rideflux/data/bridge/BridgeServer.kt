@@ -836,9 +836,10 @@ class BridgeServer(
         const val ADVERTISE_RETRY_MAX_MILLIS = 30_000
 
         /**
-         * Centrals pending approval timeout after 60 seconds of inactivity.
+         * Centrals pending approval timeout after 60 seconds of inactivity. Shared with
+         * [BridgeClient], which waits a little longer than this before it asks again.
          */
-        const val PENDING_AUTHORIZATION_TIMEOUT_MILLIS = 60_000L
+        const val PENDING_AUTHORIZATION_TIMEOUT_MILLIS = BridgeProtocol.PENDING_AUTHORIZATION_TIMEOUT_MILLIS
 
         /**
          * How long [open] waits for `onServiceAdded`. The platform

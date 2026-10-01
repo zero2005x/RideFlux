@@ -236,6 +236,22 @@ the reconnect loop and the pairing scanner book a slot with a shared
 `BleScanThrottle` (four per 30 s, leaving one spare) and each connection attempt
 issues exactly one unfiltered scan, matching the service UUID in code.
 
+**Silent links.** A subscribed link can stop delivering without Android saying so:
+the phone's app was killed and its new GATT server knows nothing about the glasses,
+the rider took the glasses off the approved list, or the approval window ran out.
+The connection stays up and the notifications just stop. The phone sends a frame
+every second while it runs (a standby heartbeat when there is no wheel), so the HUD
+wraps the client's frame flow in `endWhenSilent`, which fails the flow after 30 s
+without a frame once the first one has arrived, and the HUD's reconnect loop starts
+over. The limit is far above the few seconds after which the HUD marks its data stale
+because a phone with its screen off holds no wake lock and its heartbeat is only as
+regular as the phone is awake. Before the first frame the phone may be waiting for
+the rider to approve the glasses (it holds the request for 60 s,
+`BridgeProtocol.PENDING_AUTHORIZATION_TIMEOUT_MILLIS`), so that wait is that window
+plus 40 s for scanning, connecting and subscribing, and it doubles each time it went
+unanswered, up to 10 minutes, which keeps glasses that were turned down from asking
+again and again.
+
 Frame payload: timestamp (seconds, decoded unsigned), speed, wheel battery %,
 phone battery %, pack voltage, trip distance, trip duration, coarse signal level,
 stale flag, ready flag. Sentinels encode "absent" for each numeric slot. The v2
