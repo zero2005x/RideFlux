@@ -9,7 +9,7 @@
 | | |
 |---|---|
 | Version | `0.1.10` (versionCode 11) |
-| License | GPL-3.0-or-later |
+| License | GPL-3.0-or-later, plus an [additional permission](#additional-permission-rokid-cxr-sdk) for linking the Rokid SDK |
 | Language | Kotlin 2.3.21 · Jetpack Compose |
 | Min / Target / Compile SDK | 28 / 36 / 36 |
 | Modules | 9 Gradle modules (2 apps, 1 domain, 5 data, 1 core) |
@@ -481,6 +481,30 @@ The Rokid Maven repository (`https://maven.rokid.com/repository/maven-public/`) 
 Distributed under the **GNU General Public License v3.0 or later**. Source files carry
 `SPDX-License-Identifier: GPL-3.0-or-later`. See [`LICENSE`](LICENSE) for the full text.
 
+#### Additional permission: Rokid CXR SDK
+
+The RideFlux project contributors, as the copyright holders of the RideFlux source code,
+grant the following additional permission under section 7 of the GNU General Public License,
+version 3. It applies to the RideFlux source code in this repository; the GPL applies
+unchanged otherwise.
+
+> If you modify this Program, or any covered work, by linking or combining it with the Rokid
+> CXR SDK libraries (`com.rokid.cxr:client-m` and `com.rokid.cxr:cxr-service-bridge`) (or a
+> modified version of those libraries), containing parts covered by the terms under which
+> Rokid provides them, the licensors of this Program grant you additional permission to
+> convey the resulting work.
+
+This permission does **not**:
+
+- give you any rights in the Rokid libraries. They are Rokid's proprietary software and are
+  not licensed by this project; Rokid's own terms govern whether and how you may use and
+  redistribute them (see [`NOTICE`](NOTICE));
+- reach material that other people wrote, such as the third-party material listed in
+  [`NOTICE`](NOTICE), which stays under its own license.
+
+As section 7 of the GPL allows, you may remove this additional permission from your copy of
+the Program, or from any part of it.
+
 ---
 
 ## 繁體中文
@@ -875,3 +899,22 @@ Rokid 的 Maven repository（`https://maven.rokid.com/repository/maven-public/`�
 
 本專案依 **GNU General Public License v3.0 或後續版本**散布。原始碼檔案皆標註
 `SPDX-License-Identifier: GPL-3.0-or-later`。完整條款請見 [`LICENSE`](LICENSE)。
+
+#### 附加許可：Rokid CXR SDK
+
+RideFlux 專案貢獻者作為 RideFlux 原始碼的著作權人，依 GNU 通用公眾授權條款第 3 版（GPLv3）
+第 7 條額外授予下列許可。它適用於本儲存庫中的 RideFlux 原始碼，其餘仍依 GPL 原文適用。以下
+為摘要翻譯，**以[英文版](#additional-permission-rokid-cxr-sdk)為準**：
+
+> 若您透過連結或結合 Rokid CXR SDK 函式庫（`com.rokid.cxr:client-m` 與
+> `com.rokid.cxr:cxr-service-bridge`，或其修改版本），使本程式或任何涵蓋作品（covered work）
+> 含有適用 Rokid 提供該函式庫所依條款的部分，則本程式的授權人授予您額外許可，允許您散布
+> （convey）所產生的作品。
+
+此許可**不會**：
+
+- 賦予您任何 Rokid 函式庫的權利。它們是 Rokid 的專有軟體，並非由本專案授權；是否及如何使用、
+  再散布，依 Rokid 自己的條款（見 [`NOTICE`](NOTICE)）；
+- 涵蓋他人撰寫的內容，例如 [`NOTICE`](NOTICE) 所列的第三方內容，它們仍適用各自的授權。
+
+依 GPL 第 7 條，您可以自行將此附加許可從您的副本或其任何部分移除。
