@@ -13,16 +13,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pins [NinebotCodec] against the 禮5 and 禮6 worked examples from
+ * Pins [NinebotCodec] against the §5 and §6 worked examples from
  * `TEST_VECTORS.md`.
  */
 class NinebotCodecTest {
 
-    // --- 禮6.1 checksum derivation ------------------------------------
+    // --- §6.1 checksum derivation ------------------------------------
 
-    @Test fun `checksum of 禮5 pre-checksum bytes is 0xFFD4 wire D4 FF`() {
-        // From TEST_VECTORS.md 禮5: 峉(03,09,01,10,0E) = 0x2B;
-        // 峉 XOR 0xFFFF = 0xFFD4; CHK_LO=0xD4, CHK_HI=0xFF.
+    @Test fun `checksum of §5 pre-checksum bytes is 0xFFD4 wire D4 FF`() {
+        // From TEST_VECTORS.md §5: Σ(03,09,01,10,0E) = 0x2B;
+        // Σ XOR 0xFFFF = 0xFFD4; CHK_LO=0xD4, CHK_HI=0xFF.
         val preChk = hex("03 09 01 10 0E")
         assertEquals(0xFFD4, NinebotCodec.checksum16(preChk))
         assertArrayEquals(hex("D4 FF"), NinebotCodec.checksum(preChk))
@@ -34,7 +34,7 @@ class NinebotCodecTest {
     }
 
     @Test fun `checksum handles sums larger than 16 bits via low-word masking`() {
-        // 300 bytes each 0xFF ??sum 0x12D4D; XOR 0xFFFF within low word = 0xED2C XOR 0xFFFF = 0x12D3
+        // 300 bytes each 0xFF → sum 0x12D4D; XOR 0xFFFF within low word = 0xED2C XOR 0xFFFF = 0x12D3
         // computed directly: (0x12D4D XOR 0xFFFF) AND 0xFFFF. The
         // XOR operates on 32-bit ints but AND 0xFFFF truncates.
         val input = ByteArray(300) { 0xFF.toByte() }
@@ -43,20 +43,20 @@ class NinebotCodecTest {
         assertEquals(expected, NinebotCodec.checksum16(input))
     }
 
-    // --- 禮5.1 XOR obfuscation round-trip (禮6 in TEST_VECTORS) --------
+    // --- §5.1 XOR obfuscation round-trip (§6 in TEST_VECTORS) --------
 
-    @Test fun `XOR obfuscation matches 禮6 table byte-for-byte`() {
+    @Test fun `XOR obfuscation matches §6 table byte-for-byte`() {
         val gamma = hex("01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 10")
         val plain = hex("03 09 01 10 0E D4 FF") // post-prefix plaintext
-        val expected = hex("03 08 03 13 0A D1 F9") // per 禮6 wire-side
+        val expected = hex("03 08 03 13 0A D1 F9") // per §6 wire-side
 
         val buf = plain.copyOf()
         NinebotCodec.xorInPlace(buf, gamma)
-        assertArrayEquals("plain ??obfuscated", expected, buf)
+        assertArrayEquals("plain → obfuscated", expected, buf)
 
         // Symmetric: applying again reproduces the plaintext.
         NinebotCodec.xorInPlace(buf, gamma)
-        assertArrayEquals("obfuscated ??plain", plain, buf)
+        assertArrayEquals("obfuscated → plain", plain, buf)
     }
 
     @Test fun `XOR with all-zero keystream is an identity`() {
@@ -79,7 +79,7 @@ class NinebotCodecTest {
         val gamma = ByteArray(16) { (it + 1).toByte() } // 01..10
         val buf = ByteArray(20) // all zeros initially
         NinebotCodec.xorInPlace(buf, gamma)
-        // pos 1 ??帠[0]=01; pos 16 ??帠[15]=10; pos 17 ??帠[0]=01 again.
+        // pos 1 → γ[0]=01; pos 16 → γ[15]=10; pos 17 → γ[0]=01 again.
         assertEquals(0x01.toByte(), buf[1])
         assertEquals(0x10.toByte(), buf[16])
         assertEquals(0x01.toByte(), buf[17])
