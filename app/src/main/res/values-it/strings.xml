@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">Connessione al monoruota</string>
     <string name="bridge_state_relaying">Ritrasmissione della telemetria</string>
     <string name="bridge_state_degraded">Monoruota non disponibile · ponte ancora rilevabile</string>
+    <string name="bridge_notifications_off_hint">Le notifiche sono disattivate: una richiesta di associazione degli occhiali compare solo quando questa app è aperta.</string>
     <string name="glasses_link_stopped">trasporto arrestato</string>
     <string name="glasses_link_starting">avvio del collegamento agli occhiali</string>
     <string name="glasses_link_ready">in attesa degli occhiali</string>

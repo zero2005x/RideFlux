@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">휠에 연결하는 중</string>
     <string name="bridge_state_relaying">텔레메트리 중계 중</string>
     <string name="bridge_state_degraded">휠 사용 불가 · 브리지는 계속 검색 가능</string>
+    <string name="bridge_notifications_off_hint">알림이 꺼져 있어 안경의 페어링 요청은 이 앱이 열려 있는 동안에만 표시됩니다.</string>
     <string name="glasses_link_stopped">전송 중지됨</string>
     <string name="glasses_link_starting">글래스 연결 시작 중</string>
     <string name="glasses_link_ready">글래스 대기 중</string>

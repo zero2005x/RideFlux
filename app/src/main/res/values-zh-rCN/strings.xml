@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">正在连接车辆</string>
     <string name="bridge_state_relaying">正在转发遥测数据</string>
     <string name="bridge_state_degraded">车辆不可用 · 仍可被发现</string>
+    <string name="bridge_notifications_off_hint">通知已关闭，眼镜的配对请求只会在打开此 App 时显示。</string>
     <string name="glasses_link_stopped">传输已停止</string>
     <string name="glasses_link_starting">正在启动眼镜连接</string>
     <string name="glasses_link_ready">等待眼镜</string>

@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">A ligar ao monociclo</string>
     <string name="bridge_state_relaying">A retransmitir telemetria</string>
     <string name="bridge_state_degraded">Monociclo indisponível · ainda detetável</string>
+    <string name="bridge_notifications_off_hint">As notificações estão desativadas, por isso um pedido de emparelhamento dos óculos só aparece enquanto a app está aberta.</string>
     <string name="glasses_link_stopped">transporte parado</string>
     <string name="glasses_link_starting">a iniciar ligação aos óculos</string>
     <string name="glasses_link_ready">à espera dos óculos</string>

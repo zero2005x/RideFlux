@@ -35,6 +35,7 @@
     <string name="bridge_state_attaching">وہیل سے منسلک ہو رہا ہے</string>
     <string name="bridge_state_relaying">ٹیلی میٹری بھیجی جا رہی ہے</string>
     <string name="bridge_state_degraded">وہیل دستیاب نہیں · پُل اب بھی قابلِ دریافت ہے</string>
+    <string name="bridge_notifications_off_hint">اطلاعات بند ہیں، اس لیے چشمے کی پیئرنگ کی درخواست صرف ایپ کھلی ہونے پر دکھائی دیتی ہے۔</string>
     <string name="glasses_link_stopped">ٹرانسپورٹ رُک گیا</string>
     <string name="glasses_link_starting">عینک کا رابطہ شروع ہو رہا ہے</string>
     <string name="glasses_link_ready">عینک کا انتظار</string>

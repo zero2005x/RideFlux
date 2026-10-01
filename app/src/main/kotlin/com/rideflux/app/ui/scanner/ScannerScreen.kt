@@ -61,7 +61,10 @@ import com.rideflux.app.bridge.BridgeState
 import com.rideflux.app.bridge.GlassesAuthorizationRequest
 import com.rideflux.app.bridge.GlassesLinkMode
 import com.rideflux.app.bridge.GlassesLinkState
+import com.rideflux.app.ui.permission.openNotificationSettings
 import com.rideflux.app.ui.permission.rememberNotificationPermissionPrompt
+import com.rideflux.app.ui.permission.rememberNotificationsEnabled
+import com.rideflux.app.ui.permission.shouldShowNotificationsHint
 import com.rideflux.domain.repository.DiscoveredWheel
 import com.rideflux.domain.wheel.WheelFamily
 import kotlinx.coroutines.flow.filter
@@ -90,12 +93,18 @@ fun ScannerRoute(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val promptForNotifications = rememberNotificationPermissionPrompt()
+    val notificationsEnabled = rememberNotificationsEnabled()
     ScannerScreen(
         uiState = uiState,
         bridgeState = bridgeState,
         linkMode = linkMode,
         linkState = linkState,
         pendingAuth = pendingAuth,
+        notificationsHint = shouldShowNotificationsHint(
+            bridgeActive = bridgeState != BridgeState.STOPPED,
+            notificationsEnabled = notificationsEnabled,
+        ),
+        onOpenNotificationSettings = { openNotificationSettings(context) },
         onApproveAuth = { BridgeService.approveGlasses(context, it) },
         onRejectAuth = { BridgeService.rejectGlasses(context, it) },
         onStartScan = {
@@ -146,6 +155,8 @@ fun ScannerScreen(
     linkMode: GlassesLinkMode = GlassesLinkMode.ANDROID_BLE,
     linkState: GlassesLinkState = GlassesLinkState.STOPPED,
     pendingAuth: GlassesAuthorizationRequest? = null,
+    notificationsHint: Boolean = false,
+    onOpenNotificationSettings: () -> Unit = {},
     onApproveAuth: (GlassesAuthorizationRequest) -> Unit = {},
     onRejectAuth: (GlassesAuthorizationRequest) -> Unit = {},
     onStartScan: () -> Unit,
@@ -210,6 +221,12 @@ fun ScannerScreen(
                 onSelectLinkMode = onSelectLinkMode,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
+            if (notificationsHint) {
+                NotificationsOffHint(
+                    onOpenSettings = onOpenNotificationSettings,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
             Box(modifier = Modifier.weight(1f)) {
                 ScannerContent(
                     uiState = uiState,
@@ -262,6 +279,39 @@ private fun GlassesAuthBanner(
                 Spacer(modifier = Modifier.size(8.dp))
                 Button(onClick = { onAllow(request) }) {
                     Text(stringResource(R.string.action_allow))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Says that a pairing request only shows while the app is open, and leads to the system page where
+ * notifications can be turned back on (the permission dialog no longer appears once declined).
+ */
+@Composable
+private fun NotificationsOffHint(
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.bridge_notifications_off_hint),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onOpenSettings) {
+                    Text(stringResource(R.string.action_open_settings))
                 }
             }
         }

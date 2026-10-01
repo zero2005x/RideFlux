@@ -36,6 +36,7 @@
     <string name="bridge_state_attaching">Menghubungkan ke roda</string>
     <string name="bridge_state_relaying">Meneruskan telemetri</string>
     <string name="bridge_state_degraded">Roda tidak tersedia · masih dapat ditemukan</string>
+    <string name="bridge_notifications_off_hint">Notifikasi mati, jadi permintaan pemasangan dari kacamata hanya muncul saat aplikasi terbuka.</string>
     <string name="glasses_link_stopped">transport berhenti</string>
     <string name="glasses_link_starting">memulai tautan kacamata</string>
     <string name="glasses_link_ready">menunggu kacamata</string>

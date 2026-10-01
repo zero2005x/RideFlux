@@ -34,6 +34,7 @@
     <string name="bridge_state_attaching">Підключення до моноколеса</string>
     <string name="bridge_state_relaying">Передавання телеметрії</string>
     <string name="bridge_state_degraded">Моноколесо недоступне · міст залишається видимим</string>
+    <string name="bridge_notifications_off_hint">Сповіщення вимкнено, тому запит на створення пари з окулярами відображається лише тоді, коли застосунок відкрито.</string>
     <string name="glasses_link_stopped">передавання зупинено</string>
     <string name="glasses_link_starting">запуск зв\'язку з окулярами</string>
     <string name="glasses_link_ready">очікування окулярів</string>
