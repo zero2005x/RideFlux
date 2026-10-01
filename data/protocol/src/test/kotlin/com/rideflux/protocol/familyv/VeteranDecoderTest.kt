@@ -21,6 +21,7 @@ class VeteranDecoderTest {
     @Test fun `a real 36-byte frame decodes without CRC`() {
         // Complete frame as a wheel sends it: length byte 0x20, so 4 + 32 = 36 bytes. (An earlier
         // version of this vector had six zero bytes appended to fit a length read from offset 4.)
+        // These bytes are one of the frames in WheelLog's VeteranAdapterTest (see NOTICE).
         val frame = hex(
             """
             DC 5A 5C 20 25 CD 00 00  07 1F 00 00 C7 78 00 28

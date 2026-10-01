@@ -14,11 +14,12 @@ import org.junit.Test
 /**
  * Family V frames as real wheels send them.
  *
- * The three vectors are complete frames published in another open-source app's unit tests
- * (three different boards / firmware generations, provenance beyond that not stated). Each is
- * exactly 36 bytes: `DC 5A 5C`, then the value `0x20` at offset 3, and every field at the
- * offsets [VeteranDecoder] already reads. Offset 3 is the frame length (`0x20` = 32 bytes after
- * the four header bytes); offset 4 is the voltage's high byte, not a length.
+ * The three vectors are complete frames taken from WheelLog's unit tests (GPL-3.0,
+ * `VeteranAdapterTest.kt`; see NOTICE): three different boards / firmware generations, provenance
+ * beyond that not stated. Each is exactly 36 bytes: `DC 5A 5C`, then the value `0x20` at offset
+ * 3, and every field at the offsets [VeteranDecoder] already reads. Offset 3 is the frame length
+ * (`0x20` = 32 bytes after the four header bytes); offset 4 is the voltage's high byte, not a
+ * length.
  */
 class VeteranRealFrameTest {
 
