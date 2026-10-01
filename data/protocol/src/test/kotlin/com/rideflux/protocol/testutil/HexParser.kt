@@ -7,8 +7,8 @@ package com.rideflux.protocol.testutil
 
 /**
  * Parse a hexadecimal test-vector string (whitespace and newlines
- * ignored) into a [ByteArray]. Kept minimal because clean-room tests
- * must be independently auditable.
+ * ignored) into a [ByteArray]. Kept minimal so that the helper itself
+ * is easy to audit.
  */
 internal fun hex(text: String): ByteArray {
     val clean = text.filter { !it.isWhitespace() }

@@ -14,7 +14,7 @@ import org.junit.Test
 /**
  * §4.3.3 / §4.3.4 tests for I2 state-byte and error-bitmap decoders.
  *
- * Vectors are pinned to `clean-room/spec/TEST_VECTORS.md` entries
+ * Vectors are pinned to `TEST_VECTORS.md` entries
  * I2.6 (state bytes) and I2.7 (error bitmap).
  */
 class InmotionI2StatusTest {

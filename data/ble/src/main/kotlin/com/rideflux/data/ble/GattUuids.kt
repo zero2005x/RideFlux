@@ -12,7 +12,7 @@ import java.util.UUID
  * every wheel family supported by the app.
  *
  * The three topologies correspond one-to-one with sections of
- * `clean-room/spec/PROTOCOL_SPEC.md` §1:
+ * `PROTOCOL_SPEC.md` §1:
  *
  *   * [GattTopology.SINGLE_CHAR] — §1.1 first table. One primary
  *     service `FFE0`, one notify+write characteristic `FFE1`. Used by

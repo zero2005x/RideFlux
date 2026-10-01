@@ -21,7 +21,7 @@ class WheelFamilyTest {
 
     /**
      * Names and order, exactly as the family-key table in
-     * `clean-room/spec/PROTOCOL_SPEC.md` lists them. Changing this list
+     * `PROTOCOL_SPEC.md` lists them. Changing this list
      * is a persistence-breaking change, not a refactor.
      */
     private val specFamilyKeys = listOf("G", "GX", "K", "V", "N1", "N2", "I1", "I2")

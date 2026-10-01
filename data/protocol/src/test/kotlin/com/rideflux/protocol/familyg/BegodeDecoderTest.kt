@@ -14,9 +14,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pins decoder behaviour to the hex vectors in
- * `clean-room/spec/TEST_VECTORS.md` §1 and §2. Any deviation in the
- * decoder must be accompanied by a spec revision.
+ * Pins decoder behaviour to the hex vectors in `TEST_VECTORS.md` §1
+ * and §2. Any deviation in the decoder must be accompanied by a
+ * revision of those notes.
  */
 class BegodeDecoderTest {
 

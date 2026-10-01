@@ -14,7 +14,7 @@ import org.junit.Test
 /**
  * §4.3.1 / §4.3.2 tests for I1 state-word and alert-record decoders.
  *
- * Vectors are pinned to `clean-room/spec/TEST_VECTORS.md` entries
+ * Vectors are pinned to `TEST_VECTORS.md` entries
  * I1.7 (alert decode) and I1.8 (state word).
  */
 class InmotionI1StatusTest {
