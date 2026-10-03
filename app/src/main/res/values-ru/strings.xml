@@ -5,6 +5,24 @@
   Russian (Русский) translations for :app.
 -->
 <resources>
+    <string name="settings_hud_customize">Настроить HUD</string>
+    <string name="settings_hud_preview">Имитация просмотра</string>
+    <string name="settings_hud_hide">Скрыть HUD</string>
+    <string name="settings_hud_show">Показать HUD</string>
+    <string name="settings_hud_left">Левое поле</string>
+    <string name="settings_hud_right">Правое поле</string>
+    <string name="settings_hud_top">Верхнее поле</string>
+    <string name="settings_hud_bottom">Нижнее поле</string>
+    <string name="settings_hud_horizontal">Положение по горизонтали</string>
+    <string name="settings_hud_vertical">Положение по вертикали</string>
+    <string name="settings_hud_font">Размер текста</string>
+    <string name="settings_hud_clock">Часы</string>
+    <string name="settings_hud_phone_battery">Заряд телефона</string>
+    <string name="settings_hud_glasses_battery">Заряд очков</string>
+    <string name="settings_hud_signal">Сигнал</string>
+    <string name="settings_hud_wheel_battery">Заряд колеса</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_follow_system">Использовать язык системы</string>
 
     <string name="action_back">Назад</string>
     <string name="action_open">Открыть</string>

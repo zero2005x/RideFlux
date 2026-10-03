@@ -8,6 +8,7 @@ package com.rideflux.hud.source
 import android.content.Context
 import android.util.Log
 import com.rideflux.data.bridge.BridgeClient
+import com.rideflux.domain.settings.HudLayoutProfile
 import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.BridgePeerFilter
 import com.rideflux.data.bridge.SignalLevel
@@ -42,15 +43,19 @@ class BridgeTelemetrySource private constructor(
         pairedPhoneToken: ByteArray?,
         pairedPhoneMac: String?,
         glassesToken: ByteArray? = null,
+        onHudProfile: (HudLayoutProfile) -> Unit = {},
     ) : this(
         clientFrames = BridgeClient(
             context = context.applicationContext,
             peerFilter = peerFilterFor(pairedPhoneToken, pairedPhoneMac),
             clientToken = glassesToken,
+            onHudProfile = onHudProfile,
         )
             .let { client -> { client.frames() } },
         rokidFrames = { RokidCxrBridgeClient.frames() },
-    )
+    ) {
+        RokidCxrBridgeClient.setProfileListener(onHudProfile)
+    }
 
     @Suppress("UNUSED_PARAMETER")
     internal constructor(clientFrames: () -> Flow<BridgeFrame>, testOnly: Unit) :

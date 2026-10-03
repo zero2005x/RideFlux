@@ -9,6 +9,8 @@ import android.util.Log
 import com.rideflux.data.bridge.BridgeCodec
 import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.BridgeProtocol
+import com.rideflux.data.bridge.HudProfileCodec
+import com.rideflux.domain.settings.HudLayoutProfile
 import com.rokid.cxr.CXRServiceBridge
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +21,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /** Process-wide receiver for the official Rokid CXR glasses channel. */
 internal object RokidCxrBridgeClient {
+    @Volatile private var profileListener: (HudLayoutProfile) -> Unit = {}
+
+    fun setProfileListener(listener: (HudLayoutProfile) -> Unit) {
+        profileListener = listener
+    }
     private val receivedFrames = MutableSharedFlow<BridgeFrame>(
         // CXR publishes at 20 Hz, so replaying an old frame after a HUD
         // collector restart is worse than waiting at most 50 ms for the
@@ -91,6 +98,10 @@ internal object RokidCxrBridgeClient {
                 }
                 receivedFrames.tryEmit(frame)
             }
+            val profileResult = candidate.subscribe(BridgeProtocol.CXR_HUD_PROFILE_CHANNEL) { _, _, value ->
+                value?.let(HudProfileCodec::decode)?.let { profileListener(it) }
+            }
+            if (profileResult != 0) Log.w(TAG, "CXR HUD profile subscribe returned $profileResult")
             if (result != 0) {
                 Log.w(TAG, "Rokid CXR subscribe returned $result")
                 return false

@@ -14,6 +14,7 @@ import com.rideflux.app.bridge.ApprovedGlassesStore
 import com.rideflux.app.bridge.BridgePairingStore
 import com.rideflux.app.bridge.BridgeService
 import com.rideflux.domain.settings.AppSettings
+import com.rideflux.domain.settings.HudLayoutProfile
 import com.rideflux.domain.settings.SettingsRepository
 import android.net.Uri
 import android.util.Log
@@ -85,6 +86,7 @@ class SettingsViewModel @Inject constructor(
     fun setBridgeAutostart(value: Boolean) = update { repository.setBridgeAutostart(value) }
     fun setStandbyLowLatency(value: Boolean) = update { repository.setBridgeStandbyAdvertiseLowLatency(value) }
     fun setHudMirrorHorizontally(value: Boolean) = update { repository.setHudMirrorHorizontally(value) }
+    fun setHudProfile(id: String, profile: HudLayoutProfile) = update { repository.setHudProfile(id, profile) }
 
     fun startLearningRingKey() {
         RingKeyLearner.startListening()

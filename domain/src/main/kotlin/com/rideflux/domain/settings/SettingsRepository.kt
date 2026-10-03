@@ -10,6 +10,10 @@ interface SettingsRepository {
     val settings: StateFlow<AppSettings>
     suspend fun current(): AppSettings
     suspend fun updateSettings(settings: AppSettings)
+    suspend fun setHudProfile(id: String, profile: HudLayoutProfile) {
+        val settings = current()
+        updateSettings(settings.copy(hudProfiles = settings.hudProfiles + (id to profile.normalized())))
+    }
 
     suspend fun setSpeedLimitKmh(value: Float)
     suspend fun setTemperatureLimitC(value: Float)

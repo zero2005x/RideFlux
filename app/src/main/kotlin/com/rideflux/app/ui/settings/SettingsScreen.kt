@@ -46,6 +46,7 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 import android.net.Uri
+import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -56,6 +57,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import java.text.SimpleDateFormat
 import java.util.Date
+import com.rideflux.data.preferences.AppLanguage
+import com.rideflux.domain.settings.HudLayoutProfile
 
 @Composable
 fun SettingsRoute(
@@ -67,6 +70,7 @@ fun SettingsRoute(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val pairingCode by viewModel.pairingCode.collectAsStateWithLifecycle()
     val linkMode by BridgeService.linkMode.collectAsStateWithLifecycle()
+    val hudVisible by BridgeService.hudVisible.collectAsStateWithLifecycle()
     val approvedGlasses by viewModel.approvedGlasses.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -99,6 +103,7 @@ fun SettingsRoute(
         pairingCode = pairingCode,
         linkMode = linkMode,
         approvedGlasses = approvedGlasses,
+        hudVisible = hudVisible,
         isLearningRingKey = isLearningRingKey,
         bondedDevices = bondedDevices,
         onRemoveApprovedGlasses = viewModel::removeApprovedGlasses,
@@ -126,6 +131,8 @@ fun SettingsRoute(
         },
         onStandbyLowLatency = viewModel::setStandbyLowLatency,
         onToggleMirror = { viewModel.setHudMirrorHorizontally(!settings.hudMirrorHorizontally) },
+        onHudProfile = viewModel::setHudProfile,
+        onHudVisible = { BridgeService.setHudVisible(it) },
         onStartLearnRingKey = viewModel::startLearningRingKey,
         onStopLearnRingKey = viewModel::stopLearningRingKey,
         onResetRingKey = viewModel::resetRingKey,
@@ -140,6 +147,7 @@ fun SettingsScreen(
     pairingCode: String? = null,
     linkMode: GlassesLinkMode = GlassesLinkMode.ANDROID_BLE,
     approvedGlasses: List<ApprovedGlasses> = emptyList(),
+    hudVisible: Boolean = true,
     isLearningRingKey: Boolean = false,
     bondedDevices: List<SettingsViewModel.BondedDevice> = emptyList(),
     onRemoveApprovedGlasses: (ApprovedGlasses) -> Unit = {},
@@ -159,12 +167,52 @@ fun SettingsScreen(
     onBridgeAutostart: (Boolean) -> Unit,
     onStandbyLowLatency: (Boolean) -> Unit,
     onToggleMirror: () -> Unit = {},
+    onHudProfile: (String, HudLayoutProfile) -> Unit = { _, _ -> },
+    onHudVisible: (Boolean) -> Unit = {},
     onStartLearnRingKey: () -> Unit = {},
     onStopLearnRingKey: () -> Unit = {},
     onResetRingKey: () -> Unit = {},
     onSelectPreferredGlasses: (String?) -> Unit = {},
 ) {
     val thresholds = settings.alertThresholds
+    var editingHudId by remember { mutableStateOf<String?>(null) }
+    editingHudId?.let { id ->
+        HudProfileEditor(
+            profile = settings.hudProfiles[id] ?: HudLayoutProfile(),
+            hudVisible = hudVisible,
+            onProfileChange = { onHudProfile(id, it) },
+            onHudVisible = onHudVisible,
+            onDismiss = { editingHudId = null },
+        )
+    }
+    val languageContext = LocalContext.current
+    var showLanguagePicker by remember { mutableStateOf(false) }
+    if (showLanguagePicker) {
+        AlertDialog(
+            onDismissRequest = { showLanguagePicker = false },
+            title = { Text(stringResource(R.string.settings_language)) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    (listOf("") + AppLanguage.supportedTags).forEach { tag ->
+                        val name = if (tag.isEmpty()) stringResource(R.string.settings_follow_system)
+                            else Locale.forLanguageTag(tag).getDisplayName(Locale.forLanguageTag(tag))
+                        ListItem(
+                            headlineContent = { Text(name) },
+                            modifier = Modifier.clickable {
+                                (languageContext as? Activity)?.let { AppLanguage.set(it, tag) }
+                                showLanguagePicker = false
+                            },
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLanguagePicker = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip"),
@@ -314,6 +362,15 @@ fun SettingsScreen(
             )
             HorizontalDivider()
             SectionTitle(stringResource(R.string.settings_section_display))
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_language)) },
+                supportingContent = {
+                    val tag = AppLanguage.selected(languageContext)
+                    Text(if (tag.isEmpty()) stringResource(R.string.settings_follow_system)
+                        else Locale.forLanguageTag(tag).getDisplayName(Locale.forLanguageTag(tag)))
+                },
+                modifier = Modifier.clickable { showLanguagePicker = true },
+            )
             ToggleItem(
                 stringResource(R.string.settings_metric_units_title),
                 stringResource(R.string.settings_metric_units_subtitle),
@@ -328,6 +385,28 @@ fun SettingsScreen(
             )
             HorizontalDivider()
             SectionTitle(stringResource(R.string.settings_section_hud_bridge))
+            approvedGlasses.forEach { glass ->
+                val profileId = glass.tokenHex ?: glass.mac?.replace(":", "")
+                if (profileId != null) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.settings_hud_customize)) },
+                        supportingContent = { Text(glass.shortCode) },
+                        modifier = Modifier.clickable { editingHudId = profileId },
+                    )
+                }
+            }
+            bondedDevices.filter { device ->
+                (device.name.contains("rokid", ignoreCase = true) ||
+                    device.name.contains("glass", ignoreCase = true) ||
+                    device.address.equals(settings.preferredGlassesMac, ignoreCase = true)) &&
+                    approvedGlasses.none { it.mac.equals(device.address, ignoreCase = true) }
+            }.forEach { device ->
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.settings_hud_customize)) },
+                    supportingContent = { Text("${device.name} · ${device.address}") },
+                    modifier = Modifier.clickable { editingHudId = device.address.replace(":", "") },
+                )
+            }
             ListItem(
                 headlineContent = { Text(stringResource(R.string.glasses_setup_title)) },
                 supportingContent = { Text(stringResource(R.string.glasses_setup_subtitle)) },

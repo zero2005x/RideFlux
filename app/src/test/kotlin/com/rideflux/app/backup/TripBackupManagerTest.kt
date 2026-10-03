@@ -10,6 +10,7 @@ import com.rideflux.domain.ride.TripRepository
 import com.rideflux.domain.ride.TripSample
 import com.rideflux.domain.settings.AlertThresholds
 import com.rideflux.domain.settings.AppSettings
+import com.rideflux.domain.settings.HudLayoutProfile
 import com.rideflux.domain.settings.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +40,10 @@ class TripBackupManagerTest {
 
         settingsRepo.updateSettings(
             AppSettings(
+                hudProfiles = mapOf(
+                    "abcd1234abcd1234" to HudLayoutProfile(leftInset = 12, fontPercent = 125),
+                    "9876abcd9876abcd" to HudLayoutProfile(rightInset = 8, visibleItems = 95),
+                ),
                 alertThresholds = AlertThresholds(
                     speedLimitKmh = 52f,
                     temperatureLimitC = 85f,
@@ -184,6 +189,9 @@ class TripBackupManagerTest {
 
         // Verify restored settings
         val restoredSettings = freshSettingsRepo.current()
+        assertEquals(2, restoredSettings.hudProfiles.size)
+        assertEquals(12, restoredSettings.hudProfiles["abcd1234abcd1234"]?.leftInset)
+        assertEquals(95, restoredSettings.hudProfiles["9876abcd9876abcd"]?.visibleItems)
         assertEquals(52f, restoredSettings.alertThresholds.speedLimitKmh)
         assertEquals(85f, restoredSettings.alertThresholds.temperatureLimitC)
         assertEquals(20f, restoredSettings.alertThresholds.lowBatteryPercent)

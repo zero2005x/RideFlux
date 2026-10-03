@@ -5,6 +5,8 @@
   Hindi (हिन्दी) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">भाषा</string>
+    <string name="hud_follow_system">सिस्टम की भाषा का उपयोग करें</string>
     <string name="hud_waiting_phone_title">फ़ोन की\nप्रतीक्षा</string>
     <string name="hud_waiting_phone_subtitle">RideFlux खोजा जा रहा है…</string>
     <string name="hud_phone_connected_title">फ़ोन\nजुड़ा</string>

@@ -17,12 +17,14 @@ centrals never fight over the wheel.
 |---|---|
 | Service UUID | `e7810a71-73ae-499d-8c15-faa9aef0c3f2` |
 | Telemetry characteristic | `e7810a72-73ae-499d-8c15-faa9aef0c3f2` (notify-only) |
+| HUD profile characteristic | `e7810a74-73ae-499d-8c15-faa9aef0c3f2` (read-only, per approved glasses token) |
 | Magic byte | `0x52` (`'R'`) |
 | Protocol version | `2` (20-byte frame) |
 | Frame size (v2) | 20 bytes, little-endian — fits the default 23-byte ATT MTU |
 | Preferred ATT MTU | 64 (client-initiated; v2 never depends on it) |
 | Pairing token | 8 bytes of service data under the service UUID, in the scan response |
 | Rokid CXR channel | `rideflux.telemetry.v1` |
+| Rokid CXR HUD profile channel | `rideflux.hud-profile.v1` |
 
 **Pairing identity.** The glasses must recognise *their* phone and reject everyone
 else, because a BLE service UUID is public and anyone can advertise fabricated
@@ -84,6 +86,14 @@ is retained decode-only so a glasses APK updated ahead of the phone still reads
 frames during a mixed-install window. Any breaking change must bump
 `PROTOCOL_VERSION`.
 
+The glasses read a separate 10-byte, versioned HUD profile every second after
+subscribing to telemetry. This keeps the telemetry frame at 20 bytes and lets
+older clients ignore the new characteristic. The phone looks up the profile by
+the glasses handshake token (or legacy MAC) and stores one profile per device.
+The CXR publisher sends the same payload on its profile channel when it changes
+and periodically while connected. The HUD applies the profile locally; the
+phone can edit profiles offline and sends the latest value on reconnect.
+
 ---
 
 ## 繁體中文
@@ -98,12 +108,14 @@ frames during a mixed-install window. Any breaking change must bump
 |---|---|
 | 服務 UUID | `e7810a71-73ae-499d-8c15-faa9aef0c3f2` |
 | 遙測特徵值 | `e7810a72-73ae-499d-8c15-faa9aef0c3f2`（僅通知） |
+| HUD 偏好特徵值 | `e7810a74-73ae-499d-8c15-faa9aef0c3f2`（唯讀，依已核准眼鏡權杖選取） |
 | 魔術位元組 | `0x52`（`'R'`） |
 | 協定版本 | `2`（20 位元組封包） |
 | 封包大小（v2） | 20 位元組，小端序 — 可容於預設的 23 位元組 ATT MTU |
 | 偏好 ATT MTU | 64（由用戶端發起協商；v2 不依賴協商結果） |
 | 配對權杖 | 8 位元組，以服務 UUID 的 service data 放在掃描回應中 |
 | Rokid CXR 通道 | `rideflux.telemetry.v1` |
+| Rokid CXR HUD 偏好通道 | `rideflux.hud-profile.v1` |
 
 **配對身分。** 眼鏡必須認得「自己的」手機並拒絕其他裝置 —— BLE 服務 UUID 是公開的，
 任何人都能用它廣播偽造的遙測資料。這個身分是配對權杖，而不是 MAC 位址：Android 廣播時
@@ -135,3 +147,8 @@ PDU 合併成單一 `ScanRecord`，因此接收端透過 `ScanRecord.getServiceD
 將訊號等級併入 flags 位元組並把時間戳縮為一個字，確保單一通知一定能承載完整封包；先前的
 32 位元組 v1 版面保留為「僅解碼」，讓比手機先更新的眼鏡 APK 在混合安裝期間仍讀得懂。任何
 破壞性變更都必須遞增 `PROTOCOL_VERSION`。
+
+眼鏡訂閱遙測後每秒讀取獨立的 10 位元組 HUD 偏好資料。它有自己的版本號，不占用原本
+20 位元組的遙測封包；舊版眼鏡會忽略新增的特徵值。手機以眼鏡握手權杖（舊版則以 MAC）
+尋找各自的版面設定。CXR 連線透過另一個通道在設定變更時及連線期間定期傳送相同資料。
+手機離線時仍可編輯，重連後眼鏡會套用最新設定。

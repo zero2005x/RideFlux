@@ -26,6 +26,7 @@ fun signingCredential(name: String): String? =
         }
 
 android {
+    androidResources { generateLocaleConfig = true }
     namespace = "com.rideflux.hud"
     compileSdk = 36
 

@@ -275,12 +275,24 @@ class BridgeService : Service() {
                             onState = ::setLinkState,
                             onAuthorizationRequested = ::handleAuthorizationRequested,
                             onAuthorizationDismissed = ::handleAuthorizationDismissed,
+                            profileFor = { id ->
+                                val pairedToken = ApprovedGlassesStore.getAll(applicationContext)
+                                    .firstOrNull { it.mac?.replace(":", "").equals(id, ignoreCase = true) }
+                                    ?.tokenHex
+                                pairedToken?.let { settingsRepository.settings.value.hudProfiles[it] }
+                                    ?: settingsRepository.settings.value.hudProfiles[id]
+                                    ?: com.rideflux.domain.settings.HudLayoutProfile()
+                            },
                         )
                         GlassesLinkMode.ROKID_CXR -> RokidCxrBridgePublisher(
                             applicationContext,
                             scope,
                             ::setLinkState,
                             preferredGlassesMacProvider = { settingsRepository.settings.value.preferredGlassesMac },
+                            profileFor = { id ->
+                                settingsRepository.settings.value.hudProfiles[id]
+                                    ?: com.rideflux.domain.settings.HudLayoutProfile()
+                            },
                         )
                     }
                     candidate = opening

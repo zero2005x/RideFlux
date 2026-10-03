@@ -5,6 +5,24 @@
   Standard German (Deutsch) translations for :app.
 -->
 <resources>
+    <string name="settings_hud_customize">HUD anpassen</string>
+    <string name="settings_hud_preview">Simulierte Vorschau</string>
+    <string name="settings_hud_hide">HUD ausblenden</string>
+    <string name="settings_hud_show">HUD anzeigen</string>
+    <string name="settings_hud_left">Linker Rand</string>
+    <string name="settings_hud_right">Rechter Rand</string>
+    <string name="settings_hud_top">Oberer Rand</string>
+    <string name="settings_hud_bottom">Unterer Rand</string>
+    <string name="settings_hud_horizontal">Horizontale Position</string>
+    <string name="settings_hud_vertical">Vertikale Position</string>
+    <string name="settings_hud_font">Textgröße</string>
+    <string name="settings_hud_clock">Uhr</string>
+    <string name="settings_hud_phone_battery">Handyakku</string>
+    <string name="settings_hud_glasses_battery">Brillenakku</string>
+    <string name="settings_hud_signal">Signal</string>
+    <string name="settings_hud_wheel_battery">Fahrzeugakku</string>
+    <string name="settings_language">Sprache</string>
+    <string name="settings_follow_system">Systemsprache verwenden</string>
 
     <string name="action_back">Zurück</string>
     <string name="action_open">Öffnen</string>

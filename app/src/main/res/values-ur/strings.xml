@@ -6,6 +6,24 @@
   android:supportsRtl="true" in the manifest.
 -->
 <resources>
+    <string name="settings_hud_customize">HUD حسب ضرورت</string>
+    <string name="settings_hud_preview">تجرباتی پیش نظارہ</string>
+    <string name="settings_hud_hide">HUD چھپائیں</string>
+    <string name="settings_hud_show">HUD دکھائیں</string>
+    <string name="settings_hud_left">بایاں حاشیہ</string>
+    <string name="settings_hud_right">دایاں حاشیہ</string>
+    <string name="settings_hud_top">اوپری حاشیہ</string>
+    <string name="settings_hud_bottom">نچلا حاشیہ</string>
+    <string name="settings_hud_horizontal">افقی مقام</string>
+    <string name="settings_hud_vertical">عمودی مقام</string>
+    <string name="settings_hud_font">متن کا سائز</string>
+    <string name="settings_hud_clock">گھڑی</string>
+    <string name="settings_hud_phone_battery">فون کی بیٹری</string>
+    <string name="settings_hud_glasses_battery">چشمے کی بیٹری</string>
+    <string name="settings_hud_signal">سگنل</string>
+    <string name="settings_hud_wheel_battery">گاڑی کی بیٹری</string>
+    <string name="settings_language">زبان</string>
+    <string name="settings_follow_system">سسٹم کی زبان استعمال کریں</string>
 
     <string name="action_back">واپس</string>
     <string name="action_open">کھولیں</string>

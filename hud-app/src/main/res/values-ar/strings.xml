@@ -5,6 +5,8 @@
   Modern Standard Arabic (العربية) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">اللغة</string>
+    <string name="hud_follow_system">اتباع لغة النظام</string>
     <string name="hud_waiting_phone_title">بانتظار\nالهاتف</string>
     <string name="hud_waiting_phone_subtitle">جارٍ البحث عن RideFlux…</string>
     <string name="hud_phone_connected_title">تم الاتصال\nبالهاتف</string>

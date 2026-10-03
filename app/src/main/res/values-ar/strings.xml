@@ -6,6 +6,24 @@
   enabled via android:supportsRtl="true" in the manifest.
 -->
 <resources>
+    <string name="settings_hud_customize">تخصيص العرض</string>
+    <string name="settings_hud_preview">معاينة تجريبية</string>
+    <string name="settings_hud_hide">إخفاء العرض</string>
+    <string name="settings_hud_show">إظهار العرض</string>
+    <string name="settings_hud_left">الهامش الأيسر</string>
+    <string name="settings_hud_right">الهامش الأيمن</string>
+    <string name="settings_hud_top">الهامش العلوي</string>
+    <string name="settings_hud_bottom">الهامش السفلي</string>
+    <string name="settings_hud_horizontal">الموضع الأفقي</string>
+    <string name="settings_hud_vertical">الموضع العمودي</string>
+    <string name="settings_hud_font">حجم النص</string>
+    <string name="settings_hud_clock">الساعة</string>
+    <string name="settings_hud_phone_battery">بطارية الهاتف</string>
+    <string name="settings_hud_glasses_battery">بطارية النظارة</string>
+    <string name="settings_hud_signal">الإشارة</string>
+    <string name="settings_hud_wheel_battery">بطارية المركبة</string>
+    <string name="settings_language">اللغة</string>
+    <string name="settings_follow_system">اتباع لغة النظام</string>
 
     <string name="action_back">رجوع</string>
     <string name="action_open">فتح</string>

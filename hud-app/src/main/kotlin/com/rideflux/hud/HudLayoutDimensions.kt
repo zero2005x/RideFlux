@@ -35,17 +35,17 @@ data class HudLayoutDimensions(
          * Calculates responsive HUD dimension tokens from available viewport width and height in dp.
          */
         fun calculate(widthDp: Float, heightDp: Float): HudLayoutDimensions {
-            val effectiveWidth = widthDp.coerceAtLeast(240f)
-            val effectiveHeight = heightDp.coerceAtLeast(200f)
+            val effectiveWidth = widthDp.coerceAtLeast(120f)
+            val effectiveHeight = heightDp.coerceAtLeast(120f)
 
             val widthScale = effectiveWidth / BASELINE_WIDTH_DP
             val heightScale = effectiveHeight / BASELINE_HEIGHT_DP
-            val scale = minOf(widthScale, heightScale * 1.25f).coerceIn(0.75f, 3.5f)
+            val scale = minOf(widthScale, heightScale * 1.25f).coerceIn(0.4f, 3.5f)
 
             val horizontalPadding = (effectiveWidth * 0.02f).coerceIn(4f, 24f)
             val usableWidth = effectiveWidth - (horizontalPadding * 2f)
-            val sideWidth = (usableWidth * 0.285f).coerceIn(75f, 350f)
-            val centerWidth = (usableWidth * 0.41f).coerceIn(110f, 600f)
+            val sideWidth = (usableWidth * 0.285f).coerceIn(30f, 350f)
+            val centerWidth = (usableWidth * 0.41f).coerceIn(45f, 600f)
 
             val topPadding = (effectiveHeight * 0.08f).coerceIn(16f, 64f)
             val bottomPadding = (effectiveHeight * 0.05f).coerceIn(12f, 48f)
@@ -58,12 +58,12 @@ data class HudLayoutDimensions(
                 topPaddingDp = topPadding,
                 bottomPaddingDp = bottomPadding,
                 speedFontSizeSp = 72f * scale,
-                speedUnitFontSizeSp = (16f * scale).coerceAtLeast(12f),
+                speedUnitFontSizeSp = (16f * scale).coerceAtLeast(8f),
                 clockFontSizeSp = 20f * scale,
                 batteryFontSizeSp = 22f * scale,
-                labelFontSizeSp = (14f * scale).coerceAtLeast(11f),
-                iconSizeDp = (16f * scale).coerceIn(14f, 48f),
-                verticalSpacingDp = (8f * scale).coerceIn(6f, 24f),
+                labelFontSizeSp = (14f * scale).coerceAtLeast(8f),
+                iconSizeDp = (16f * scale).coerceIn(10f, 48f),
+                verticalSpacingDp = (8f * scale).coerceIn(4f, 24f),
             )
         }
     }

@@ -10,6 +10,8 @@ import com.rideflux.app.BuildConfig
 import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.BridgeServer
 import com.rideflux.data.bridge.BridgeServerPeerAuthorizer
+import com.rideflux.data.bridge.BridgePairingToken
+import com.rideflux.domain.settings.HudLayoutProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 
@@ -54,6 +56,7 @@ internal class NativeBleBridgePublisher(
     private val onState: (GlassesLinkState) -> Unit,
     private val onAuthorizationRequested: (GlassesAuthorizationRequest) -> Unit = {},
     private val onAuthorizationDismissed: (deviceAddress: String) -> Unit = {},
+    private val profileFor: (String) -> HudLayoutProfile = { HudLayoutProfile() },
 ) : BridgePublisher {
     private val authorizer: BridgeServerPeerAuthorizer = if (BuildConfig.DEBUG) {
         BridgeServerPeerAuthorizer.AcceptAny
@@ -78,6 +81,9 @@ internal class NativeBleBridgePublisher(
         context = context,
         pairingToken = BridgePairingStore.readOrCreate(context),
         peerAuthorizer = authorizer,
+        profileFor = { token, mac ->
+            profileFor(token?.let(BridgePairingToken::toHex) ?: mac.replace(":", ""))
+        },
         onSubscriberStateChanged = { connected ->
             onState(if (connected) GlassesLinkState.CONNECTED else GlassesLinkState.READY)
         },

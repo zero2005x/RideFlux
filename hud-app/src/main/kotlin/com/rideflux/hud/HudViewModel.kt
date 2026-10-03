@@ -155,6 +155,9 @@ class HudViewModel @Inject constructor(
             macStore.readPairedPhoneToken(),
             macStore.readPairedPhoneMac(),
             macStore.readOrCreateGlassesToken(),
+            onHudProfile = { profile ->
+                viewModelScope.launch { settingsRepository.setHudProfile("local", profile) }
+            },
         )
         targetAddress != null -> DirectWheelTelemetrySource(
             wheelRepository = wheelRepository,
@@ -366,6 +369,9 @@ class HudViewModel @Inject constructor(
                 macStore.readPairedPhoneToken(),
                 macStore.readPairedPhoneMac(),
                 macStore.readOrCreateGlassesToken(),
+                onHudProfile = { profile ->
+                    viewModelScope.launch { settingsRepository.setHudProfile("local", profile) }
+                },
             )
         }
     }

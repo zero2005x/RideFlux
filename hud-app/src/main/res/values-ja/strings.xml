@@ -5,6 +5,8 @@
   Japanese (日本語) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">言語</string>
+    <string name="hud_follow_system">システムの言語に従う</string>
     <string name="hud_waiting_phone_title">スマホを\n待機中</string>
     <string name="hud_waiting_phone_subtitle">RideFlux を検索中…</string>
     <string name="hud_phone_connected_title">スマホ\n接続済み</string>

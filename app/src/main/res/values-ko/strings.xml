@@ -5,6 +5,24 @@
   Korean (한국어) translations for :app.
 -->
 <resources>
+    <string name="settings_hud_customize">HUD 맞춤 설정</string>
+    <string name="settings_hud_preview">시뮬레이션 미리보기</string>
+    <string name="settings_hud_hide">HUD 숨기기</string>
+    <string name="settings_hud_show">HUD 표시</string>
+    <string name="settings_hud_left">왼쪽 여백</string>
+    <string name="settings_hud_right">오른쪽 여백</string>
+    <string name="settings_hud_top">위쪽 여백</string>
+    <string name="settings_hud_bottom">아래쪽 여백</string>
+    <string name="settings_hud_horizontal">가로 위치</string>
+    <string name="settings_hud_vertical">세로 위치</string>
+    <string name="settings_hud_font">글자 크기</string>
+    <string name="settings_hud_clock">시계</string>
+    <string name="settings_hud_phone_battery">휴대전화 배터리</string>
+    <string name="settings_hud_glasses_battery">안경 배터리</string>
+    <string name="settings_hud_signal">신호</string>
+    <string name="settings_hud_wheel_battery">차량 배터리</string>
+    <string name="settings_language">언어</string>
+    <string name="settings_follow_system">시스템 언어 사용</string>
 
     <string name="action_back">뒤로</string>
     <string name="action_open">열기</string>

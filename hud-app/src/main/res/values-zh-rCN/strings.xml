@@ -5,6 +5,8 @@
   Simplified Chinese (华语) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">语言</string>
+    <string name="hud_follow_system">跟随系统</string>
     <string name="hud_waiting_phone_title">等待\n手机</string>
     <string name="hud_waiting_phone_subtitle">正在搜索 RideFlux…</string>
     <string name="hud_phone_connected_title">手机\n已连接</string>

@@ -49,6 +49,10 @@ render at 40 sp.
 `SUPPORTED_LOCALE_QUALIFIERS` in both apps' `i18n/StringResources.kt`, which is what the
 coverage test iterates.
 
+Both APKs offer a language picker and default to the device language. On Android 13+
+their resources generate the system per-app language list; on Android 9–12 each
+APK stores its own choice and applies it before its Activity starts.
+
 ---
 
 ## 繁體中文
@@ -92,3 +96,6 @@ coverage test iterates.
 
 **新增語言**還需要把該限定符加進兩個 app 的 `i18n/StringResources.kt` 中的
 `SUPPORTED_LOCALE_QUALIFIERS`，覆蓋率測試正是依此列表逐一檢查。
+
+兩個 APK 各有語言選單，預設跟隨各自裝置。Android 13 以上會從翻譯資源產生系統的
+App 語言清單；Android 9–12 則由各自 APK 保存選擇，並在 Activity 啟動前套用。

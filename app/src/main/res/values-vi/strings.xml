@@ -5,6 +5,24 @@
   Vietnamese (Tiếng Việt) translations for :app.
 -->
 <resources>
+    <string name="settings_hud_customize">Tùy chỉnh HUD</string>
+    <string name="settings_hud_preview">Xem trước mô phỏng</string>
+    <string name="settings_hud_hide">Ẩn HUD</string>
+    <string name="settings_hud_show">Hiện HUD</string>
+    <string name="settings_hud_left">Lề trái</string>
+    <string name="settings_hud_right">Lề phải</string>
+    <string name="settings_hud_top">Lề trên</string>
+    <string name="settings_hud_bottom">Lề dưới</string>
+    <string name="settings_hud_horizontal">Vị trí ngang</string>
+    <string name="settings_hud_vertical">Vị trí dọc</string>
+    <string name="settings_hud_font">Cỡ chữ</string>
+    <string name="settings_hud_clock">Đồng hồ</string>
+    <string name="settings_hud_phone_battery">Pin điện thoại</string>
+    <string name="settings_hud_glasses_battery">Pin kính</string>
+    <string name="settings_hud_signal">Tín hiệu</string>
+    <string name="settings_hud_wheel_battery">Pin xe</string>
+    <string name="settings_language">Ngôn ngữ</string>
+    <string name="settings_follow_system">Theo ngôn ngữ hệ thống</string>
 
     <string name="action_back">Quay lại</string>
     <string name="action_open">Mở</string>
