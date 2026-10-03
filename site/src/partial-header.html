@@ -1,0 +1,14 @@
+<header class="site-header">
+  <div class="container bar">
+    <a class="brand" href="{{v:home}}"><img src="{{v:root}}assets/icons/icon-192.png" width="32" height="32" alt=""><span>RideFlux</span></a>
+    <nav class="nav" aria-label="{{p:nav.label}}">{{@nav_links}}</nav>
+    <div class="bar-actions">
+      {{@lang_menu}}
+      <a class="btn btn-sm btn-primary" href="{{v:play_url}}">Google Play</a>
+      <details class="menu">
+        <summary aria-label="{{p:nav.menu}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
+        <div class="popover">{{@nav_links}}</div>
+      </details>
+    </div>
+  </div>
+</header>

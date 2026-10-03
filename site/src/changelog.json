@@ -1,0 +1,17 @@
+{
+  "releases": [
+    {
+      "version": "0.1.10",
+      "date": "2026-10-01",
+      "url": "https://github.com/zero2005x/RideFlux/releases/tag/v0.1.10",
+      "notes": [
+        "Enhanced BLE bridge pairing and auto-recovery for HUD glasses.",
+        "Refined telemetry decoders for Veteran and InMotion I1 wheels.",
+        "Added battery pack capacity setting for Begode models.",
+        "Fixed stability when connecting external Bluetooth remotes.",
+        "Added notification permission guidance for background tracking.",
+        "Full Android 16 KB page size support."
+      ]
+    }
+  ]
+}

@@ -120,3 +120,6 @@ credentials.properties
 # - gradle/wrapper/gradle-wrapper.jar
 # - gradle/verification-metadata.xml
 # - data/database/schemas/**/*.json (Room migration history)
+
+# Website build output (see site/README.md)
+site/dist/
