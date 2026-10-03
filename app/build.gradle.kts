@@ -55,6 +55,7 @@ val rokidSnAuthBase64 = if (embedCxrCredentials) {
 
 android {
     namespace = "com.rideflux.app"
+    androidResources { generateLocaleConfig = true }
     compileSdk = 36
 
     defaultConfig {

@@ -5,6 +5,24 @@
   Japanese (日本語) translations for :app.
 -->
 <resources>
+    <string name="settings_hud_customize">HUDをカスタマイズ</string>
+    <string name="settings_hud_preview">シミュレーション表示</string>
+    <string name="settings_hud_hide">HUDを隠す</string>
+    <string name="settings_hud_show">HUDを表示</string>
+    <string name="settings_hud_left">左余白</string>
+    <string name="settings_hud_right">右余白</string>
+    <string name="settings_hud_top">上余白</string>
+    <string name="settings_hud_bottom">下余白</string>
+    <string name="settings_hud_horizontal">横位置</string>
+    <string name="settings_hud_vertical">縦位置</string>
+    <string name="settings_hud_font">文字サイズ</string>
+    <string name="settings_hud_clock">時計</string>
+    <string name="settings_hud_phone_battery">スマートフォンの電池</string>
+    <string name="settings_hud_glasses_battery">グラスの電池</string>
+    <string name="settings_hud_signal">信号</string>
+    <string name="settings_hud_wheel_battery">車両の電池</string>
+    <string name="settings_language">言語</string>
+    <string name="settings_follow_system">システムの言語に従う</string>
 
     <string name="action_back">戻る</string>
     <string name="action_open">開く</string>

@@ -13,6 +13,8 @@
   `LocalizationCoverageTest` fails the build otherwise.
 -->
 <resources>
+    <string name="hud_language">Language</string>
+    <string name="hud_follow_system">Follow system</string>
 
     <!-- ===== Application / brand ===================================== -->
     <string name="app_name" translatable="false">RideFlux HUD</string>

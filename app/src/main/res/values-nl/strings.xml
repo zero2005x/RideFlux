@@ -5,6 +5,24 @@
   Dutch (Nederlands) translations for :app.
 -->
 <resources>
+    <string name="settings_hud_customize">HUD aanpassen</string>
+    <string name="settings_hud_preview">Gesimuleerd voorbeeld</string>
+    <string name="settings_hud_hide">HUD verbergen</string>
+    <string name="settings_hud_show">HUD tonen</string>
+    <string name="settings_hud_left">Linkermarge</string>
+    <string name="settings_hud_right">Rechtermarge</string>
+    <string name="settings_hud_top">Bovenmarge</string>
+    <string name="settings_hud_bottom">Ondermarge</string>
+    <string name="settings_hud_horizontal">Horizontale positie</string>
+    <string name="settings_hud_vertical">Verticale positie</string>
+    <string name="settings_hud_font">Tekstgrootte</string>
+    <string name="settings_hud_clock">Klok</string>
+    <string name="settings_hud_phone_battery">Telefoonbatterij</string>
+    <string name="settings_hud_glasses_battery">Brilbatterij</string>
+    <string name="settings_hud_signal">Signaal</string>
+    <string name="settings_hud_wheel_battery">Voertuigbatterij</string>
+    <string name="settings_language">Taal</string>
+    <string name="settings_follow_system">Systeemtaal gebruiken</string>
 
     <string name="action_back">Terug</string>
     <string name="action_open">Openen</string>

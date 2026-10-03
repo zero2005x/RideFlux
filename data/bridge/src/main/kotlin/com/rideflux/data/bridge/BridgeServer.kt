@@ -26,6 +26,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
+import com.rideflux.domain.settings.HudLayoutProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -82,6 +83,7 @@ class BridgeServer(
     private val onSubscriberStateChanged: (Boolean) -> Unit = {},
     private val onAuthorizationRequested: (BluetoothDevice, ByteArray?) -> Unit = { _, _ -> },
     private val onAuthorizationTimedOut: (BluetoothDevice) -> Unit = {},
+    private val profileFor: (ByteArray?, String) -> HudLayoutProfile = { _, _ -> HudLayoutProfile() },
 ) {
 
     @Volatile private var gattServer: BluetoothGattServer? = null
@@ -173,6 +175,11 @@ class BridgeServer(
                 BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
             BluetoothGattCharacteristic.PERMISSION_WRITE,
         )
+        val hudProfile = BluetoothGattCharacteristic(
+            BridgeProtocol.HUD_PROFILE_CHAR_UUID,
+            BluetoothGattCharacteristic.PROPERTY_READ,
+            BluetoothGattCharacteristic.PERMISSION_READ,
+        )
 
         val service = BluetoothGattService(
             BridgeProtocol.SERVICE_UUID,
@@ -180,6 +187,7 @@ class BridgeServer(
         ).apply {
             addCharacteristic(char)
             addCharacteristic(handshake)
+            addCharacteristic(hudProfile)
         }
 
         val server = mgr.openGattServer(context, serverCallback)
@@ -497,6 +505,25 @@ class BridgeServer(
     }
 
     private val serverCallback = object : BluetoothGattServerCallback() {
+        override fun onCharacteristicReadRequest(
+            device: BluetoothDevice,
+            requestId: Int,
+            offset: Int,
+            characteristic: BluetoothGattCharacteristic,
+        ) {
+            if (characteristic.uuid != BridgeProtocol.HUD_PROFILE_CHAR_UUID ||
+                !subscribers.contains(device)) {
+                gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_READ_NOT_PERMITTED, offset, null)
+                return
+            }
+            val bytes = HudProfileCodec.encode(profileFor(deviceHandshakeTokens[device], device.address))
+            if (offset > bytes.size) {
+                gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_INVALID_OFFSET, offset, null)
+            } else {
+                gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset,
+                    bytes.copyOfRange(offset, bytes.size))
+            }
+        }
         override fun onServiceAdded(status: Int, service: BluetoothGattService) {
             if (service.uuid != BridgeProtocol.SERVICE_UUID) return
             val ok = status == BluetoothGatt.GATT_SUCCESS

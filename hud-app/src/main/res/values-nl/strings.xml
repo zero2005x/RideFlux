@@ -5,6 +5,8 @@
   Dutch (Nederlands) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">Taal</string>
+    <string name="hud_follow_system">Systeemtaal gebruiken</string>
     <string name="hud_waiting_phone_title">WACHT OP\nTELEFOON</string>
     <string name="hud_waiting_phone_subtitle">Zoeken naar RideFlux…</string>
     <string name="hud_phone_connected_title">TELEFOON\nVERBONDEN</string>

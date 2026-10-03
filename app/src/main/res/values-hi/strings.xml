@@ -5,6 +5,24 @@
   Hindi (हिन्दी) translations for :app.
 -->
 <resources>
+    <string name="settings_hud_customize">HUD अनुकूलित करें</string>
+    <string name="settings_hud_preview">सिम्युलेटेड पूर्वावलोकन</string>
+    <string name="settings_hud_hide">HUD छिपाएँ</string>
+    <string name="settings_hud_show">HUD दिखाएँ</string>
+    <string name="settings_hud_left">बायाँ हाशिया</string>
+    <string name="settings_hud_right">दायाँ हाशिया</string>
+    <string name="settings_hud_top">ऊपरी हाशिया</string>
+    <string name="settings_hud_bottom">निचला हाशिया</string>
+    <string name="settings_hud_horizontal">क्षैतिज स्थिति</string>
+    <string name="settings_hud_vertical">ऊर्ध्वाधर स्थिति</string>
+    <string name="settings_hud_font">पाठ का आकार</string>
+    <string name="settings_hud_clock">घड़ी</string>
+    <string name="settings_hud_phone_battery">फ़ोन बैटरी</string>
+    <string name="settings_hud_glasses_battery">चश्मे की बैटरी</string>
+    <string name="settings_hud_signal">सिग्नल</string>
+    <string name="settings_hud_wheel_battery">वाहन बैटरी</string>
+    <string name="settings_language">भाषा</string>
+    <string name="settings_follow_system">सिस्टम की भाषा का उपयोग करें</string>
 
     <string name="action_back">वापस</string>
     <string name="action_open">खोलें</string>

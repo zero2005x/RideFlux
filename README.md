@@ -47,7 +47,7 @@ RideFlux connects to your electric unicycle (EUC) over Bluetooth Low Energy and 
 | 🥽 **AR glasses HUD** | An optional heads-up display on Rokid AR glasses, so you can keep your eyes up. A Bluetooth ring can show or hide it. [More ↓](#ar-glasses-hud) |
 | 🎛️ **Wheel controls** | Headlight, horn, speed limit, calibration and more — where the wheel supports them, and locked while you are moving. |
 | 🔒 **Private by design** | No internet permission, no ads, no analytics, no accounts. Everything stays on your phone unless you export it. |
-| 🌍 **18 languages** | Follows the device language automatically, including right-to-left Arabic and Urdu. |
+| 🌍 **18 languages** | Follows the device language by default, with a separate language choice on phone and glasses. Includes right-to-left Arabic and Urdu. |
 
 ## AR glasses HUD
 

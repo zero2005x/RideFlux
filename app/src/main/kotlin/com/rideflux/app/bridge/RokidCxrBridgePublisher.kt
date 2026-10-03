@@ -16,6 +16,8 @@ import com.rideflux.app.BuildConfig
 import com.rideflux.data.bridge.BridgeCodec
 import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.BridgeProtocol
+import com.rideflux.data.bridge.HudProfileCodec
+import com.rideflux.domain.settings.HudLayoutProfile
 import com.rokid.cxr.CXRServiceBridge
 import com.rokid.cxr.Caps
 import com.rokid.cxr.client.extend.CxrApi
@@ -50,11 +52,14 @@ internal class RokidCxrBridgePublisher(
     parentScope: CoroutineScope,
     private val onState: (GlassesLinkState) -> Unit,
     private val preferredGlassesMacProvider: (() -> String?)? = null,
+    private val profileFor: (String) -> HudLayoutProfile = { HudLayoutProfile() },
 ) : BridgePublisher {
 
     private val publisherJob = SupervisorJob(parentScope.coroutineContext[Job])
     private val scope = CoroutineScope(parentScope.coroutineContext + publisherJob)
     private val latestPayload = AtomicReference<ByteArray?>(null)
+    private var lastProfilePayload: ByteArray? = null
+    private var lastProfileSentAt = 0L
     @Volatile private var collectionJob: Job? = null
     @Volatile private var connectJob: Job? = null
     @Volatile private var connectTimeoutJob: Job? = null
@@ -204,7 +209,10 @@ internal class RokidCxrBridgePublisher(
                         return@collect
                     }
                     latestPayload.set(payload)
-                    if (connected) sendPayload(payload)
+                    if (connected) {
+                        sendPayload(payload)
+                        sendProfileIfNeeded()
+                    }
                 }
         }
     }
@@ -343,6 +351,22 @@ internal class RokidCxrBridgePublisher(
             if (result != 0) Log.w(TAG, "CXR telemetry send returned $result")
         } catch (t: Throwable) {
             Log.w(TAG, "CXR telemetry send failed: ${t.message}")
+        }
+    }
+
+    private fun sendProfileIfNeeded() {
+        val mac = targetDevice?.address?.replace(":", "") ?: return
+        val payload = HudProfileCodec.encode(profileFor(mac))
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (lastProfilePayload?.contentEquals(payload) == true && now - lastProfileSentAt < 5_000L) return
+        try {
+            val args = Caps().apply { writeInt32(1) }
+            if (messageBridge.sendMessage(BridgeProtocol.CXR_HUD_PROFILE_CHANNEL, args, payload) == 0) {
+                lastProfilePayload = payload
+                lastProfileSentAt = now
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "CXR HUD profile send failed: ${t.message}")
         }
     }
 

@@ -33,6 +33,7 @@ object BridgeProtocol {
 
     /** Official Rokid CXR message channel carrying the same v1 payload. */
     const val CXR_TELEMETRY_CHANNEL: String = "rideflux.telemetry.v1"
+    const val CXR_HUD_PROFILE_CHANNEL: String = "rideflux.hud-profile.v1"
 
     /**
      * Custom 128-bit service UUID advertised by the phone. The HUD
@@ -53,6 +54,9 @@ object BridgeProtocol {
      * authorization before telemetry subscription is activated.
      */
     val HANDSHAKE_CHAR_UUID: UUID = UUID.fromString("e7810a73-73ae-499d-8c15-faa9aef0c3f2")
+
+    /** Readable per-glasses HUD layout, polled by clients for live preview. */
+    val HUD_PROFILE_CHAR_UUID: UUID = UUID.fromString("e7810a74-73ae-499d-8c15-faa9aef0c3f2")
 
     /**
      * Standard Client Characteristic Configuration Descriptor used to

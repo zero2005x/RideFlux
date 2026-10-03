@@ -22,9 +22,11 @@ import android.os.Build
 import android.os.ParcelUuid
 import android.os.SystemClock
 import android.util.Log
+import com.rideflux.domain.settings.HudLayoutProfile
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -77,6 +79,7 @@ class BridgeClient(
     private val peerFilter: BridgePeerFilter = BridgePeerFilter.AcceptAny,
     private val scanThrottle: BleScanThrottle = BleScanThrottle.shared,
     private val clientToken: ByteArray? = null,
+    private val onHudProfile: (HudLayoutProfile) -> Unit = {},
 ) {
 
     // Normalise to the application context: this class retains it for
@@ -119,6 +122,9 @@ class BridgeClient(
         // Set once the CCCD write is confirmed; until then the watchdog
         // below is armed.
         val subscribed = AtomicBoolean(false)
+        val profilePollStarted = AtomicBoolean(false)
+        val profileReadInFlight = AtomicBoolean(false)
+        val profileReadStartedAt = AtomicLong(0L)
         // Set once the MTU exchange has been resolved one way or the
         // other (onMtuChanged arrived, requestMtu was rejected, or the
         // fallback timer fired), so service discovery starts exactly
@@ -369,6 +375,56 @@ class BridgeClient(
                     close(IllegalStateException("CCCD write failed status=$status"))
                 } else {
                     subscribed.set(true)
+                    val profileChar = g.getService(BridgeProtocol.SERVICE_UUID)
+                        ?.getCharacteristic(BridgeProtocol.HUD_PROFILE_CHAR_UUID)
+                    if (profileChar != null && profilePollStarted.compareAndSet(false, true)) {
+                        launch {
+                            while (isActive) {
+                                val now = SystemClock.elapsedRealtime()
+                                if (profileReadInFlight.get() && now - profileReadStartedAt.get() > 3_000L) {
+                                    profileReadInFlight.set(false)
+                                }
+                                if (profileReadInFlight.compareAndSet(false, true)) {
+                                    profileReadStartedAt.set(now)
+                                    val accepted = runCatching { g.readCharacteristic(profileChar) }
+                                        .getOrDefault(false)
+                                    if (!accepted) profileReadInFlight.set(false)
+                                }
+                                delay(1_000L)
+                            }
+                        }
+                    }
+                }
+            }
+
+            override fun onCharacteristicRead(
+                g: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic,
+                value: ByteArray,
+                status: Int,
+            ) {
+                handleProfileRead(characteristic, value, status)
+            }
+
+            @Suppress("DEPRECATION")
+            override fun onCharacteristicRead(
+                g: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic,
+                status: Int,
+            ) {
+                if (Build.VERSION.SDK_INT >= 33) return
+                handleProfileRead(characteristic, characteristic.value, status)
+            }
+
+            private fun handleProfileRead(
+                characteristic: BluetoothGattCharacteristic,
+                value: ByteArray?,
+                status: Int,
+            ) {
+                if (characteristic.uuid != BridgeProtocol.HUD_PROFILE_CHAR_UUID) return
+                profileReadInFlight.set(false)
+                if (status == BluetoothGatt.GATT_SUCCESS && value != null) {
+                    HudProfileCodec.decode(value)?.let(onHudProfile)
                 }
             }
 

@@ -5,6 +5,24 @@
   Spanish (Español) translations for :app.
 -->
 <resources>
+    <string name="settings_hud_customize">Personalizar HUD</string>
+    <string name="settings_hud_preview">Vista previa simulada</string>
+    <string name="settings_hud_hide">Ocultar HUD</string>
+    <string name="settings_hud_show">Mostrar HUD</string>
+    <string name="settings_hud_left">Margen izquierdo</string>
+    <string name="settings_hud_right">Margen derecho</string>
+    <string name="settings_hud_top">Margen superior</string>
+    <string name="settings_hud_bottom">Margen inferior</string>
+    <string name="settings_hud_horizontal">Posición horizontal</string>
+    <string name="settings_hud_vertical">Posición vertical</string>
+    <string name="settings_hud_font">Tamaño del texto</string>
+    <string name="settings_hud_clock">Reloj</string>
+    <string name="settings_hud_phone_battery">Batería del teléfono</string>
+    <string name="settings_hud_glasses_battery">Batería de las gafas</string>
+    <string name="settings_hud_signal">Señal</string>
+    <string name="settings_hud_wheel_battery">Batería del vehículo</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_follow_system">Usar idioma del sistema</string>
 
     <string name="action_back">Atrás</string>
     <string name="action_open">Abrir</string>

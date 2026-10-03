@@ -5,6 +5,24 @@
   Italian (Italiano) translations for :app.
 -->
 <resources>
+    <string name="settings_hud_customize">Personalizza HUD</string>
+    <string name="settings_hud_preview">Anteprima simulata</string>
+    <string name="settings_hud_hide">Nascondi HUD</string>
+    <string name="settings_hud_show">Mostra HUD</string>
+    <string name="settings_hud_left">Margine sinistro</string>
+    <string name="settings_hud_right">Margine destro</string>
+    <string name="settings_hud_top">Margine superiore</string>
+    <string name="settings_hud_bottom">Margine inferiore</string>
+    <string name="settings_hud_horizontal">Posizione orizzontale</string>
+    <string name="settings_hud_vertical">Posizione verticale</string>
+    <string name="settings_hud_font">Dimensione testo</string>
+    <string name="settings_hud_clock">Orologio</string>
+    <string name="settings_hud_phone_battery">Batteria telefono</string>
+    <string name="settings_hud_glasses_battery">Batteria occhiali</string>
+    <string name="settings_hud_signal">Segnale</string>
+    <string name="settings_hud_wheel_battery">Batteria veicolo</string>
+    <string name="settings_language">Lingua</string>
+    <string name="settings_follow_system">Usa la lingua di sistema</string>
 
     <string name="action_back">Indietro</string>
     <string name="action_open">Apri</string>

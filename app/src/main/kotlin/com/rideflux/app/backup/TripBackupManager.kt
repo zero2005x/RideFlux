@@ -11,6 +11,7 @@ import com.rideflux.domain.ride.TripRepository
 import com.rideflux.domain.ride.TripSample
 import com.rideflux.domain.settings.AlertThresholds
 import com.rideflux.domain.settings.AppSettings
+import com.rideflux.domain.settings.HudLayoutProfile
 import com.rideflux.domain.settings.SettingsRepository
 import java.io.InputStream
 import java.io.OutputStream
@@ -68,6 +69,10 @@ class TripBackupManager @Inject constructor(
             append("    \"bridgeAutostart\": ${settings.bridgeAutostart},\n")
             append("    \"bridgeStandbyAdvertiseLowLatency\": ${settings.bridgeStandbyAdvertiseLowLatency},\n")
             append("    \"hudMirrorHorizontally\": ${settings.hudMirrorHorizontally}")
+            val hudProfiles = settings.hudProfiles.toSortedMap().entries.joinToString(";") {
+                (id, profile) -> "$id=${profile.normalized().toCsv()}"
+            }
+            append(",\n    \"hudProfiles\": \"${escapeJson(hudProfiles)}\"")
             val ringKey = settings.ringKeyCode
             if (ringKey != null) {
                 append(",\n    \"ringKeyCode\": $ringKey")
@@ -159,6 +164,11 @@ class TripBackupManager @Inject constructor(
         root.getObject("settings")?.let { s ->
             val current = settingsRepository.current()
             val restored = AppSettings(
+                hudProfiles = s.getString("hudProfiles")?.split(';')?.mapNotNull { entry ->
+                    val id = entry.substringBefore('=')
+                    val profile = HudLayoutProfile.fromCsv(entry.substringAfter('=', ""))
+                    if (id.matches(Regex("[A-Za-z0-9_-]{1,64}")) && profile != null) id to profile else null
+                }?.toMap() ?: current.hudProfiles,
                 alertThresholds = AlertThresholds(
                     speedLimitKmh = s.getFloat("speedLimitKmh") ?: current.alertThresholds.speedLimitKmh,
                     temperatureLimitC = s.getFloat("temperatureLimitC") ?: current.alertThresholds.temperatureLimitC,

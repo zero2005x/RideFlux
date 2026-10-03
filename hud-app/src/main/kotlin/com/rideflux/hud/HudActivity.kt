@@ -7,6 +7,7 @@ package com.rideflux.hud
 
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.rideflux.hud.permission.BlePermissionGate
 import com.rideflux.hud.storage.HudMacStore
+import com.rideflux.data.preferences.AppLanguage
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
 import javax.inject.Inject
@@ -37,6 +39,7 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class HudActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) = super.attachBaseContext(AppLanguage.wrap(newBase))
 
     // Accessed before setContent so Hilt DI graph initialisation and
     // BLE class loading happen during onCreate() — before the

@@ -5,6 +5,8 @@
   Portuguese (Português) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">Idioma</string>
+    <string name="hud_follow_system">Usar idioma do sistema</string>
     <string name="hud_waiting_phone_title">À ESPERA\nDO TELEMÓVEL</string>
     <string name="hud_waiting_phone_subtitle">A procurar o RideFlux…</string>
     <string name="hud_phone_connected_title">TELEMÓVEL\nLIGADO</string>
