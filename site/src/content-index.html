@@ -1,0 +1,126 @@
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <p class="eyebrow">{{t:hero.eyebrow}}</p>
+      <h1>{{t:hero.title}}</h1>
+      <p class="lead">{{t:hero.lead}}</p>
+      <div class="cta-row">
+        <a class="play-badge" href="{{v:play_url}}"><img src="{{v:badge_url}}" alt="{{p:hero.play}}" width="646" height="250"></a>
+        <a class="btn" href="{{v:repo_url}}">{{@icon_code}}<span>{{t:hero.github}}</span></a>
+      </div>
+      <p class="note">{{t:hero.note}}</p>
+    </div>
+    <div class="phones">
+      <figure class="phone phone-front"><img src="{{v:root}}assets/shots/{{v:shots}}/01-dashboard.webp" alt="{{p:shot.dashboard}}" width="540" height="960" fetchpriority="high"></figure>
+      <figure class="phone phone-back"><img src="{{v:root}}assets/shots/{{v:shots}}/06-hud.webp" alt="{{p:shot.hud}}" width="540" height="960"></figure>
+    </div>
+  </div>
+</section>
+
+<div class="trust">
+  <div class="container trust-grid">
+    {{@trust_items}}
+  </div>
+</div>
+
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head"><h2>{{t:features.title}}</h2></div>
+    <div class="cards">
+      {{@feature_cards}}
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt" id="screens">
+  <div class="section-head container">
+    <h2>{{t:shots.title}}</h2>
+    <p>{{t:shots.lead}}</p>
+  </div>
+  <ul class="shots" role="list" tabindex="0" aria-label="{{p:shots.region}}">
+    {{@shot_items}}
+  </ul>
+</section>
+
+<section class="section" id="hud">
+  <div class="container split">
+    <div>
+      <h2>{{t:hud.title}}</h2>
+      <p class="lead">{{t:hud.lead}}</p>
+      <ul class="ticks">
+        {{@hud_points}}
+      </ul>
+      <div class="callout">
+        <div>
+          <h3>{{t:hud.get.t}}</h3>
+          <p>{{t:hud.get.d}}</p>
+        </div>
+        <a class="btn btn-sm" href="{{v:releases_url}}">{{t:hud.get.link}}</a>
+      </div>
+    </div>
+    <div class="diagram">
+      {{@hud_diagram}}
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt" id="wheels">
+  <div class="container">
+    <div class="section-head">
+      <h2>{{t:wheels.title}}</h2>
+      <p>{{t:wheels.lead}}</p>
+    </div>
+    <div class="table" role="table">
+      <div class="tr tr-head" role="row">
+        <span role="columnheader">{{t:wheels.th.brand}}</span>
+        <span role="columnheader">{{t:wheels.th.models}}</span>
+        <span role="columnheader">{{t:wheels.th.status}}</span>
+      </div>
+      {{@wheel_rows}}
+    </div>
+    <div class="legend">
+      <p>{{t:wheels.legend.verified}}</p>
+      <p>{{t:wheels.legend.exp}}</p>
+    </div>
+    <div class="cta-panel">
+      <p>{{t:wheels.cta.t}}</p>
+      <a class="btn btn-primary" href="{{v:issues_url}}">{{t:wheels.cta.link}}</a>
+    </div>
+    <p class="fine">{{t:wheels.disclaimer}}</p>
+  </div>
+</section>
+
+<section class="section" id="privacy">
+  <div class="container split">
+    <div>
+      <h2>{{t:privacy.title}}</h2>
+      <p class="lead">{{t:privacy.lead}}</p>
+      <a class="btn" href="{{v:privacy_url}}">{{t:privacy.link}}</a>
+      {{@privacy_note}}
+    </div>
+    <ul class="priv-list">
+      {{@privacy_items}}
+    </ul>
+  </div>
+</section>
+
+<section class="section section-alt" id="faq">
+  <div class="container">
+    <div class="section-head"><h2>{{t:faq.title}}</h2></div>
+    <div class="faq">
+      {{@faq_items}}
+    </div>
+  </div>
+</section>
+
+<section class="section" id="new">
+  <div class="container">
+    <div class="section-head">
+      <h2>{{t:new.title}}</h2>
+      <p>{{t:new.lead}}</p>
+    </div>
+    <div class="news">
+      {{@news_card}}
+    </div>
+  </div>
+</section>

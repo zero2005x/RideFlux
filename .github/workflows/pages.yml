@@ -1,0 +1,83 @@
+name: Website
+
+# Builds the GitHub Pages site from site/ (see site/README.md).
+#
+#   pull request  ->  build and validate only (i18n coverage, internal links, anchors)
+#   push to main  ->  build, validate and deploy to GitHub Pages
+#
+# One-time repository setting (Settings -> Pages -> Build and deployment -> Source):
+# choose "GitHub Actions". Until that is done the deploy job cannot publish.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "site/**"
+      - "PRIVACY.md"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    paths:
+      - "site/**"
+      - "PRIVACY.md"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Never cancel a deployment half way; queue the next one instead.
+  group: pages-${{ github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Resolves the site's real base URL (github.io project path, or a custom domain)
+      # for canonical links, hreflang and the sitemap. Pull requests skip it so that
+      # they work before Pages has been switched on.
+      - name: Configure Pages
+        id: pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v6
+
+      # Standard library only; fails on a missing translation key, dropped markup in a
+      # translation, or any dead internal link / #anchor.
+      - name: Build site
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: python3 site/build.py
+
+      - name: Upload site
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5

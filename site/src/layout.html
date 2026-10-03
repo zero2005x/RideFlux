@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="{{v:lang}}" dir="{{v:dir}}" data-script="{{v:script}}"{{@html_attrs}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{v:title}}</title>
+<meta name="description" content="{{v:description}}">
+{{@robots}}<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#04070b" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4fafb" media="(prefers-color-scheme: light)">
+<link rel="canonical" href="{{v:canonical}}">
+{{@alternates}}<link rel="icon" type="image/png" sizes="32x32" href="{{v:root}}assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="{{v:root}}assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="{{v:root}}assets/icons/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RideFlux">
+<meta property="og:title" content="{{v:title}}">
+<meta property="og:description" content="{{v:description}}">
+<meta property="og:url" content="{{v:canonical}}">
+<meta property="og:image" content="{{v:og_image}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="{{v:og_locale}}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="{{v:root}}assets/style.css?v={{v:css_v}}">
+{{@jsonld}}</head>
+<body>
+<a class="skip" href="#main">{{p:nav.skip}}</a>
+{{@header}}
+<main id="main">
+{{@content}}
+</main>
+{{@footer}}
+<script src="{{v:root}}assets/site.js?v={{v:js_v}}" defer></script>
+</body>
+</html>
