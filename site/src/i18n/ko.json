@@ -112,6 +112,9 @@
   "new.title": "새로운 소식",
   "new.lead": "릴리스 노트는 영어로 작성됩니다.",
   "new.all": "전체 릴리스 노트",
+  "story.title": "RideFlux 제작 이야기",
+  "story.lead": "AR 글라스를 쓰는 라이더가 이 앱을 만들기까지: 재작성, 블루투스의 함정, 그리고 검증된 것과 아닌 것. 영어로 작성되었습니다.",
+  "story.link": "이야기 읽기",
 
   "footer.disclaimer": "RideFlux는 독립적으로 개발된 서드파티 앱이며 어떤 휠 제조사나 Rokid와도 관련이 없습니다. 주행 중에는 도로 상황에 주의하고 폰을 조작하지 마세요.",
   "footer.source": "소스 코드",

@@ -200,6 +200,14 @@ def privacy_dir(lang_code: str) -> str:
 
 
 CHANGELOG_DIR = "changelog/"
+STORY_DIR = "story/"
+STORY_SRC = "docs/articles/cyberpunk-commute-update-2026-10.md"
+# Shown on the English-only story page; says what the page is for and where the original lives.
+STORY_ABOUT = ("The long-form story of how RideFlux came to be: the rewrite, the Bluetooth bugs, and what is "
+               "verified and what is not. First published on Medium in December 2025, updated October 2026. "
+               "English only. For what the app does today, see the home page.")
+MEDIUM_URL = ("https://medium.com/@20x05zero/cyberpunk-commute-building-an-ar-heads-up-display-for-the-"
+              "inmotion-v5f-2d5264bb451e")
 
 
 def play_url(lang: Lang) -> str:
@@ -252,6 +260,7 @@ def page_context(lang: Lang, page_dir: str, *, title: str, description: str, can
         "docs_url": f"{REPO_URL}/tree/main/docs",
         "privacy_url": rel(page_dir, privacy_dir(lang.code)),
         "changelog_url": rel(page_dir, CHANGELOG_DIR),
+        "story_url": rel(page_dir, STORY_DIR),
         "css_v": version["css"], "js_v": version["js"],
         "html_attrs": "", "robots": "", "alternates": "", "jsonld": "",
     }
@@ -431,7 +440,9 @@ def md_inline(text: str) -> str:
     text = html.escape(text, quote=False)
     text = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)",
                   lambda m: f'<a href="{html.escape(m.group(2), quote=True)}" rel="noopener">{m.group(1)}</a>', text)
+    text = re.sub(r"(?<![\"'>=(])(https?://[^\s<)]+)", lambda m: f'<a href="{m.group(1)}" rel="noopener">{m.group(1)}</a>', text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"(?<![*\w])\*(?!\s)(.+?)(?<!\s)\*(?![*\w])", r"<em>\1</em>", text)
     return re.sub(r"\x00(\d+)\x00", lambda m: f"<code>{html.escape(codes[int(m.group(1))])}</code>", text)
 
 
@@ -444,7 +455,15 @@ def join_lines(lines: list[str]) -> str:
     return out
 
 
-def md_to_html(md: str) -> str:
+BLOCK_START = re.compile(r"^(#{2,4} |\s*[-*] |\s*\d+\. |\s*\||```|>)")
+
+
+def md_to_html(md: str, shift: int = 1) -> str:
+    """Render the Markdown subset used by PRIVACY.md and the article.
+
+    `shift` maps heading depth: 1 turns `###` into h2 (PRIVACY.md); 0 turns `##` into h2 (the article).
+    The page owns the h1.
+    """
     lines = md.split("\n")
     out: list[str] = []
     i = 0
@@ -455,9 +474,29 @@ def md_to_html(md: str) -> str:
             continue
         m = re.match(r"^(#{2,4}) (.*)$", ln)
         if m:
-            level = len(m.group(1)) - 1            # ### -> h2, #### -> h3 (the page owns the h1)
+            level = len(m.group(1)) - shift
             out.append(f"<h{level}>{md_inline(m.group(2))}</h{level}>")
             i += 1
+        elif ln.startswith("```"):
+            buf = []
+            i += 1
+            while i < len(lines) and not lines[i].startswith("```"):
+                buf.append(lines[i])
+                i += 1
+            i += 1
+            out.append("<pre><code>" + html.escape("\n".join(buf)) + "</code></pre>")
+        elif ln.startswith(">"):
+            buf = []
+            while i < len(lines) and lines[i].startswith(">"):
+                buf.append(lines[i].lstrip("> ").rstrip())
+                i += 1
+            out.append(f"<blockquote><p>{md_inline(join_lines(buf))}</p></blockquote>")
+        elif re.match(r"^\s*\d+\. ", ln):
+            items = []
+            while i < len(lines) and re.match(r"^\s*\d+\. ", lines[i]):
+                items.append(re.sub(r"^\s*\d+\. ", "", lines[i]))
+                i += 1
+            out.append("<ol>" + "".join(f"<li>{md_inline(x)}</li>" for x in items) + "</ol>")
         elif ln.lstrip().startswith("|"):
             rows = []
             while i < len(lines) and lines[i].lstrip().startswith("|"):
@@ -478,7 +517,7 @@ def md_to_html(md: str) -> str:
             out.append("<ul>" + "".join(f"<li>{md_inline(join_lines(it))}</li>" for it in items) + "</ul>")
         else:
             para = []
-            while i < len(lines) and lines[i].strip() and not re.match(r"^(#{2,4} |\s*[-*] |\s*\|)", lines[i]) \
+            while i < len(lines) and lines[i].strip() and not BLOCK_START.match(lines[i]) \
                     and lines[i].strip() != "---":
                 para.append(lines[i])
                 i += 1
@@ -549,13 +588,37 @@ def build_changelog(strings, changelog, version) -> tuple[str, str]:
                                 description=s["page.changelog.title"] + " — RideFlux", body_html=body)
 
 
+def build_story(strings, version) -> tuple[str, str]:
+    """/story/ : the article in docs/articles/, rendered from its Markdown (English only)."""
+    lang, s = EN, strings["en"]
+    page_dir = STORY_DIR
+    src = REPO_ROOT / STORY_SRC
+    if not src.exists():
+        raise SystemExit(f"{STORY_SRC} is missing")
+    md = src.read_text(encoding="utf-8")
+    title_m = re.match(r"# (.+)\n", md)
+    if not title_m:
+        raise SystemExit(f"{STORY_SRC}: first line must be '# Title'")
+    title = title_m.group(1).strip()
+    about = (f'<div class="callout"><div><h3>{html.escape(s["story.title"])}</h3>'
+             f'<p>{html.escape(STORY_ABOUT)}</p></div>'
+             f'<a class="btn btn-sm" href="{MEDIUM_URL}" rel="noopener">Medium</a></div>')
+    body = (f'<a class="back" href="{rel(page_dir, "")}">← RideFlux</a>'
+            f'<h1>{html.escape(title)}</h1>{about}'
+            + md_to_html(md[title_m.end():], shift=0)
+            + f'<p class="meta">Source: <a href="{REPO_URL}/blob/main/{STORY_SRC}" rel="noopener">'
+              f'{STORY_SRC}</a></p>')
+    return page_dir, prose_page(lang, page_dir, s, version, title=f"{title} — RideFlux",
+                                description=s["story.lead"], body_html=body)
+
+
 def build_404(strings, version) -> str:
     lang, s = EN, strings["en"]
     ctx = page_context(lang, "", title=f'{s["page.404.title"]} — RideFlux', description=s["page.404.body"],
                        canonical=f"{SITE_URL}/", version=version)
     # GitHub Pages serves 404.html from any depth, so every URL on it must be absolute.
     ctx.update(root=SITE_URL + "/", home=SITE_URL + "/", privacy_url=f"{SITE_URL}/privacy/",
-               changelog_url=f"{SITE_URL}/changelog/", robots='<meta name="robots" content="noindex">\n')
+               changelog_url=f"{SITE_URL}/changelog/", story_url=f"{SITE_URL}/story/", robots='<meta name="robots" content="noindex">\n')
     body = (f'<div class="container notfound"><h1>404</h1><p>{html.escape(s["page.404.body"])}</p>'
             f'<p><a class="btn btn-primary" href="{SITE_URL}/">{html.escape(s["page.404.home"])}</a></p></div>')
     full = dict(ctx)
@@ -577,7 +640,7 @@ def sitemap(lastmod: str) -> str:
         f'<xhtml:link rel="alternate" hreflang="{l.code}" href="{SITE_URL}/{landing_dir(l)}"/>' for l in LANGS)
     alts += f'<xhtml:link rel="alternate" hreflang="x-default" href="{SITE_URL}/"/>'
     urls = [f"<url><loc>{SITE_URL}/{landing_dir(l)}</loc><lastmod>{lastmod}</lastmod>{alts}</url>" for l in LANGS]
-    for d in (privacy_dir("en"), privacy_dir("zh-TW"), CHANGELOG_DIR):
+    for d in (privacy_dir("en"), privacy_dir("zh-TW"), CHANGELOG_DIR, STORY_DIR):
         urls.append(f"<url><loc>{SITE_URL}/{d}</loc><lastmod>{lastmod}</lastmod></url>")
     return ('<?xml version="1.0" encoding="UTF-8"?>\n'
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
@@ -669,6 +732,8 @@ def build() -> Path:
     for page_dir, text in build_privacy(strings, version):
         write(DIST / page_dir / "index.html", text)
     page_dir, text = build_changelog(strings, changelog, version)
+    write(DIST / page_dir / "index.html", text)
+    page_dir, text = build_story(strings, version)
     write(DIST / page_dir / "index.html", text)
     write(DIST / "404.html", build_404(strings, version))
     write(DIST / "sitemap.xml", sitemap(datetime.date.today().isoformat()))

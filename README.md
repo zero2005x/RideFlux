@@ -8,7 +8,7 @@
 
 Speed · Battery · Temperature · PWM alerts · Trip recording · Rokid HUD
 
-[**English**](README.md) &nbsp;·&nbsp; [繁體中文](README.zh-TW.md) &nbsp;·&nbsp; [Website](https://zero2005x.github.io/RideFlux/) &nbsp;·&nbsp; [Privacy](PRIVACY.md) &nbsp;·&nbsp; [Docs](docs/README.md)
+[**English**](README.md) &nbsp;·&nbsp; [繁體中文](README.zh-TW.md) &nbsp;·&nbsp; [Website](https://zero2005x.github.io/RideFlux/) &nbsp;·&nbsp; [Privacy](PRIVACY.md) &nbsp;·&nbsp; [Docs](docs/README.md) &nbsp;·&nbsp; [Story](https://zero2005x.github.io/RideFlux/story/)
 
 <a href="https://play.google.com/store/apps/details?id=com.rideflux.app">
   <img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="76">
@@ -63,6 +63,8 @@ flowchart LR
 - **Hands-free.** A Bluetooth ring paired to the glasses reveals or blanks the HUD. A safety alert still breaks through a blanked HUD.
 - **Optional.** The phone app is a complete dashboard on its own.
 
+**Hardware it is developed and tested on:** a Begode A2 wheel, **Rokid Glasses RV101** (standalone glasses that connect to the phone wirelessly, no cable), and an Android phone.
+
 How the bridge works, byte by byte: [docs/BRIDGE_PROTOCOL.md](docs/BRIDGE_PROTOCOL.md).
 
 ## Supported wheels
@@ -87,7 +89,8 @@ The wire formats and GATT layouts behind each family: [docs/PROTOCOLS.md](docs/P
 | | |
 |---|---|
 | 📱 **Phone app** | [**Google Play**](https://play.google.com/store/apps/details?id=com.rideflux.app) — Android 9 (API 28) or later. |
-| 🥽 **Glasses HUD app** | An APK on [GitHub Releases](https://github.com/zero2005x/RideFlux/releases/latest), for sideloading on Rokid glasses. |
+| 🥽 **Glasses HUD app** | An APK on [GitHub Releases](https://github.com/zero2005x/RideFlux/releases/latest), for sideloading on Rokid glasses (developed and tested on the Rokid Glasses RV101). |
+| 📖 **The story** | [Why and how RideFlux was built](https://zero2005x.github.io/RideFlux/story/) — see the section below. |
 | 🛠️ **From source** | See [docs/BUILDING.md](docs/BUILDING.md). |
 
 ```bash
@@ -97,6 +100,14 @@ The wire formats and GATT layouts behind each family: [docs/PROTOCOLS.md](docs/P
 ```
 
 Built with Kotlin, Jetpack Compose, Hilt, Room and DataStore. You need **JDK 17 or 21**; newer JDKs are not verified.
+
+## The story behind RideFlux
+
+A long-form write-up of how the project came to be: why it is not a WheelLog fork, how the Bluetooth protocols were decoded and which bugs real frames exposed, how the phone talks to the glasses, and what is verified and what is not. It was first published on Medium in December 2025 and has been updated for what RideFlux is today. It is written in English.
+
+- **Read it on the website:** [zero2005x.github.io/RideFlux/story](https://zero2005x.github.io/RideFlux/story/) — the same text as the source file below, rendered with the site's layout.
+- **Source in this repository:** [docs/articles/cyberpunk-commute-update-2026-10.md](docs/articles/cyberpunk-commute-update-2026-10.md), with a [change list](docs/articles/cyberpunk-commute-update-2026-10.changes.md) (in Traditional Chinese) saying what differs from the Medium original and why.
+- **Original post:** [on Medium](https://medium.com/@20x05zero/cyberpunk-commute-building-an-ar-heads-up-display-for-the-inmotion-v5f-2d5264bb451e).
 
 ## Privacy
 
@@ -120,6 +131,7 @@ The technical reference that used to fill this README now lives in [`docs/`](doc
 | [Building & releasing](docs/BUILDING.md) | JDK and SDK, signing and secrets, tests, Sonar, dependency verification |
 | [Play Store assets](docs/play-store/README.md) | Store graphics and the scripts that regenerate them |
 | [Website](site/README.md) | The GitHub Pages site in `site/` and how it is built |
+| [Articles](docs/articles/) | Long-form writing about the project; the website's `/story/` page is rendered from the article here |
 
 ## Disclaimer
 
