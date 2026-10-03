@@ -112,6 +112,9 @@
   "new.title": "更新日志",
   "new.lead": "更新日志以英文撰写。",
   "new.all": "所有更新日志",
+  "story.title": "RideFlux 背后的故事",
+  "story.lead": "一位骑士和一副 AR 眼镜如何做出这个应用：重写、蓝牙的坑，以及哪些已验证、哪些还没有。以英文撰写。",
+  "story.link": "阅读这篇故事",
 
   "footer.disclaimer": "RideFlux 是独立开发的第三方应用，与任何车辆制造商或 Rokid 均无隶属关系。骑行时请注意路况，请勿在骑行时操作手机。",
   "footer.source": "源代码",

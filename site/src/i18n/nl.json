@@ -112,6 +112,9 @@
   "new.title": "Nieuw",
   "new.lead": "De release-opmerkingen zijn in het Engels geschreven.",
   "new.all": "Alle release-opmerkingen",
+  "story.title": "Het verhaal achter RideFlux",
+  "story.lead": "Hoe een rijder met een AR-bril deze app bouwde: de herschrijving, de Bluetooth-valkuilen en wat is geverifieerd en wat niet. In het Engels geschreven.",
+  "story.link": "Lees het verhaal",
 
   "footer.disclaimer": "RideFlux is een onafhankelijk ontwikkelde app van een derde partij en is niet gelieerd aan wielfabrikanten of Rokid. Let tijdens het rijden op de weg en bedien je telefoon niet.",
   "footer.source": "Broncode",

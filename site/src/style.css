@@ -412,7 +412,16 @@ html[data-script="latin"] .section h2, html[data-script="cyrillic"] .section h2 
 .prose h2 { margin: 2.2em 0 .5em; font-size: 1.4rem; }
 .prose p, .prose li { color: var(--text); }
 .prose .meta { color: var(--muted); }
-.prose ul { padding-inline-start: 1.3em; }
+.prose ul, .prose ol { padding-inline-start: 1.3em; }
+.prose pre {
+  margin: 1.2em 0; padding: 16px 18px; overflow-x: auto; max-width: 100%;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  direction: ltr; text-align: left; font-size: 0.88rem; line-height: 1.55;
+}
+.prose pre code { background: none; padding: 0; font-size: inherit; }
+.prose blockquote { margin: 1.4em 0; padding: 4px 0 4px 18px; border-inline-start: 3px solid var(--accent); color: var(--muted); }
+.prose blockquote p { color: var(--muted); }
+.prose .callout { margin-block: 22px; }
 .prose table { width: 100%; border-collapse: collapse; margin: 1.2em 0; font-size: 0.95rem; display: block; overflow-x: auto; }
 .prose th, .prose td { text-align: start; padding: 10px 14px; border: 1px solid var(--line); vertical-align: top; }
 .prose th { background: var(--surface-2); }

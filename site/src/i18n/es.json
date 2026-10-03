@@ -112,6 +112,9 @@
   "new.title": "Novedades",
   "new.lead": "Las notas de versión están escritas en inglés.",
   "new.all": "Todas las notas de versión",
+  "story.title": "La historia detrás de RideFlux",
+  "story.lead": "Cómo un rider con unas gafas AR acabó creando esta app: la reescritura, los errores de Bluetooth y qué está verificado y qué no. Escrito en inglés.",
+  "story.link": "Leer la historia",
 
   "footer.disclaimer": "RideFlux es una app de terceros desarrollada de forma independiente y no está afiliada a ningún fabricante de ruedas ni a Rokid. Presta atención a la carretera y no uses el teléfono mientras conduces.",
   "footer.source": "Código fuente",
