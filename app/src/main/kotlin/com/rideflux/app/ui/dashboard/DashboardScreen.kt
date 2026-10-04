@@ -51,6 +51,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -75,6 +76,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
@@ -99,6 +102,8 @@ import com.rideflux.app.recording.RecordingService
 import com.rideflux.app.recording.RecordingUiState
 import com.rideflux.domain.alert.ThresholdAlert
 import com.rideflux.domain.connection.ConnectionState
+import com.rideflux.domain.connection.ScooterHandshakeState
+import com.rideflux.domain.device.PlevCategory
 import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.wheel.WheelBatteryPackStore
@@ -198,6 +203,8 @@ fun DashboardRoute(
         onPowerOff = viewModel::powerOff,
         onCalibrate = viewModel::calibrate,
         onSetMaxSpeedKmh = viewModel::setMaxSpeedKmh,
+        onLock = viewModel::onLockClicked,
+        onUnlock = viewModel::onUnlockClicked,
         asksForBatteryPack = asksForBatteryPack,
         batteryPackCells = batteryPackCells,
         onSetBatteryPack = viewModel::setBatteryPackCells,
@@ -249,6 +256,8 @@ fun DashboardScreen(
     onPowerOff: () -> Unit = {},
     onCalibrate: () -> Unit = {},
     onSetMaxSpeedKmh: (Float) -> Unit = {},
+    onLock: () -> Unit = {},
+    onUnlock: () -> Unit = {},
     asksForBatteryPack: Boolean = false,
     batteryPackCells: Int? = null,
     onSetBatteryPack: (Int) -> Unit = {},
@@ -410,7 +419,7 @@ fun DashboardScreen(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = uiState.identity?.modelName
+                            text = uiState.deviceModel ?: uiState.identity?.modelName
                                 ?: uiState.identity?.address
                                 ?: stringResource(currentPage.titleRes),
                             style = MaterialTheme.typography.labelMedium,
@@ -483,6 +492,7 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
+            ScooterPairingBanner(uiState)
             AlertBanner(
                 alert = activeAlert,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -502,7 +512,17 @@ fun DashboardScreen(
                                 null
                             },
                         )
-                        ControlsCard(
+                        if (uiState.deviceCategory == PlevCategory.SCOOTER) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val enabled = isScooterLockActionEnabled(uiState)
+                                Button(onClick = onLock, enabled = enabled, modifier = Modifier.weight(1f)) {
+                                    Text("Lock")
+                                }
+                                OutlinedButton(onClick = onUnlock, enabled = enabled,
+                                    modifier = Modifier.weight(1f)) { Text("Unlock") }
+                            }
+                        } else ControlsCard(
                             headlightOn = uiState.headlightOn,
                             rideMode = uiState.rideMode,
                             enabled = uiState.connectionState == ConnectionState.Ready,
@@ -566,7 +586,7 @@ private fun ConnectionDot(state: ConnectionState) {
     val tint = when (state) {
         ConnectionState.Ready -> RideFluxColors.Neon
         ConnectionState.Connecting -> RideFluxColors.Warning
-        is ConnectionState.Handshaking -> RideFluxColors.Warning
+        is ConnectionState.Handshaking, ConnectionState.ScooterHandshaking -> RideFluxColors.Warning
         ConnectionState.Disconnected -> RideFluxColors.Mute
         is ConnectionState.Failed -> RideFluxColors.Danger
     }
@@ -623,6 +643,40 @@ private fun PageIndicator(pageCount: Int, selected: Int, label: String) {
 // ---------------------------------------------------------------------
 // Active alert banner (shared across every page)
 // ---------------------------------------------------------------------
+
+/** UI affordance only; the connection's MotionInterlock remains authoritative. */
+fun isScooterLockActionEnabled(state: DashboardUiState): Boolean =
+    state.deviceCategory == PlevCategory.SCOOTER && state.lockControlsSupported &&
+        state.connectionState == ConnectionState.Ready && state.speedKmh == 0f
+
+@Composable
+private fun ScooterPairingBanner(state: DashboardUiState) {
+    val visible = state.deviceCategory == PlevCategory.SCOOTER &&
+        state.handshakeState == ScooterHandshakeState.WAITING_FOR_USER_CONFIRMATION
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(visible) {
+        if (visible) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+    }
+    AnimatedVisibility(visible = visible) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            color = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            Column(modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Press vehicle power button to pair / 請按下車把電源鍵完成配對")
+                val remaining = (state.handshakeRemainingSeconds ?: 20).coerceIn(0, 20)
+                Text("$remaining s", style = MaterialTheme.typography.labelLarge)
+                LinearProgressIndicator(
+                    progress = { remaining / 20f },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun AlertBanner(alert: DashboardAlert?, modifier: Modifier = Modifier) {

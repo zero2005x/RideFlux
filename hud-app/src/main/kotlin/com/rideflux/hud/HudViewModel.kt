@@ -16,8 +16,11 @@ import androidx.lifecycle.viewModelScope
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.alert.ThresholdStatusTracker
 import com.rideflux.domain.repository.WheelRepository
+import com.rideflux.domain.repository.PlevRepository
+import com.rideflux.domain.device.PlevCategory
 import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelTelemetry
+import com.rideflux.domain.telemetry.ScooterTelemetry
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.hud.source.BridgeTelemetrySource
 import com.rideflux.hud.source.BridgePeerCandidate
@@ -25,6 +28,7 @@ import com.rideflux.hud.source.BridgePeerScanner
 import com.rideflux.hud.source.DirectWheelTelemetrySource
 import com.rideflux.hud.source.HudTelemetryFrame
 import com.rideflux.hud.source.HudTelemetrySource
+import com.rideflux.hud.source.PlevTelemetrySource
 import com.rideflux.hud.storage.HudMacStore
 import com.rideflux.domain.settings.AppSettings
 import com.rideflux.domain.settings.SettingsRepository
@@ -78,6 +82,13 @@ data class HudUiState(
     val thresholdAlertActive: Boolean = false,
 )
 
+/** Numeric scooter projection used by the three fixed HUD columns. */
+fun scooterHudValues(telemetry: ScooterTelemetry): HudUiState = HudUiState(
+    speedKmh = telemetry.speedKmh,
+    vehicleBatteryPercent = telemetry.batteryPercent,
+    tripDistanceMetres = telemetry.tripDistanceMetres?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt(),
+)
+
 /** Coarse signal-quality buckets driven by [ConnectionState]. */
 enum class SignalQuality { GOOD, WEAK, NONE }
 
@@ -106,7 +117,11 @@ class HudViewModel @Inject constructor(
     private val macStore: HudMacStore,
     private val settingsRepository: SettingsRepository,
     savedStateHandle: SavedStateHandle,
+    private val plevRepository: PlevRepository = com.rideflux.protocol.repository.PlevRepositoryImpl(wheelRepository),
 ) : ViewModel() {
+
+    private val targetCategory: PlevCategory = savedStateHandle.get<String>(KEY_CATEGORY)
+        ?.let { runCatching { PlevCategory.valueOf(it) }.getOrNull() } ?: PlevCategory.WHEEL
 
     private val sourceKind: String = resolveHudSourceKind(savedStateHandle.get(KEY_SOURCE))
     private val bridgeRequested: Boolean = sourceKind == SOURCE_BRIDGE
@@ -159,6 +174,8 @@ class HudViewModel @Inject constructor(
                 viewModelScope.launch { settingsRepository.setHudProfile("local", profile) }
             },
         )
+        targetAddress != null && targetCategory == PlevCategory.SCOOTER ->
+            PlevTelemetrySource(plevRepository, targetAddress)
         targetAddress != null -> DirectWheelTelemetrySource(
             wheelRepository = wheelRepository,
             mac = targetAddress,
@@ -289,9 +306,13 @@ class HudViewModel @Inject constructor(
         // link that has never delivered a frame is also stale (there
         // is nothing fresh to show yet).
         val now = SystemClock.elapsedRealtime()
-        val haveFrame = telem.timestampMillis > 0L
-        if (haveFrame && telem.timestampMillis != lastTelemetryTimestamp) {
-            lastTelemetryTimestamp = telem.timestampMillis
+        val scooter = frame.scooterTelemetry
+        val scooterValues = scooter?.let(::scooterHudValues)
+        if (scooter != null) thresholdActive = false
+        val timestamp = scooter?.timestampMillis ?: telem.timestampMillis
+        val haveFrame = timestamp > 0L
+        if (haveFrame && timestamp != lastTelemetryTimestamp) {
+            lastTelemetryTimestamp = timestamp
             lastTelemetryElapsed = now
         }
         val isStale = frame.staleHint ||
@@ -301,7 +322,7 @@ class HudViewModel @Inject constructor(
                     haveFrame &&
                     (now - lastTelemetryElapsed) > STALE_THRESHOLD_MILLIS
             )
-        if (telem.timestampMillis > 0L && telem.timestampMillis != lastThresholdTimestamp) {
+        if (scooter == null && telem.timestampMillis > 0L && telem.timestampMillis != lastThresholdTimestamp) {
             lastThresholdTimestamp = telem.timestampMillis
             thresholdActive = thresholdTracker.update(
                 telem,
@@ -311,10 +332,10 @@ class HudViewModel @Inject constructor(
 
         return HudUiState(
             connectionState = state,
-            speedKmh = telem.speedKmh?.takeIf { it.isFinite() }?.let { kotlin.math.abs(it) },
-            vehicleBatteryPercent = telem.batteryPercent,
-            voltageV = telem.voltageV,
-            tripDistanceMetres = telem.tripDistanceMetres,
+            speedKmh = scooterValues?.speedKmh ?: telem.speedKmh?.takeIf { it.isFinite() }?.let { kotlin.math.abs(it) },
+            vehicleBatteryPercent = scooterValues?.vehicleBatteryPercent ?: telem.batteryPercent,
+            voltageV = if (scooter != null) null else telem.voltageV,
+            tripDistanceMetres = scooterValues?.tripDistanceMetres ?: telem.tripDistanceMetres,
             tripDurationSeconds = frame.tripDurationSeconds ?: tripDurationSec,
             rideMode = telem.rideMode,
             glassesBatteryPercent = glassesBattery,
@@ -466,6 +487,7 @@ class HudViewModel @Inject constructor(
          * missing too, [HudMacStore.DEFAULT_FAMILY] applies.
          */
         const val KEY_FAMILY: String = "family"
+        const val KEY_CATEGORY: String = "category"
 
         /**
          * Intent-extra key for the telemetry source kind.

@@ -10,8 +10,10 @@ import android.util.Log
 import com.rideflux.data.ble.BleWheelCodecFactory
 import com.rideflux.data.ble.WheelCodecFactoryImpl
 import com.rideflux.data.ble.WheelRepositoryImpl
+import com.rideflux.protocol.repository.PlevRepositoryImpl
 import com.rideflux.domain.codec.WheelCodecFactory
 import com.rideflux.domain.repository.WheelRepository
+import com.rideflux.domain.repository.PlevRepository
 import com.rideflux.domain.wheel.WheelBatteryPackStore
 import dagger.Module
 import dagger.Provides
@@ -98,4 +100,8 @@ object BleModule {
             rootScope = scope,
             codecFactory = codecFactory,
         )
+
+    @Provides
+    @Singleton
+    fun providePlevRepository(wheels: WheelRepository): PlevRepository = PlevRepositoryImpl(wheels)
 }

@@ -16,6 +16,8 @@ interface ScooterConnection {
     val state: StateFlow<ConnectionState>
     val telemetry: StateFlow<ScooterTelemetry?>
     val handshakeState: StateFlow<ScooterHandshakeState>
+    /** True only when a verified lock-write profile is installed. */
+    val lockSupported: Boolean get() = false
 
     suspend fun start()
     suspend fun close()

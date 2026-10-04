@@ -17,6 +17,12 @@ import com.rideflux.domain.alert.ThresholdMonitor
 import com.rideflux.domain.command.WheelCommand
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
+import com.rideflux.domain.connection.ScooterHandshakeState
+import com.rideflux.domain.device.PlevCategory
+import com.rideflux.domain.telemetry.ScooterTelemetry
+import com.rideflux.domain.connection.ScooterConnection
+import com.rideflux.domain.repository.PlevConnectionHandle
+import com.rideflux.domain.repository.PlevRepository
 import com.rideflux.domain.repository.WheelRepository
 import com.rideflux.domain.settings.AlertThresholds
 import com.rideflux.domain.settings.SettingsRepository
@@ -88,6 +94,12 @@ data class DashboardUiState(
     val rideTimeSeconds: Long = 0L,
     val useMetric: Boolean = true,
     val keepScreenOnDashboard: Boolean = true,
+    val deviceCategory: PlevCategory = PlevCategory.WHEEL,
+    val handshakeState: ScooterHandshakeState? = null,
+    val handshakeRemainingSeconds: Int? = null,
+    val isLocked: Boolean? = null,
+    val lockControlsSupported: Boolean = false,
+    val deviceModel: String? = null,
 ) {
     /** Instantaneous power draw in watts, derived as `V·I`. */
     val powerW: Float? get() {
@@ -131,6 +143,30 @@ fun DashboardUiState.displayDistance(metres: Number?): Double? =
 
 data class TimedAlert(val timestampMillis: Long, val alert: DashboardAlert)
 
+/** Pure PLEV projection, shared by the ViewModel and JVM tests. */
+fun scooterDashboardState(
+    scooter: ScooterConnection,
+    connectionState: ConnectionState,
+    telemetry: ScooterTelemetry?,
+    handshake: ScooterHandshakeState,
+    remaining: Int?,
+    useMetric: Boolean = true,
+    keepScreenOnDashboard: Boolean = true,
+): DashboardUiState = DashboardUiState(
+    connectionState = connectionState,
+    deviceCategory = PlevCategory.SCOOTER,
+    deviceModel = scooter.device.model,
+    speedKmh = telemetry?.speedKmh,
+    batteryPercent = telemetry?.batteryPercent,
+    totalDistanceMetres = telemetry?.totalDistanceMetres,
+    tripDistanceMetres = telemetry?.tripDistanceMetres?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt(),
+    handshakeState = handshake,
+    lockControlsSupported = scooter.lockSupported,
+    handshakeRemainingSeconds = if (handshake == ScooterHandshakeState.WAITING_FOR_USER_CONFIRMATION) remaining else null,
+    useMetric = useMetric,
+    keepScreenOnDashboard = keepScreenOnDashboard,
+)
+
 /**
  * ViewModel that owns the [WheelConnection] for one MAC address and
  * projects its reactive surface onto a pair of flows consumed by the
@@ -170,6 +206,7 @@ class DashboardViewModel @Inject constructor(
     private val batteryPacks: WheelBatteryPackStore,
     @ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle,
+    private val plevRepository: PlevRepository = com.rideflux.protocol.repository.PlevRepositoryImpl(wheelRepository),
 ) : ViewModel() {
 
     /** MAC of the target device (e.g. `"AA:BB:CC:DD:EE:FF"`). Exposed so nav callers can re-route to the HUD. */
@@ -182,6 +219,13 @@ class DashboardViewModel @Inject constructor(
         (savedStateHandle.get<String>(ARG_FAMILY))?.let {
             runCatching { WheelFamily.valueOf(it) }.getOrNull()
         }
+
+    val deviceCategory: PlevCategory =
+        savedStateHandle.get<String>(ARG_CATEGORY)?.let {
+            runCatching { PlevCategory.valueOf(it) }.getOrNull()
+        } ?: PlevCategory.WHEEL
+
+    private val handshakeCountdown = MutableStateFlow<Int?>(null)
 
     /**
      * Cells in series of this wheel's battery as stated by the rider, or `null`
@@ -208,9 +252,11 @@ class DashboardViewModel @Inject constructor(
      * if the ViewModel is cleared while the connect is in flight —
      * [onCleared] can still await the result and close the handle.
      */
-    private val connectionAsync: Deferred<WheelConnection> =
+    private val connectionAsync: Deferred<PlevConnectionHandle> =
         viewModelScope.async(NonCancellable + Dispatchers.IO) {
-            wheelRepository.connect(address = address, expectedFamily = expectedFamily)
+            (if (deviceCategory == PlevCategory.SCOOTER) plevRepository.connect(address)
+            else PlevConnectionHandle.Wheel(
+                wheelRepository.connect(address = address, expectedFamily = expectedFamily), address))
                 .also { resolvedConnection = it }
         }
 
@@ -222,7 +268,7 @@ class DashboardViewModel @Inject constructor(
      * cancelled deferred would throw and skip the teardown.
      */
     @Volatile
-    private var resolvedConnection: WheelConnection? = null
+    private var resolvedConnection: PlevConnectionHandle? = null
 
     init {
         connectionAsync.invokeOnCompletion { cause ->
@@ -311,7 +357,24 @@ class DashboardViewModel @Inject constructor(
                 Log.e(TAG, "connect failed for $address", e)
                 return@launch
             }
-            conn.alerts.onEach { alert ->
+            if (conn is PlevConnectionHandle.Scooter) {
+                var countdownJob: Job? = null
+                conn.connection.handshakeState.onEach { state ->
+                    countdownJob?.cancel()
+                    if (state == ScooterHandshakeState.WAITING_FOR_USER_CONFIRMATION) {
+                        handshakeCountdown.value = 20
+                        countdownJob = viewModelScope.launch {
+                            repeat(20) {
+                                delay(1_000L)
+                                handshakeCountdown.value = 19 - it
+                            }
+                        }
+                    } else handshakeCountdown.value = null
+                }.launchIn(viewModelScope)
+                return@launch
+            }
+            val wheel = (conn as PlevConnectionHandle.Wheel).connection
+            wheel.alerts.onEach { alert ->
                 publishAlert(DashboardAlert.Wheel(alert))
             }.launchIn(viewModelScope)
 
@@ -319,7 +382,7 @@ class DashboardViewModel @Inject constructor(
                 .map { it.alertThresholds }
                 .stateIn(viewModelScope, SharingStarted.Eagerly, AlertThresholds())
             val thresholdMonitor = ThresholdMonitor(
-                telemetry = conn.telemetry,
+                telemetry = wheel.telemetry,
                 thresholds = thresholdFlow,
                 scope = viewModelScope,
             )
@@ -331,7 +394,7 @@ class DashboardViewModel @Inject constructor(
             // We let combineDashboardFlows do the heavy lifting and
             // simply tap its output stream so the buffer always
             // matches what the UI sees.
-            conn.telemetry.onEach { t ->
+            wheel.telemetry.onEach { t ->
                 val sampleMillis = if (t.timestampMillis > 0L) t.timestampMillis
                     else System.currentTimeMillis()
                 accumulateRideMetrics(t.speedKmh, sampleMillis)
@@ -423,7 +486,22 @@ class DashboardViewModel @Inject constructor(
      */
     suspend fun dispatch(command: WheelCommand): CommandOutcome {
         val conn = connectionAsync.await()
-        return conn.dispatch(command)
+        return if (conn is PlevConnectionHandle.Wheel) conn.connection.dispatch(command)
+        else CommandOutcome.Unsupported(command)
+    }
+
+    fun onLockClicked() {
+        viewModelScope.launch {
+            val scooter = connectionAsync.await() as? PlevConnectionHandle.Scooter ?: return@launch
+            scooter.connection.lock()
+        }
+    }
+
+    fun onUnlockClicked() {
+        viewModelScope.launch {
+            val scooter = connectionAsync.await() as? PlevConnectionHandle.Scooter ?: return@launch
+            scooter.connection.unlock()
+        }
     }
 
     // ---- High-level command helpers -----------------------------------
@@ -536,7 +614,19 @@ class DashboardViewModel @Inject constructor(
 
     // ---- Helpers -------------------------------------------------------
 
-    private fun combineDashboardFlows(conn: WheelConnection) = with(conn) {
+    private fun combineDashboardFlows(handle: PlevConnectionHandle): kotlinx.coroutines.flow.Flow<DashboardUiState> {
+        if (handle is PlevConnectionHandle.Scooter) {
+            val scooter = handle.connection
+            return kotlinx.coroutines.flow.combine(
+                scooter.state, scooter.telemetry, scooter.handshakeState,
+                handshakeCountdown, settingsRepository.settings,
+            ) { state, telemetry, handshake, remaining, settings ->
+                scooterDashboardState(scooter, state, telemetry, handshake, remaining,
+                    settings.useMetric, settings.keepScreenOnDashboard)
+            }
+        }
+        val conn = (handle as PlevConnectionHandle.Wheel).connection
+        return with(conn) {
         // Build the state out of the consolidated `telemetry`
         // StateFlow plus the discrete connection-level signals. The
         // per-field convenience flows (speedKmh, currentA, ...) on
@@ -581,6 +671,7 @@ class DashboardViewModel @Inject constructor(
                 keepScreenOnDashboard = metrics.keepScreenOnDashboard,
             )
         }
+        }
     }
 
     private data class DashboardExtras(
@@ -596,6 +687,7 @@ class DashboardViewModel @Inject constructor(
 
         const val ARG_ADDRESS: String = "address"
         const val ARG_FAMILY: String = "family"
+        const val ARG_CATEGORY: String = "category"
 
         /** Maximum samples retained in the chart history buffer. */
         const val HISTORY_LIMIT: Int = 600

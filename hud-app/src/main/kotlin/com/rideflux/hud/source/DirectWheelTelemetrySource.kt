@@ -59,6 +59,7 @@ class DirectWheelTelemetrySource(
                         ConnectionState.Disconnected -> !reachedActiveState
                         ConnectionState.Connecting,
                         is ConnectionState.Handshaking,
+                        ConnectionState.ScooterHandshaking,
                         ConnectionState.Ready,
                         -> {
                             reachedActiveState = true
@@ -82,7 +83,8 @@ class DirectWheelTelemetrySource(
 
     private fun signalFromState(state: ConnectionState): SignalQuality = when (state) {
         ConnectionState.Ready -> SignalQuality.GOOD
-        is ConnectionState.Handshaking, ConnectionState.Connecting -> SignalQuality.WEAK
+        is ConnectionState.Handshaking, ConnectionState.ScooterHandshaking,
+        ConnectionState.Connecting -> SignalQuality.WEAK
         ConnectionState.Disconnected, is ConnectionState.Failed -> SignalQuality.NONE
     }
 

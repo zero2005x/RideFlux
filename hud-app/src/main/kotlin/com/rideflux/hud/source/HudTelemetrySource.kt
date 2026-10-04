@@ -7,6 +7,7 @@ package com.rideflux.hud.source
 
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.telemetry.WheelTelemetry
+import com.rideflux.domain.telemetry.ScooterTelemetry
 import com.rideflux.hud.SignalQuality
 import com.rideflux.hud.BridgeLinkState
 import kotlinx.coroutines.flow.Flow
@@ -55,6 +56,8 @@ data class HudTelemetryFrame(
      * never blanks a HUD the rider is looking at.
      */
     val hudHiddenByPhone: Boolean? = null,
+    /** Direct scooter telemetry; wheel fields are ignored when present. */
+    val scooterTelemetry: ScooterTelemetry? = null,
 )
 
 /**

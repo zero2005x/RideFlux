@@ -145,8 +145,8 @@ class HudActivity : ComponentActivity() {
             KeyEvent.KEYCODE_DPAD_CENTER,
         )
 
-        // Note: the family/source intent extras are read by
-        // HudViewModel via HudViewModel.KEY_FAMILY / KEY_SOURCE (same
+        // Note: the family/source/category intent extras are read by
+        // HudViewModel via KEY_FAMILY / KEY_SOURCE / KEY_CATEGORY (same
         // string values). They are intentionally not duplicated here so
         // the two sets of keys cannot drift apart.
     }

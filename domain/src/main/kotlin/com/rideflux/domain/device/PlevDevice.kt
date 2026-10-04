@@ -10,6 +10,8 @@ sealed interface PlevDevice {
     val model: String
 }
 
+enum class PlevCategory { WHEEL, SCOOTER, BMS }
+
 data class WheelDevice(
     override val address: String,
     override val model: String,

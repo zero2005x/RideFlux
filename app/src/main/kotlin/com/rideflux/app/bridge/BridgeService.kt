@@ -390,7 +390,8 @@ class BridgeService : Service() {
                                 else BridgeState.DEGRADED,
                             )
                         }
-                        ConnectionState.Connecting, is ConnectionState.Handshaking -> {
+                        ConnectionState.Connecting, is ConnectionState.Handshaking,
+                        ConnectionState.ScooterHandshaking -> {
                             reachedActiveState = true
                             setBridgeState(BridgeState.ATTACHING)
                         }
@@ -463,7 +464,8 @@ class BridgeService : Service() {
                     tripDurationSeconds = null,
                     signal = when (connState) {
                         ConnectionState.Ready -> SignalLevel.GOOD
-                        ConnectionState.Connecting, is ConnectionState.Handshaking -> SignalLevel.WEAK
+                        ConnectionState.Connecting, is ConnectionState.Handshaking,
+                        ConnectionState.ScooterHandshaking -> SignalLevel.WEAK
                         ConnectionState.Disconnected, is ConnectionState.Failed -> SignalLevel.NONE
                     },
                     stale = stale,
