@@ -65,6 +65,7 @@ fun SettingsRoute(
     onNavigateUp: () -> Unit,
     onOpenTripHistory: () -> Unit,
     onOpenGlassesSetup: () -> Unit = {},
+    onOpenBondBackup: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -111,6 +112,7 @@ fun SettingsRoute(
         onNavigateUp = onNavigateUp,
         onOpenTripHistory = onOpenTripHistory,
         onOpenGlassesSetup = onOpenGlassesSetup,
+        onOpenBondBackup = onOpenBondBackup,
         onExportBackup = viewModel::exportBackup,
         onImportBackup = viewModel::importBackup,
         onSpeedLimit = viewModel::setSpeedLimit,
@@ -155,6 +157,7 @@ fun SettingsScreen(
     onNavigateUp: () -> Unit,
     onOpenTripHistory: () -> Unit,
     onOpenGlassesSetup: () -> Unit = {},
+    onOpenBondBackup: () -> Unit = {},
     onExportBackup: (Uri) -> Unit = {},
     onImportBackup: (Uri, Boolean) -> Unit = { _, _ -> },
     onSpeedLimit: (Float) -> Unit,
@@ -552,6 +555,15 @@ fun SettingsScreen(
                         },
                     ) {
                         Text(stringResource(R.string.action_import))
+                    }
+                },
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_bond_title)) },
+                supportingContent = { Text(stringResource(R.string.settings_bond_subtitle)) },
+                trailingContent = {
+                    TextButton(onClick = onOpenBondBackup) {
+                        Text(stringResource(R.string.action_open))
                     }
                 },
             )

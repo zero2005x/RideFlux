@@ -5,7 +5,14 @@
 package com.rideflux.app.di
 
 import android.content.Context
+import com.rideflux.app.ui.bond.BondFileIo
+import com.rideflux.app.ui.bond.ContentResolverBondFileIo
 import com.rideflux.core.location.FusedTripLocationSource
+import com.rideflux.data.preferences.AndroidKeystoreBondCipher
+import com.rideflux.data.preferences.EncryptedFileBondStore
+import com.rideflux.domain.bond.BondBackup
+import com.rideflux.domain.bond.BondStore
+import java.io.File
 import com.rideflux.core.location.TripLocationSource
 import com.rideflux.data.database.RideFluxDatabase
 import com.rideflux.data.database.RoomTripRepository
@@ -48,6 +55,20 @@ object PersistenceModule {
         @ApplicationContext context: Context,
         @ApplicationScope scope: CoroutineScope,
     ): WheelBatteryPackStore = DataStoreWheelBatteryPackStore(context, scope)
+
+    @Provides
+    @Singleton
+    fun provideBondStore(@ApplicationContext context: Context): BondStore =
+        EncryptedFileBondStore(File(context.filesDir, "bond_store.bin"), AndroidKeystoreBondCipher())
+
+    @Provides
+    @Singleton
+    fun provideBondBackup(store: BondStore): BondBackup = BondBackup(store)
+
+    @Provides
+    @Singleton
+    fun provideBondFileIo(@ApplicationContext context: Context): BondFileIo =
+        ContentResolverBondFileIo(context.contentResolver)
 
     @Provides
     @Singleton

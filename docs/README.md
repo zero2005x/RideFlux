@@ -13,6 +13,7 @@ Developer documentation for RideFlux. Each page carries both languages, English 
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Module layering, design rules, repository layout |
 | [PROTOCOLS.md](PROTOCOLS.md) | Supported wheel families, GATT topologies, where the protocol knowledge comes from |
 | [BRIDGE_PROTOCOL.md](BRIDGE_PROTOCOL.md) | Phone ↔ glasses bridge: pairing token, startup ordering, scan budget, silent links, frame layout |
+| [BOND_BACKUP.md](BOND_BACKUP.md) | Encrypted `.rfbond` pairing-key backup: byte layout, payload, test vector, threat model |
 | [LOCALIZATION.md](LOCALIZATION.md) | The 18 translations, the coverage test, adding a string or a language |
 | [BUILDING.md](BUILDING.md) | JDK and SDK, build and install, signing and secrets, tests, Sonar, dependency verification |
 | [play-store/](play-store/README.md) | Play Store graphics and the scripts that regenerate them |
@@ -32,6 +33,7 @@ RideFlux 的開發者文件。每份文件都同時包含兩種語言，英文�
 | [ARCHITECTURE.md](ARCHITECTURE.md#繁體中文) | 模組分層、設計規則、儲存庫目錄結構 |
 | [PROTOCOLS.md](PROTOCOLS.md#繁體中文) | 支援的車輛家族、GATT 拓撲、協定知識的來源 |
 | [BRIDGE_PROTOCOL.md](BRIDGE_PROTOCOL.md#繁體中文) | 手機 ↔ 眼鏡橋接：配對權杖、啟動順序、掃描預算、靜默連線、封包版面 |
+| [BOND_BACKUP.md](BOND_BACKUP.md#繁體中文) | 加密的 `.rfbond` 配對金鑰備份：位元組版面、內容、測試向量、威脅模型 |
 | [LOCALIZATION.md](LOCALIZATION.md#繁體中文) | 18 種翻譯、覆蓋率測試、如何新增字串或語言 |
 | [BUILDING.md](BUILDING.md#繁體中文) | JDK 與 SDK、建置與安裝、簽章與機密、測試、Sonar、相依驗證 |
 | [play-store/](play-store/README.md#繁體中文) | Play 商店圖片，以及重新產生它們的腳本 |
