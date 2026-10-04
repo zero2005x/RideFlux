@@ -37,9 +37,9 @@ upward, and `:domain` never sees an `android.*` type.
 |---|---|---|
 | `:app` | Android app | Launcher, NavHost, Compose screens, `BridgeService`, `RecordingService`, Hilt graph |
 | `:hud-app` | Android app | Standalone glasses app — own Hilt graph, HUD-only Compose tree |
-| `:domain` | Pure Kotlin | `WheelTelemetry`, `WheelCommand`, `WheelCodec`, `WheelConnection`, `WheelRepository`, `Trip`, `AppSettings`, `ThresholdMonitor` |
-| `:data:protocol` | Pure Kotlin | `familyg` · `familyk` · `familyv` · `familyn` · `familyi1` · `familyi2` decoders and command builders |
-| `:data:ble` | Android lib | `AndroidBleTransport` (platform `android.bluetooth.*`), scanning, codec factory, connection impl |
+| `:domain` | Pure Kotlin | `WheelTelemetry`, `ScooterTelemetry`, `PlevDevice`, `PlevCategory`, `WheelCommand`, `WheelRepository`, `ScooterRepository`, `PlevRepository`, `MotionInterlock`, `Trip`, `AppSettings`, `ThresholdMonitor` |
+| `:data:protocol` | Pure Kotlin | `familyg` · `familyk` · `familyv` · `familyn` · `familyi1` · `familyi2` · `familyscooter` (Ninebot Retail, M365) · `familybms` (JBD, Ant) decoders, frame assemblers, and handshake state machines |
+| `:data:ble` | Android lib | `AndroidBleTransport` (platform `android.bluetooth.*`), `WheelRepositoryImpl`, `ScooterRepositoryImpl`, `ScooterClassifier`, scanning, codec factories |
 | `:data:bridge` | Android lib | Phone↔glasses GATT service: protocol constants, binary frame, server + client |
 | `:data:database` | Android lib | Room database, trip DAO / entities, exported schema |
 | `:data:preferences` | Android lib | DataStore-backed `SettingsRepository` |
@@ -135,9 +135,9 @@ see [Localization](LOCALIZATION.md#localization).
 |---|---|---|
 | `:app` | Android app | 啟動器、NavHost、Compose 畫面、`BridgeService`、`RecordingService`、Hilt 圖 |
 | `:hud-app` | Android app | 獨立的眼鏡應用程式——自有 Hilt 圖與 HUD 專用 Compose 樹 |
-| `:domain` | 純 Kotlin | `WheelTelemetry`、`WheelCommand`、`WheelCodec`、`WheelConnection`、`WheelRepository`、`Trip`、`AppSettings`、`ThresholdMonitor` |
-| `:data:protocol` | 純 Kotlin | `familyg`、`familyk`、`familyv`、`familyn`、`familyi1`、`familyi2` 的解碼器與指令建構器 |
-| `:data:ble` | Android lib | `AndroidBleTransport`（直接使用平台 `android.bluetooth.*`）、掃描、codec 工廠、連線實作 |
+| `:domain` | 純 Kotlin | `WheelTelemetry`、`ScooterTelemetry`、`PlevDevice`、`PlevCategory`、`WheelCommand`、`WheelRepository`、`ScooterRepository`、`PlevRepository`、`MotionInterlock`、`Trip`、`AppSettings`、`ThresholdMonitor` |
+| `:data:protocol` | 純 Kotlin | `familyg`、`familyk`、`familyv`、`familyn`、`familyi1`、`familyi2`、`familyscooter`（Ninebot Retail、M365）、`familybms`（JBD、Ant）解碼器、分包重組器與狀態機 |
+| `:data:ble` | Android lib | `AndroidBleTransport`（直接使用平台 `android.bluetooth.*`）、`WheelRepositoryImpl`、`ScooterRepositoryImpl`、`ScooterClassifier`、掃描、codec 工廠 |
 | `:data:bridge` | Android lib | 手機↔眼鏡 GATT 服務：協定常數、二進位封包、伺服器與用戶端 |
 | `:data:database` | Android lib | Room 資料庫、行程 DAO／實體、匯出的 schema |
 | `:data:preferences` | Android lib | 以 DataStore 實作的 `SettingsRepository` |

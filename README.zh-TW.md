@@ -4,11 +4,11 @@
 
 # RideFlux
 
-**電動獨輪車即時儀表板——並可搭配 AR 眼鏡抬頭顯示。**
+**電動獨輪車與 PLEV 輕型電動載具即時儀表板——並可搭配 AR 眼鏡抬頭顯示。**
 
-時速 · 電量 · 溫度 · PWM 警示 · 行程記錄 · Rokid HUD
+時速 · 電量 · 溫度 · PWM 警示 · 行程記錄 · Rokid HUD · 電動滑板車
 
-[English](README.md) &nbsp;·&nbsp; [**繁體中文**](README.zh-TW.md) &nbsp;·&nbsp; [官方網站](https://zero2005x.github.io/RideFlux/zh-TW/) &nbsp;·&nbsp; [隱私權政策](PRIVACY.md) &nbsp;·&nbsp; [開發文件](docs/README.md) &nbsp;·&nbsp; [故事（英文）](https://zero2005x.github.io/RideFlux/story/)
+[English](README.md) &nbsp;·&nbsp; [**繁體中文**](README.zh-TW.md) &nbsp;·&nbsp; [官方網站](https://zero2005x.github.io/RideFlux/zh-TW/) &nbsp;·&nbsp; [隱私權政策](PRIVACY.md) &nbsp;·&nbsp; [開發文件](docs/README.md) &nbsp;·&nbsp; [故事（英文）](https://zero2005x.github.io/RideFlux/story/) &nbsp;·&nbsp; [PLEV 白皮書](docs/PLEV_ARCHITECTURE_WHITE_PAPER.md)
 
 <a href="https://play.google.com/store/apps/details?id=com.rideflux.app&hl=zh-TW">
   <img alt="前往 Google Play 下載" src="https://play.google.com/intl/en_us/badges/static/images/badges/zh-tw_badge_web_generic.png" height="76">
@@ -37,15 +37,15 @@
 
 ## 它能做什麼
 
-RideFlux 透過藍牙低功耗（BLE）連線到您的電動獨輪車，把車輛當下的狀態即時顯示在手機上——如果您有 AR 眼鏡，也能顯示在眼鏡上。
+RideFlux 透過藍牙低功耗（BLE）連線到您的電動獨輪車與電動滑板車（PLEV），把載具當下的狀態即時顯示在手機上——如果您有 AR 眼鏡，也能顯示在眼鏡上。
 
 | | |
 |---|---|
-| ⚡ **即時儀表板** | 時速儀表、電量 %、電壓、電流、功率與各處溫度，另有 BMS 詳情、即時圖表，以及參數與事件頁面。 |
-| 🛡️ **安全警示** | 超速、過熱、低電量與 PWM 負載過高。內建去彈跳、冷卻與遲滯機制，數值在門檻附近徘徊時不會警示連發。預設值：**45 km/h · 80 °C · 電量 25 % · PWM 90 %**，皆可調整。 |
+| ⚡ **即時儀表板** | 時速儀表、電量 %、電壓、電流、功率與各處溫度，另有 BMS 詳情、即時圖表，以及參數與事件頁面。自適應滑板車與獨輪車布局。 |
+| 🛡️ **安全警示與動態聯鎖** | 超速、過熱、低電量與 PWM 負載過高。內建去彈跳、冷卻與遲滯機制，移動中強制鎖定危險控制。自動過濾無效速度哨兵值（0xFF00）。 |
 | 🗺️ **行程記錄** | 車輛開始移動時自動開始記錄。每趟騎乘都保留路線，以及時速、電壓與電流。可將行程匯出為 **CSV** 或 **GPX**，也可把所有行程與設定備份成 ZIP。 |
 | 🥽 **AR 眼鏡 HUD** | 選用的 Rokid AR 眼鏡抬頭顯示，讓您的視線保持在前方。可用藍牙指環一鍵顯示或隱藏。[詳見 ↓](#ar-眼鏡-hud) |
-| 🎛️ **車輛控制** | 大燈、喇叭、速度上限、校正等——僅限車輛本身支援的項目，且移動中會鎖定。 |
+| 🎛️ **車輛控制** | 大燈、喇叭、速度上限、九號滑板車三步配對（含 20 秒按鍵確認與倒數）、靜止鎖車寫入等。 |
 | 🔒 **隱私優先** | 沒有網路權限、沒有廣告、沒有數據分析、沒有帳號。除非您主動匯出，所有資料都只留在手機裡。 |
 | 🌍 **18 種語言** | 預設跟隨裝置語言，手機與眼鏡可各自選擇；包含由右至左排版的阿拉伯語與烏爾都語。 |
 
@@ -53,12 +53,12 @@ RideFlux 透過藍牙低功耗（BLE）連線到您的電動獨輪車，把車�
 
 ```mermaid
 flowchart LR
-    W["🛞 電動獨輪車"] -- "BLE" --> P["📱 RideFlux 手機端"]
+    W["🛞 個人輕型電動載具（獨輪車／滑板車）"] -- "BLE" --> P["📱 RideFlux 手機端"]
     P -- "BLE 橋接 · 每秒 1 個封包" --> G["🥽 Rokid 眼鏡上的 HUD App"]
     R["💍 藍牙指環"] -. "顯示／隱藏" .-> G
 ```
 
-- **只佔車輛一條連線。** 手機獨佔車輛唯一的 BLE 連線，再把精簡封包（時速、電量、電壓、行程、資料過期旗標）轉播給眼鏡，因此兩個裝置不會搶同一台車。沒有手機在身邊時，眼鏡也可以直接讀取車輛。
+- **只佔載具一條連線。** 手機獨佔載具唯一的 BLE 連線，再把精簡封包（時速、電量、電壓、行程、資料過期旗標）轉播給眼鏡，因此兩個裝置不會搶同一個週邊。沒有手機在身邊時，眼鏡也可以直接讀取載具。
 - **只認您的手機。** 眼鏡配對的是手機首次啟動時產生的權杖，而不是幾分鐘就會輪替的藍牙位址；手機也只會把資料串流給您核准過的眼鏡。
 - **免動手。** 與眼鏡配對的藍牙指環可以顯示或隱藏 HUD。安全警示即使在 HUD 被隱藏時也會跳出來。
 - **選用。** 手機端單獨使用就是一個完整的儀表板。
@@ -67,8 +67,9 @@ flowchart LR
 
 橋接的運作細節（逐位元組）：[docs/BRIDGE_PROTOCOL.md](docs/BRIDGE_PROTOCOL.md#繁體中文)。
 
-## 支援的車款
+## 支援的載具
 
+### 電動獨輪車（EUC）
 | 品牌 | 型號 | 狀態 |
 |---|---|---|
 | **Begode** / Gotway / ExtremeBull | A2 | ✅ **已實機驗證** —— 少數讀數（行程距離、PWM）已知有偏差，修正中 |
@@ -78,11 +79,19 @@ flowchart LR
 | **Ninebot** | One、E+、S2、Mini · Z、ZT、KickScooter Z | 🧪 實驗性 |
 | **Inmotion** | V5、V8、V10 · V9、V11、V12、V13、V14 | 🧪 實驗性 |
 
+### 電動滑板車（PLEV）與智慧 BMS
+| 類別 | 品牌／協定家族 | 狀態 |
+|---|---|---|
+| **電動滑板車** | **Ninebot Retail**（KickScooter ES1/2/4、Max G30、F20/30/40 等） | 🧪 完整 5A A5 實裝（三步握手、20 秒確認看門狗、B0 遙測輪詢） |
+| **電動滑板車** | **Xiaomi 小米 M365 系列**（M365、Pro、Pro2、1S、Lite、Mi 3） | 🧪 完整 55 AA 實裝（B0 鏡像暫存器解析、B5 速度刻度、0xFF00 哨兵防禦） |
+| **智慧 BMS** | **JBD / 小象 BMS 與 Ant 螞蟻 BMS** | 🧪 封包解碼器與 mV 級電芯監控 |
+| **驅動控制器** | **VESC** | 🧪 COMM_GET_VALUES（0x2F）遙測輪詢支援 |
+
 - ✅ **已實機驗證**：開發者實際連過該型號的真車，並拿 App 的顯示與車輛對照過。
 - 🧪 **實驗性**：解碼器依開源參考資料與錄下的測試封包實作，但**尚未**在真車上試過，在您的車上可能讀錯數值。若要把它當成安全依據，請先與車輛本身的顯示對照。
 - **您有實驗性車款的車嗎？** 一份簡短回報幫助很大——請到 [GitHub Issues](https://github.com/zero2005x/RideFlux/issues) 開一則，附上型號、韌體版本，以及 RideFlux 顯示的數值與車輛本身顯示的數值。
 
-各家族背後的傳輸格式與 GATT 配置：[docs/PROTOCOLS.md](docs/PROTOCOLS.md#繁體中文)。
+各家族背後的傳輸格式與 GATT 配置：[docs/PROTOCOLS.md](docs/PROTOCOLS.md#繁體中文) & [PLEV 白皮書](docs/PLEV_ARCHITECTURE_WHITE_PAPER.md)。
 
 ## 取得 RideFlux
 

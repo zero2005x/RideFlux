@@ -4,11 +4,11 @@
 
 # RideFlux
 
-**A live dashboard for electric unicycles — with an optional AR-glasses HUD.**
+**A live dashboard for electric unicycles & PLEV scooters — with an optional AR-glasses HUD.**
 
-Speed · Battery · Temperature · PWM alerts · Trip recording · Rokid HUD
+Speed · Battery · Temperature · PWM alerts · Trip recording · Rokid HUD · PLEV Scooters
 
-[**English**](README.md) &nbsp;·&nbsp; [繁體中文](README.zh-TW.md) &nbsp;·&nbsp; [Website](https://zero2005x.github.io/RideFlux/) &nbsp;·&nbsp; [Privacy](PRIVACY.md) &nbsp;·&nbsp; [Docs](docs/README.md) &nbsp;·&nbsp; [Story](https://zero2005x.github.io/RideFlux/story/)
+[**English**](README.md) &nbsp;·&nbsp; [繁體中文](README.zh-TW.md) &nbsp;·&nbsp; [Website](https://zero2005x.github.io/RideFlux/) &nbsp;·&nbsp; [Privacy](PRIVACY.md) &nbsp;·&nbsp; [Docs](docs/README.md) &nbsp;·&nbsp; [Story](https://zero2005x.github.io/RideFlux/story/) &nbsp;·&nbsp; [PLEV White Paper](docs/PLEV_ARCHITECTURE_WHITE_PAPER.md)
 
 <a href="https://play.google.com/store/apps/details?id=com.rideflux.app">
   <img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="76">
@@ -37,15 +37,15 @@ Speed · Battery · Temperature · PWM alerts · Trip recording · Rokid HUD
 
 ## What it does
 
-RideFlux connects to your electric unicycle (EUC) over Bluetooth Low Energy and shows what the wheel is doing, live, on your phone — and, if you have them, on AR glasses.
+RideFlux connects to your electric unicycle (EUC) and electric scooter (PLEV) over Bluetooth Low Energy and shows what the vehicle is doing, live, on your phone — and, if you have them, on AR glasses.
 
 | | |
 |---|---|
-| ⚡ **Live dashboard** | Speed gauge, battery %, voltage, current, power and temperatures, plus BMS details, live charts, and parameter and event pages. |
-| 🛡️ **Safety alerts** | Overspeed, over-temperature, low battery and high PWM load. Debounce, cooldown and hysteresis stop a value hovering on a limit from spamming you. Defaults: **45 km/h · 80 °C · 25 % · 90 % PWM**, all adjustable. |
-| 🗺️ **Trip recording** | Starts by itself when the wheel starts moving. Every ride keeps its route plus speed, voltage and current. Export a trip as **CSV** or **GPX**, or back up all trips and settings to a ZIP. |
+| ⚡ **Live dashboard** | Speed gauge, battery %, voltage, current, power and temperatures, plus BMS details, live charts, parameter and event pages. Automatically adapts layout for scooters and EUCs. |
+| 🛡️ **Safety alerts & interlock** | Overspeed, over-temperature, low battery and high PWM load. Motion interlock strictly locks destructive commands while moving. Invalid speed sentinels (0xFF00) are safely suppressed. |
+| 🗺️ **Trip recording** | Starts by itself when the vehicle starts moving. Every ride keeps its route plus speed, voltage and current. Export a trip as **CSV** or **GPX**, or back up all trips and settings to a ZIP. |
 | 🥽 **AR glasses HUD** | An optional heads-up display on Rokid AR glasses, so you can keep your eyes up. A Bluetooth ring can show or hide it. [More ↓](#ar-glasses-hud) |
-| 🎛️ **Wheel controls** | Headlight, horn, speed limit, calibration and more — where the wheel supports them, and locked while you are moving. |
+| 🎛️ **Vehicle controls** | Headlight, horn, speed limit, 3-step Ninebot pairing with 20s confirmation, and stationary lock controls. |
 | 🔒 **Private by design** | No internet permission, no ads, no analytics, no accounts. Everything stays on your phone unless you export it. |
 | 🌍 **18 languages** | Follows the device language by default, with a separate language choice on phone and glasses. Includes right-to-left Arabic and Urdu. |
 
@@ -53,12 +53,12 @@ RideFlux connects to your electric unicycle (EUC) over Bluetooth Low Energy and 
 
 ```mermaid
 flowchart LR
-    W["🛞 Electric unicycle"] -- "BLE" --> P["📱 RideFlux phone app"]
+    W["🛞 Electric vehicle (EUC / Scooter)"] -- "BLE" --> P["📱 RideFlux phone app"]
     P -- "BLE bridge · 1 frame / s" --> G["🥽 HUD app on Rokid glasses"]
     R["💍 BLE ring"] -. "show / hide" .-> G
 ```
 
-- **One link to the wheel.** The phone holds the wheel's single BLE connection and relays a compact frame (speed, battery, voltage, trip, stale flag) to the glasses, so two devices never fight over the wheel. The glasses can also read the wheel directly when no phone is around.
+- **One link to the vehicle.** The phone holds the vehicle's single BLE connection and relays a compact frame (speed, battery, voltage, trip, stale flag) to the glasses, so two devices never fight over the peripheral. The glasses can also read the vehicle directly when no phone is around.
 - **Only your phone.** The glasses pair to a token that the phone mints on first run, not to a Bluetooth address that rotates every few minutes, and the phone only streams to glasses you approved.
 - **Hands-free.** A Bluetooth ring paired to the glasses reveals or blanks the HUD. A safety alert still breaks through a blanked HUD.
 - **Optional.** The phone app is a complete dashboard on its own.
@@ -67,8 +67,9 @@ flowchart LR
 
 How the bridge works, byte by byte: [docs/BRIDGE_PROTOCOL.md](docs/BRIDGE_PROTOCOL.md).
 
-## Supported wheels
+## Supported vehicles
 
+### Electric Unicycles (EUC)
 | Brand | Models | Status |
 |---|---|---|
 | **Begode** / Gotway / ExtremeBull | A2 | ✅ **Verified on hardware** — a few readings (trip distance, PWM) are known to be off and are being fixed |
@@ -78,11 +79,19 @@ How the bridge works, byte by byte: [docs/BRIDGE_PROTOCOL.md](docs/BRIDGE_PROTOC
 | **Ninebot** | One, E+, S2, Mini · Z, ZT, KickScooter Z | 🧪 Experimental |
 | **Inmotion** | V5, V8, V10 · V9, V11, V12, V13, V14 | 🧪 Experimental |
 
-- ✅ **Verified on hardware** means the developer connected a real wheel of that model and checked the app against it.
-- 🧪 **Experimental** means the decoder is implemented from open-source references and recorded test frames, but has **not** been tried on a real wheel. It may misread values on yours. Compare it with your wheel's own display before you rely on it for safety.
-- **Own one of the experimental wheels?** A short report helps a lot — [open an issue](https://github.com/zero2005x/RideFlux/issues) with the model, firmware, and what RideFlux showed against what the wheel's own display showed.
+### Electric Scooters (PLEV) & Smart BMS
+| Category | Brand / Lineage | Status |
+|---|---|---|
+| **Scooter** | **Ninebot Retail** (KickScooter ES1/2/4, Max G30, F20/30/40) | 🧪 Full 5A A5 implementation (3-step pairing, 20s confirmation watchdog, B0 telemetry) |
+| **Scooter** | **Xiaomi M365** (M365, Pro, Pro2, 1S, Lite, Mi 3) | 🧪 Full 55 AA implementation (B0 mirror telemetry, B5 speed decode, 0xFF00 sentinel guard) |
+| **Smart BMS** | **JBD / Xiaoxiang & Ant BMS** | 🧪 Packet decoders with mV cell voltage monitoring |
+| **Controller** | **VESC** | 🧪 COMM_GET_VALUES (0x2F) telemetry polling |
 
-The wire formats and GATT layouts behind each family: [docs/PROTOCOLS.md](docs/PROTOCOLS.md).
+- ✅ **Verified on hardware** means the developer connected a real wheel of that model and checked the app against it.
+- 🧪 **Experimental** means the decoder is implemented from open-source references and recorded test frames, but has **not** been tried on a real vehicle. It may misread values on yours. Compare it with your vehicle's own display before you rely on it for safety.
+- **Own one of the experimental vehicles?** A short report helps a lot — [open an issue](https://github.com/zero2005x/RideFlux/issues) with the model, firmware, and what RideFlux showed against what the vehicle's own display showed.
+
+The wire formats and GATT layouts behind each family: [docs/PROTOCOLS.md](docs/PROTOCOLS.md) & [PLEV White Paper](docs/PLEV_ARCHITECTURE_WHITE_PAPER.md).
 
 ## Get RideFlux
 
