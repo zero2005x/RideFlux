@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 package com.rideflux.hud
+import android.app.Activity
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
@@ -61,6 +63,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.rideflux.data.preferences.AppLanguage
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -71,6 +77,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.settings.AlertThresholds
+import com.rideflux.domain.settings.HudLayoutProfile
 import com.rideflux.hud.source.BridgePeerCandidate
 import kotlinx.coroutines.delay
 import java.time.LocalTime
@@ -120,6 +127,7 @@ fun HudRoute(
         uiState = uiState,
         hudVisible = hudVisible,
         mirrorHorizontally = settings.hudMirrorHorizontally,
+        layoutProfile = settings.hudProfiles["local"] ?: HudLayoutProfile(),
         targetMac = targetMac,
         onExit = onExit,
         onRetry = onRetry,
@@ -157,6 +165,7 @@ fun HudScreen(
     onRetry: () -> Unit,
     hudVisible: Boolean = true,
     mirrorHorizontally: Boolean = false,
+    layoutProfile: HudLayoutProfile = HudLayoutProfile(),
     settingsOpen: Boolean = false,
     thresholds: AlertThresholds = AlertThresholds(),
     pairingCandidates: List<BridgePeerCandidate> = emptyList(),
@@ -190,8 +199,22 @@ fun HudScreen(
                 detectTapGestures(onLongPress = { currentOnOpenSettings() })
             },
     ) {
-        val dims = remember(maxWidth, maxHeight) {
-            HudLayoutDimensions.calculate(maxWidth.value, maxHeight.value)
+        val profile = layoutProfile.normalized()
+        val viewportWidth = maxWidth.value
+        val viewportHeight = maxHeight.value
+        val dims = remember(maxWidth, maxHeight, profile) {
+            val base = HudLayoutDimensions.calculate(
+                viewportWidth * (1f - (profile.leftInset + profile.rightInset) / 100f),
+                viewportHeight * (1f - (profile.topInset + profile.bottomInset) / 100f),
+            )
+            val scale = profile.fontPercent / 100f
+            base.copy(
+                speedFontSizeSp = base.speedFontSizeSp * scale,
+                speedUnitFontSizeSp = base.speedUnitFontSizeSp * scale,
+                clockFontSizeSp = base.clockFontSizeSp * scale,
+                batteryFontSizeSp = base.batteryFontSizeSp * scale,
+                labelFontSizeSp = base.labelFontSizeSp * scale,
+            )
         }
         // Blanked by a ring press (here or on the phone). The link, the
         // frame pipeline and this activity all stay exactly as they
@@ -215,7 +238,22 @@ fun HudScreen(
             HudPhase.Scanning -> ScanningMessage()
             HudPhase.Connecting -> ConnectingMessage(targetMac = targetMac)
             is HudPhase.Disconnected -> DisconnectedMessage(reason = phase.reason, onRetry = currentOnRetry)
-            HudPhase.Ready -> ReadyHud(uiState = uiState, dims = dims)
+            HudPhase.Ready -> ReadyHud(
+                uiState = uiState,
+                dims = dims,
+                profile = profile,
+                modifier = Modifier.fillMaxSize()
+                    .padding(
+                        start = (viewportWidth * profile.leftInset / 100f).dp,
+                        end = (viewportWidth * profile.rightInset / 100f).dp,
+                        top = (viewportHeight * profile.topInset / 100f).dp,
+                        bottom = (viewportHeight * profile.bottomInset / 100f).dp,
+                    )
+                    .offset(
+                        x = (viewportWidth * profile.offsetX / 100f).dp,
+                        y = (viewportHeight * profile.offsetY / 100f).dp,
+                    ),
+            )
         }
         if (uiState.thresholdAlertActive && phaseOf(uiState) == HudPhase.Ready && !suppressed) {
             val flash by rememberAlertFlash()
@@ -265,6 +303,32 @@ private fun HudSettingsOverlay(
     onStartLearnRing: () -> Unit,
     onResetRingKey: () -> Unit,
 ) {
+    val languageContext = LocalContext.current
+    var showLanguagePicker by remember { mutableStateOf(false) }
+    if (showLanguagePicker) {
+        AlertDialog(
+            onDismissRequest = { showLanguagePicker = false },
+            title = { Text(stringResource(R.string.hud_language)) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    (listOf("") + AppLanguage.supportedTags).forEach { tag ->
+                        val name = if (tag.isEmpty()) stringResource(R.string.hud_follow_system)
+                            else Locale.forLanguageTag(tag).getDisplayName(Locale.forLanguageTag(tag))
+                        Text(name, color = Color.White,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                (languageContext as? Activity)?.let { AppLanguage.set(it, tag) }
+                                showLanguagePicker = false
+                            }.padding(10.dp))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLanguagePicker = false }) {
+                    Text(stringResource(R.string.hud_settings_close))
+                }
+            },
+        )
+    }
     Column(
         Modifier
             .fillMaxSize()
@@ -283,6 +347,7 @@ private fun HudSettingsOverlay(
             ActionText(stringResource(R.string.hud_settings_exit), onExit)
         }
         val celsius = stringResource(R.string.unit_celsius)
+        ActionText(stringResource(R.string.hud_language), onClick = { showLanguagePicker = true })
         val percent = stringResource(R.string.unit_percent)
         LimitRow(
             stringResource(R.string.hud_limit_speed),
@@ -662,10 +727,9 @@ private fun RetryChip(label: String, onClick: () -> Unit) {
 // ---------- Ready HUD --------------------------------------------------
 
 @Composable
-private fun ReadyHud(uiState: HudUiState, dims: HudLayoutDimensions) {
+private fun ReadyHud(uiState: HudUiState, dims: HudLayoutDimensions, profile: HudLayoutProfile, modifier: Modifier) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
             .padding(
                 start = dims.horizontalPaddingDp.dp,
                 end = dims.horizontalPaddingDp.dp,
@@ -681,6 +745,7 @@ private fun ReadyHud(uiState: HudUiState, dims: HudLayoutDimensions) {
             glassesBatteryPercent = uiState.glassesBatteryPercent,
             signal = uiState.signalQuality,
             dims = dims,
+            profile = profile,
         )
         CenterSpeed(
             modifier = Modifier
@@ -697,6 +762,7 @@ private fun ReadyHud(uiState: HudUiState, dims: HudLayoutDimensions) {
             tripDistanceMetres = uiState.tripDistanceMetres,
             tripDurationSeconds = uiState.tripDurationSeconds,
             dims = dims,
+            profile = profile,
         )
 
         // Stale-data flag floats top-centre so it stays out of the
@@ -735,6 +801,7 @@ private fun LeftColumn(
     glassesBatteryPercent: Int?,
     signal: SignalQuality,
     dims: HudLayoutDimensions,
+    profile: HudLayoutProfile,
 ) {
     val clock by rememberWallClock()
     Column(
@@ -745,7 +812,7 @@ private fun LeftColumn(
         // Wall clock — primary item in this column. Tinted with the
         // RideFlux cyan brand colour so it doesn't visually compete
         // with the neon-green speed value in the centre column.
-        IconLabelRow(
+        if (profile.shows(HudLayoutProfile.CLOCK)) IconLabelRow(
             icon = Icons.Filled.Schedule,
             iconTint = HudCyan,
             text = clock,
@@ -755,7 +822,7 @@ private fun LeftColumn(
             fontWeight = FontWeight.Black,
         )
         // Phone battery (paired companion device).
-        IconLabelRow(
+        if (profile.shows(HudLayoutProfile.PHONE_BATTERY)) IconLabelRow(
             icon = Icons.Filled.Smartphone,
             iconTint = HudWhiteSoft,
             text = formatPercent(phoneBatteryPercent?.toFloat()),
@@ -764,7 +831,7 @@ private fun LeftColumn(
             iconSize = dims.iconSizeDp.dp,
         )
         // Glasses battery (this device).
-        IconLabelRow(
+        if (profile.shows(HudLayoutProfile.GLASSES_BATTERY)) IconLabelRow(
             icon = Icons.Filled.Visibility,
             iconTint = HudWhiteSoft,
             text = formatPercent(glassesBatteryPercent?.toFloat()),
@@ -773,7 +840,7 @@ private fun LeftColumn(
             iconSize = dims.iconSizeDp.dp,
         )
         // BLE signal quality.
-        SignalRow(signal = signal, dims = dims)
+        if (profile.shows(HudLayoutProfile.SIGNAL)) SignalRow(signal = signal, dims = dims)
     }
 }
 
@@ -842,6 +909,7 @@ private fun RightColumn(
     tripDistanceMetres: Int?,
     tripDurationSeconds: Long?,
     dims: HudLayoutDimensions,
+    profile: HudLayoutProfile,
 ) {
     val pct = vehicleBatteryPercent?.takeIf { it.isFinite() }?.coerceIn(0f, 100f)
     val tint = batteryTint(pct)
@@ -854,7 +922,7 @@ private fun RightColumn(
         // Right column is end-aligned, so place the icon after the
         // text — keeps the numerals flush with the right edge and
         // the icons forming a clean vertical column on the inside.
-        IconLabelRow(
+        if (profile.shows(HudLayoutProfile.WHEEL_BATTERY)) IconLabelRow(
             icon = Icons.Filled.ElectricScooter,
             iconTint = tint,
             text = pct?.let { "${it.roundToInt()}%" } ?: "--%",
@@ -864,7 +932,7 @@ private fun RightColumn(
             fontWeight = FontWeight.Black,
             iconAfter = true,
         )
-        if (tripDistanceMetres != null) {
+        if (profile.shows(HudLayoutProfile.DISTANCE) && tripDistanceMetres != null) {
             IconLabelRow(
                 icon = Icons.Filled.Straighten,
                 iconTint = HudWhiteSoft,
@@ -875,7 +943,7 @@ private fun RightColumn(
                 iconAfter = true,
             )
         }
-        if (tripDurationSeconds != null) {
+        if (profile.shows(HudLayoutProfile.DURATION) && tripDurationSeconds != null) {
             IconLabelRow(
                 icon = Icons.Filled.Timer,
                 iconTint = HudWhiteSoft,

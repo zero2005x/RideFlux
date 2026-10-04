@@ -6,6 +6,8 @@
   NOTE: the resource qualifier is the legacy ISO 639-1 code "in", not "id".
 -->
 <resources>
+    <string name="hud_language">Bahasa</string>
+    <string name="hud_follow_system">Ikuti bahasa sistem</string>
     <string name="hud_waiting_phone_title">MENUNGGU\nPONSEL</string>
     <string name="hud_waiting_phone_subtitle">Mencari RideFlux…</string>
     <string name="hud_phone_connected_title">PONSEL\nTERHUBUNG</string>

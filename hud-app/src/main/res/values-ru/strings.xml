@@ -5,6 +5,8 @@
   Russian (Русский) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">Язык</string>
+    <string name="hud_follow_system">Использовать язык системы</string>
     <string name="hud_waiting_phone_title">ЖДЁМ\nТЕЛЕФОН</string>
     <string name="hud_waiting_phone_subtitle">Поиск RideFlux…</string>
     <string name="hud_phone_connected_title">ТЕЛЕФОН\nПОДКЛЮЧЁН</string>

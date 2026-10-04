@@ -275,12 +275,20 @@ class BridgeService : Service() {
                             onState = ::setLinkState,
                             onAuthorizationRequested = ::handleAuthorizationRequested,
                             onAuthorizationDismissed = ::handleAuthorizationDismissed,
+                            profileFor = { id ->
+                                resolveHudProfile(
+                                    id,
+                                    settingsRepository.settings.value.hudProfiles,
+                                    ApprovedGlassesStore.getAll(applicationContext),
+                                )
+                            },
                         )
                         GlassesLinkMode.ROKID_CXR -> RokidCxrBridgePublisher(
                             applicationContext,
                             scope,
                             ::setLinkState,
                             preferredGlassesMacProvider = { settingsRepository.settings.value.preferredGlassesMac },
+                            profileFor = { id -> resolveHudProfile(id, settingsRepository.settings.value.hudProfiles) },
                         )
                     }
                     candidate = opening

@@ -15,6 +15,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.rideflux.domain.settings.AlertThresholds
 import com.rideflux.domain.settings.AppSettings
+import com.rideflux.domain.settings.HudLayoutProfile
 import com.rideflux.domain.settings.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -53,6 +54,7 @@ class DataStoreSettingsRepository internal constructor(
 
     override suspend fun updateSettings(settings: AppSettings) {
         dataStore.edit { p ->
+            p[Keys.HUD_PROFILES] = encodeProfiles(settings.hudProfiles)
             p[Keys.SPEED_LIMIT] = settings.alertThresholds.speedLimitKmh
             p[Keys.TEMP_LIMIT] = settings.alertThresholds.temperatureLimitC
             p[Keys.LOW_BATTERY] = settings.alertThresholds.lowBatteryPercent
@@ -113,6 +115,15 @@ class DataStoreSettingsRepository internal constructor(
     override suspend fun setHudMirrorHorizontally(value: Boolean) =
         setBoolean(Keys.HUD_MIRROR_HORIZONTALLY, value)
 
+    override suspend fun setHudProfile(id: String, profile: HudLayoutProfile) {
+        require(id.matches(Regex("[A-Za-z0-9_-]{1,64}")))
+        dataStore.edit { p ->
+            val profiles = decodeProfiles(p[Keys.HUD_PROFILES]).toMutableMap()
+            profiles[id] = profile.normalized()
+            p[Keys.HUD_PROFILES] = encodeProfiles(profiles)
+        }
+    }
+
     override suspend fun setPreferredGlassesMac(value: String?) {
         dataStore.edit { preferences ->
             val normalised = value?.trim()?.uppercase()?.takeIf(String::isNotEmpty)
@@ -131,6 +142,7 @@ class DataStoreSettingsRepository internal constructor(
     }
 
     private fun toSettings(p: Preferences) = AppSettings(
+        hudProfiles = decodeProfiles(p[Keys.HUD_PROFILES]),
         alertThresholds = AlertThresholds(
             speedLimitKmh = p[Keys.SPEED_LIMIT] ?: 45f,
             temperatureLimitC = p[Keys.TEMP_LIMIT] ?: 80f,
@@ -149,6 +161,7 @@ class DataStoreSettingsRepository internal constructor(
     )
 
     private object Keys {
+        val HUD_PROFILES = stringPreferencesKey("hud_profiles")
         val SPEED_LIMIT = floatPreferencesKey("speed_limit_kmh")
         val TEMP_LIMIT = floatPreferencesKey("temp_limit_c")
         val LOW_BATTERY = floatPreferencesKey("low_battery_percent")
@@ -163,4 +176,14 @@ class DataStoreSettingsRepository internal constructor(
         val HUD_MIRROR_HORIZONTALLY = booleanPreferencesKey("hud_mirror_horizontally")
         val PREFERRED_GLASSES_MAC = stringPreferencesKey("preferred_glasses_mac")
     }
+
+    private fun encodeProfiles(profiles: Map<String, HudLayoutProfile>): String =
+        profiles.toSortedMap().entries.joinToString("\n") { (id, profile) -> "$id:${profile.normalized().toCsv()}" }
+
+    private fun decodeProfiles(raw: String?): Map<String, HudLayoutProfile> =
+        raw.orEmpty().lineSequence().mapNotNull { line ->
+            val id = line.substringBefore(':')
+            val profile = HudLayoutProfile.fromCsv(line.substringAfter(':', ""))
+            if (id.matches(Regex("[A-Za-z0-9_-]{1,64}")) && profile != null) id to profile else null
+        }.toMap()
 }

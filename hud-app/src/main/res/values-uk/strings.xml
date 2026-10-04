@@ -5,6 +5,8 @@
   Ukrainian (Українська) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">Мова</string>
+    <string name="hud_follow_system">Використовувати мову системи</string>
     <string name="hud_waiting_phone_title">ЧЕКАЄМО\nТЕЛЕФОН</string>
     <string name="hud_waiting_phone_subtitle">Пошук RideFlux…</string>
     <string name="hud_phone_connected_title">ТЕЛЕФОН\nПІДКЛЮЧЕНО</string>

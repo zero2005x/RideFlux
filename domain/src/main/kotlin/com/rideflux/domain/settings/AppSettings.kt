@@ -13,6 +13,7 @@ data class AlertThresholds(
 )
 
 data class AppSettings(
+    val hudProfiles: Map<String, HudLayoutProfile> = emptyMap(),
     val alertThresholds: AlertThresholds = AlertThresholds(),
     val useMetric: Boolean = true,
     val keepScreenOnDashboard: Boolean = true,

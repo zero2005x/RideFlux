@@ -7,6 +7,24 @@
   Android resolves Indonesian resources only under values-in.
 -->
 <resources>
+    <string name="settings_hud_customize">Sesuaikan HUD</string>
+    <string name="settings_hud_preview">Pratinjau simulasi</string>
+    <string name="settings_hud_hide">Sembunyikan HUD</string>
+    <string name="settings_hud_show">Tampilkan HUD</string>
+    <string name="settings_hud_left">Margin kiri</string>
+    <string name="settings_hud_right">Margin kanan</string>
+    <string name="settings_hud_top">Margin atas</string>
+    <string name="settings_hud_bottom">Margin bawah</string>
+    <string name="settings_hud_horizontal">Posisi horizontal</string>
+    <string name="settings_hud_vertical">Posisi vertikal</string>
+    <string name="settings_hud_font">Ukuran teks</string>
+    <string name="settings_hud_clock">Jam</string>
+    <string name="settings_hud_phone_battery">Baterai ponsel</string>
+    <string name="settings_hud_glasses_battery">Baterai kacamata</string>
+    <string name="settings_hud_signal">Sinyal</string>
+    <string name="settings_hud_wheel_battery">Baterai kendaraan</string>
+    <string name="settings_language">Bahasa</string>
+    <string name="settings_follow_system">Ikuti bahasa sistem</string>
 
     <string name="action_back">Kembali</string>
     <string name="action_open">Buka</string>

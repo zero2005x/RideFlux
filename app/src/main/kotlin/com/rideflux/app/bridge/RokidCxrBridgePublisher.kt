@@ -16,6 +16,7 @@ import com.rideflux.app.BuildConfig
 import com.rideflux.data.bridge.BridgeCodec
 import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.BridgeProtocol
+import com.rideflux.domain.settings.HudLayoutProfile
 import com.rokid.cxr.CXRServiceBridge
 import com.rokid.cxr.Caps
 import com.rokid.cxr.client.extend.CxrApi
@@ -34,6 +35,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicReference
 
@@ -50,12 +52,23 @@ internal class RokidCxrBridgePublisher(
     parentScope: CoroutineScope,
     private val onState: (GlassesLinkState) -> Unit,
     private val preferredGlassesMacProvider: (() -> String?)? = null,
+    private val profileFor: (String) -> HudLayoutProfile = { HudLayoutProfile() },
 ) : BridgePublisher {
 
     private val publisherJob = SupervisorJob(parentScope.coroutineContext[Job])
     private val scope = CoroutineScope(parentScope.coroutineContext + publisherJob)
     private val latestPayload = AtomicReference<ByteArray?>(null)
+    private val profileSender = HudProfileSender(profileFor, send = { payload ->
+        try {
+            val args = Caps().apply { writeInt32(1) }
+            messageBridge.sendMessage(BridgeProtocol.CXR_HUD_PROFILE_CHANNEL, args, payload) == 0
+        } catch (t: Throwable) {
+            Log.w(TAG, "CXR HUD profile send failed: ${t.message}")
+            false
+        }
+    }, now = android.os.SystemClock::elapsedRealtime)
     @Volatile private var collectionJob: Job? = null
+    @Volatile private var profileJob: Job? = null
     @Volatile private var connectJob: Job? = null
     @Volatile private var connectTimeoutJob: Job? = null
     @Volatile private var reconnectJob: Job? = null
@@ -119,6 +132,7 @@ internal class RokidCxrBridgePublisher(
                 return
             }
             connected = false
+            profileJob?.cancel()
             onState(GlassesLinkState.STARTING)
             scheduleReconnect("disconnected")
         }
@@ -223,6 +237,7 @@ internal class RokidCxrBridgePublisher(
         connectTimeoutJob?.cancel()
         reconnectJob?.cancel()
         collectionJob?.cancel()
+        profileJob?.cancel()
         connectJob = null
         connectTimeoutJob = null
         reconnectJob = null
@@ -284,6 +299,7 @@ internal class RokidCxrBridgePublisher(
 
     private fun handleConnectionFailure(reason: String) {
         connected = false
+        profileJob?.cancel()
         onState(GlassesLinkState.ERROR)
         // Until open() has returned, the retry decision belongs to the
         // caller: resolving false lets it fall back to the native BLE
@@ -311,6 +327,14 @@ internal class RokidCxrBridgePublisher(
         reconnectJob = null
         onState(GlassesLinkState.CONNECTED)
         latestPayload.get()?.let(::sendPayload)
+        profileJob?.cancel()
+        profileSender.reset()
+        profileJob = scope.launch {
+            while (isActive && connected) {
+                profileSender.sendIfNeeded(targetDevice?.address)
+                delay(1_000L)
+            }
+        }
         Log.i(TAG, "Rokid CXR connected")
     }
 

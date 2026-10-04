@@ -5,6 +5,8 @@
   Urdu (اردو) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">زبان</string>
+    <string name="hud_follow_system">سسٹم کی زبان استعمال کریں</string>
     <string name="hud_waiting_phone_title">فون کا\nانتظار</string>
     <string name="hud_waiting_phone_subtitle">RideFlux تلاش کیا جا رہا ہے…</string>
     <string name="hud_phone_connected_title">فون\nمنسلک</string>

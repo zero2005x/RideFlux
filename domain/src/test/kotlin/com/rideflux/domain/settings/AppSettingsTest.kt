@@ -20,6 +20,14 @@ import org.junit.Test
 class AppSettingsTest {
 
     @Test
+    fun `HUD visible item flags and malformed profiles are handled safely`() {
+        val profile = HudLayoutProfile(visibleItems = HudLayoutProfile.CLOCK)
+        assertTrue(profile.shows(HudLayoutProfile.CLOCK))
+        assertFalse(profile.shows(HudLayoutProfile.DISTANCE))
+        assertNull(HudLayoutProfile.fromCsv("1,2,3,4,5,6,7"))
+    }
+
+    @Test
     fun `alert threshold defaults match the documented safety limits`() {
         val thresholds = AlertThresholds()
         assertEquals(45f, thresholds.speedLimitKmh)

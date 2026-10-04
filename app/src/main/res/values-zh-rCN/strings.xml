@@ -5,6 +5,24 @@
   Simplified Chinese (华语) translations for :app.
 -->
 <resources>
+    <string name="settings_hud_customize">自定义 HUD</string>
+    <string name="settings_hud_preview">模拟预览</string>
+    <string name="settings_hud_hide">隐藏 HUD</string>
+    <string name="settings_hud_show">显示 HUD</string>
+    <string name="settings_hud_left">左边距</string>
+    <string name="settings_hud_right">右边距</string>
+    <string name="settings_hud_top">上边距</string>
+    <string name="settings_hud_bottom">下边距</string>
+    <string name="settings_hud_horizontal">水平位置</string>
+    <string name="settings_hud_vertical">垂直位置</string>
+    <string name="settings_hud_font">字体大小</string>
+    <string name="settings_hud_clock">时间</string>
+    <string name="settings_hud_phone_battery">手机电量</string>
+    <string name="settings_hud_glasses_battery">眼镜电量</string>
+    <string name="settings_hud_signal">信号</string>
+    <string name="settings_hud_wheel_battery">车辆电量</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_follow_system">跟随系统</string>
 
     <string name="action_back">返回</string>
     <string name="action_open">打开</string>

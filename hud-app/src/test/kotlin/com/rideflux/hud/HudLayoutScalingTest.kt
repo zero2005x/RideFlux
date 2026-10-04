@@ -39,11 +39,19 @@ class HudLayoutScalingTest {
     }
 
     @Test
-    fun `small viewport is clamped to minimum limits`() {
+    fun `small viewport remains inside its visible bounds`() {
         val dims = HudLayoutDimensions.calculate(widthDp = 200f, heightDp = 150f)
-        assertEquals(0.75f, dims.scale, 0.01f)
-        assertTrue(dims.speedFontSizeSp >= 72f * 0.75f)
-        assertTrue(dims.iconSizeDp >= 14f)
-        assertTrue(dims.sideColumnWidthDp >= 75f)
+        assertTrue(dims.scale >= 0.4f)
+        assertTrue(dims.speedFontSizeSp >= 72f * 0.4f)
+        assertTrue(dims.iconSizeDp >= 10f)
+        val used = dims.sideColumnWidthDp * 2 + dims.centerColumnWidthDp + dims.horizontalPaddingDp * 2
+        assertTrue(used <= 200f)
+    }
+
+    @Test
+    fun `inset viewport still fits three columns`() {
+        val dims = HudLayoutDimensions.calculate(widthDp = 128f, heightDp = 180f)
+        val used = dims.sideColumnWidthDp * 2 + dims.centerColumnWidthDp + dims.horizontalPaddingDp * 2
+        assertTrue(used <= 128f)
     }
 }

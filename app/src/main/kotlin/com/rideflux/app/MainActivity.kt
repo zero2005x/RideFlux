@@ -6,6 +6,7 @@
 package com.rideflux.app
 
 import android.os.Bundle
+import android.content.Context
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,6 +30,7 @@ import com.rideflux.app.ui.permission.BlePermissionGate
 import com.rideflux.app.ui.theme.RideFluxTheme
 import com.rideflux.app.ui.settings.RingKeyLearner
 import com.rideflux.domain.settings.SettingsRepository
+import com.rideflux.data.preferences.AppLanguage
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -41,6 +43,7 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) = super.attachBaseContext(AppLanguage.wrap(newBase))
     @Inject lateinit var settingsRepository: SettingsRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {

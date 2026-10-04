@@ -5,6 +5,8 @@
   Standard German (Deutsch) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">Sprache</string>
+    <string name="hud_follow_system">Systemsprache verwenden</string>
     <string name="hud_waiting_phone_title">WARTE AUF\nTELEFON</string>
     <string name="hud_waiting_phone_subtitle">Suche nach RideFlux…</string>
     <string name="hud_phone_connected_title">TELEFON\nVERBUNDEN</string>

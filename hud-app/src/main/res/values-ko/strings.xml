@@ -5,6 +5,8 @@
   Korean (한국어) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_language">언어</string>
+    <string name="hud_follow_system">시스템 언어 사용</string>
     <string name="hud_waiting_phone_title">휴대전화\n대기 중</string>
     <string name="hud_waiting_phone_subtitle">RideFlux 검색 중…</string>
     <string name="hud_phone_connected_title">휴대전화\n연결됨</string>
