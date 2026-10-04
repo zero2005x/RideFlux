@@ -21,6 +21,7 @@ import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.os.ParcelUuid
 import android.os.Looper
+import android.os.Build
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -572,14 +573,19 @@ class BridgeClientGattTest {
             every { gatt.discoverServices() } returns true
             every { gatt.getService(BridgeProtocol.SERVICE_UUID) } returns service
             every { gatt.setCharacteristicNotification(telemetry, true) } returns true
-            every {
-                gatt.writeCharacteristic(
-                    handshake, any(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
-                )
-            } returns BluetoothStatusCodes.SUCCESS
-            every {
-                gatt.writeDescriptor(cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
-            } returns BluetoothGatt.GATT_SUCCESS
+            if (Build.VERSION.SDK_INT >= 33) {
+                every {
+                    gatt.writeCharacteristic(
+                        handshake, any(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
+                    )
+                } returns BluetoothStatusCodes.SUCCESS
+                every {
+                    gatt.writeDescriptor(cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                } returns BluetoothGatt.GATT_SUCCESS
+            } else {
+                every { gatt.writeCharacteristic(handshake) } returns true
+                every { gatt.writeDescriptor(cccd) } returns true
+            }
         }
     }
 }
