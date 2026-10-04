@@ -49,6 +49,7 @@ class DataStoreSettingsRepositoryStoreTest {
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking { repository.setHudProfile("invalid:id", first) }
         }
+        Unit
     }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined + CoroutineExceptionHandler { _, _ -> })
 
