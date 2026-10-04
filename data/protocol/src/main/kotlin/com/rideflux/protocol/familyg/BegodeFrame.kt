@@ -72,8 +72,10 @@ sealed class BegodeFrame {
         override val subIndex: Int,
     ) : BegodeFrame() {
 
-        /** Pedals mode: inverted three-bit field, clamped to 0..2 (§3.1.4). */
+        /** Legacy UI interpretation; use [rideMode] for the vendor's raw mode. */
         val pedalsMode: Int get() = (2 - ((settingsBitfield ushr 13) and 0x07)).coerceIn(0, 2)
+        /** Both Begode vendor app generations extract bits 13..15 directly. */
+        val rideMode: Int get() = (settingsBitfield ushr 13) and 0x07
         val speedAlarmMode: Int get() = (settingsBitfield ushr 10) and 0x07
         val rollAngleMode: Int get() = (settingsBitfield ushr 7) and 0x07
         val milesMode: Boolean get() = (settingsBitfield and 0x01) != 0

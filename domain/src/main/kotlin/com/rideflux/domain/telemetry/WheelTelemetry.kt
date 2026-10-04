@@ -75,6 +75,8 @@ data class WheelTelemetry(
      * healthy wheel.
      */
     val faults: Set<WheelFault>? = null,
+    /** Optional integrated smart BMS; standalone BMS devices use their own model. */
+    val bmsStatus: SmartBmsTelemetry? = null,
 ) {
     init {
         // The KDoc on batteryPercent promises this invariant; enforce it

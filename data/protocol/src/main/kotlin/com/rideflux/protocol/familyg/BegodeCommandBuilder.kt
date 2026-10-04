@@ -27,6 +27,27 @@ package com.rideflux.protocol.familyg
  */
 object BegodeCommandBuilder {
 
+    /**
+     * Static vendor-app write plan for WY. This is deliberately not wired into
+     * [com.rideflux.domain.codec.WheelCodec.encode]: changing a speed limit needs
+     * model-specific wire evidence and a verified read-back before transmission.
+     * Each element is one GATT write, not a byte to concatenate into one write.
+     */
+    internal fun pedalSpeedWritePlan(speedKmh: Int): TimedWritePlan {
+        val bounded = speedKmh.coerceIn(3, 90)
+        val tens = '0'.code + bounded / 10
+        val ones = '0'.code + bounded % 10
+        return TimedWritePlan(
+            writes = listOf(cmd('W'), cmd('Y'), byteArrayOf(tens.toByte()), byteArrayOf(ones.toByte())),
+            delaysAfterWriteMs = listOf(500L, 550L, 600L),
+        )
+    }
+
+    internal data class TimedWritePlan(
+        val writes: List<ByteArray>,
+        val delaysAfterWriteMs: List<Long>,
+    )
+
     /** ASCII-encode a single command byte. */
     private fun cmd(c: Char): ByteArray = byteArrayOf(c.code.toByte())
 

@@ -66,6 +66,8 @@ import com.rideflux.app.ui.permission.rememberNotificationPermissionPrompt
 import com.rideflux.app.ui.permission.rememberNotificationsEnabled
 import com.rideflux.app.ui.permission.shouldShowNotificationsHint
 import com.rideflux.domain.repository.DiscoveredWheel
+import com.rideflux.domain.device.PlevCategory
+import com.rideflux.domain.device.ScooterDevice
 import com.rideflux.domain.wheel.WheelFamily
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -79,7 +81,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 @Composable
 fun ScannerRoute(
-    onDeviceSelected: (address: String, family: WheelFamily?) -> Unit,
+    onDeviceSelected: (address: String, family: WheelFamily?, category: PlevCategory) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenTripHistory: () -> Unit,
     viewModel: ScannerViewModel = hiltViewModel(),
@@ -135,7 +137,8 @@ fun ScannerRoute(
             }
         },
         onSelectLinkMode = { mode -> BridgeService.setLinkMode(context, mode) },
-        onDeviceSelected = { onDeviceSelected(it.address, it.family) },
+        onDeviceSelected = { onDeviceSelected(it.address, it.family, PlevCategory.WHEEL) },
+        onScooterSelected = { onDeviceSelected(it.address, null, PlevCategory.SCOOTER) },
         onOpenSettings = onOpenSettings,
         onOpenTripHistory = onOpenTripHistory,
     )
@@ -164,6 +167,7 @@ fun ScannerScreen(
     onToggleBridge: (Boolean) -> Unit = {},
     onSelectLinkMode: (GlassesLinkMode) -> Unit = {},
     onDeviceSelected: (DiscoveredWheel) -> Unit,
+    onScooterSelected: (ScooterDevice) -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onOpenTripHistory: () -> Unit = {},
 ) {
@@ -231,6 +235,7 @@ fun ScannerScreen(
                 ScannerContent(
                     uiState = uiState,
                     onDeviceSelected = onDeviceSelected,
+                    onScooterSelected = onScooterSelected,
                     contentPadding = PaddingValues(),
                 )
             }
@@ -433,16 +438,18 @@ private fun ScanToggleFab(
 private fun ScannerContent(
     uiState: ScannerUiState,
     onDeviceSelected: (DiscoveredWheel) -> Unit,
+    onScooterSelected: (ScooterDevice) -> Unit,
     contentPadding: PaddingValues,
 ) {
     val devices = uiState.devices.distinctBy { it.address }
+    val scooters = uiState.scooters.distinctBy { it.address }
     val recognised = devices.filter { it.family != null }
     val unrecognised = devices.filter { it.family == null }
     when {
         // Non-empty devices take precedence so a stale error (e.g. from
         // a failed flow AFTER devices were already discovered) doesn't
         // replace a useful list with a failure screen.
-        devices.isNotEmpty() ->
+        devices.isNotEmpty() || scooters.isNotEmpty() ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize(),
@@ -475,6 +482,18 @@ private fun ScannerContent(
                 items(recognised, key = { it.address }) { device ->
                     DeviceCard(device = device, onClick = { onDeviceSelected(device) })
                 }
+                if (scooters.isNotEmpty()) {
+                    item(key = "scooter_header") {
+                        Text(
+                            text = stringResource(R.string.scanner_group_scooters),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    items(scooters, key = { "scooter_${it.address}" }) { scooter ->
+                        ScooterCard(scooter = scooter, onClick = { onScooterSelected(scooter) })
+                    }
+                }
                 if (unrecognised.isNotEmpty()) {
                     item(key = "unrecognised_header") {
                         Text(
@@ -496,7 +515,7 @@ private fun ScannerContent(
                 padding = contentPadding,
             )
 
-        devices.isEmpty() && uiState.isScanning ->
+        devices.isEmpty() && scooters.isEmpty() && uiState.isScanning ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -520,13 +539,37 @@ private fun ScannerContent(
                 }
             }
 
-        devices.isEmpty() ->
+        devices.isEmpty() && scooters.isEmpty() ->
             CenteredMessage(
                 title = stringResource(R.string.scanner_no_devices),
                 subtitle = stringResource(R.string.scanner_no_devices_hint),
                 padding = contentPadding,
                 illustrationRes = R.drawable.illustration_no_devices,
             )
+    }
+}
+
+@Composable
+private fun ScooterCard(scooter: ScooterDevice, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Bluetooth, contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.size(16.dp))
+            Column {
+                Text(scooter.model, style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Text(scooter.address, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }
 

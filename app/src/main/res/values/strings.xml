@@ -264,6 +264,7 @@
     <string name="notification_recording_text">Wheel telemetry is being saved locally</string>
 
     <string name="scanner_group_recognised">Recognised</string>
+    <string name="scanner_group_scooters">Scooters</string>
     <string name="scanner_group_unrecognised">Unrecognised (tap to try)</string>
     <string name="scanner_signal_weak">Weak signal — move closer</string>
     <string name="settings_pairing_code_title">This phone\'s pairing code</string>

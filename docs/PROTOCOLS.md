@@ -1,18 +1,16 @@
-# Wheel protocols / 車輛通訊協定
+# Vehicle protocols / 車輛通訊協定
 
-[English](#english) · [繁體中文](#繁體中文) · [← README](../README.md) · [← 說明文件首頁](README.md)
+[English](#english) · [繁體中文](#繁體中文) · [← README](../README.md) · [← 說明文件首頁](README.md) · [PLEV White Paper](PLEV_ARCHITECTURE_WHITE_PAPER.md)
 
 ---
 
 ## English
 
-Which wheel families RideFlux decodes, how it reaches them over GATT, and where the protocol knowledge comes from. For per-wheel verification status see the [README](../README.md#supported-wheels).
+Which vehicle families (Electric Unicycles, Electric Scooters, and Smart BMS) RideFlux decodes, how it reaches them over GATT, and where the protocol knowledge comes from. For per-vehicle verification status see the [README](../README.md#supported-vehicles).
 
-### Supported wheel families
+### 1. Electric Unicycle (EUC) Families
 
-`WheelFamily` is the single routing key used across the domain layer. Enum names are a
-**stability contract** — they are persisted and used in nav deep links, so renaming one is
-a breaking change.
+`WheelFamily` is the routing key used across the EUC domain layer. Enum names are a **stability contract** — they are persisted and used in nav deep links, so renaming one is a breaking change.
 
 | Family | Vendors / models | Wire format |
 |---|---|---|
@@ -25,42 +23,51 @@ a breaking change.
 | `I1` | Inmotion legacy — V5 / V8 / V10 | Escape-byte framing |
 | `I2` | Inmotion current — V9 / V11 / V12 / V13 / V14 | XOR-check framing |
 
-`G` and `GX` share `BegodeWheelCodec`; the remaining families each have their own codec
-under `:data:protocol`.
+`G` and `GX` share `BegodeWheelCodec`; the remaining families each have their own codec under `:data:protocol`.
 
-### GATT topologies
+---
 
-| Topology | Service / characteristics | Families |
+### 2. Electric Scooter (PLEV Scooter) Protocols
+
+Electric scooters are modeled as peers under `ScooterDevice` and connected through `ScooterRepository`.
+
+| Dialect | Models | Framing & Wire Spec | Features |
+|---|---|---|---|
+| **Ninebot Retail** | Ninebot KickScooter (ES1/ES2/ES4, MAX G30, F20/F30/F40, etc.) | Header `5A A5`, length = `payload + 9`, 16-bit negative sum checksum over length + payload. Request target `0x20` with 2-byte LE length. | 3-step automatic pairing (`0x5B` → `0x5C` → user button confirmation → `0x5D` acceptance). `0xB0` telemetry polling. `0x70`/`0x71` stationary lock commands. |
+| **Xiaomi M365** | Xiaomi M365, Pro, Pro2, 1S, Lite, Mi 3 | Header `55 AA`, length = `payload + 9`, 16-bit negative sum checksum. | B0 register mirror block with B5 speed (`raw / 1000f` km/h) and `0xFF00` invalid speed sentinel filtering. |
+
+---
+
+### 3. Smart BMS & VESC Protocols
+
+| System | Protocol / Wire Spec | Telemetry Decoded |
 |---|---|---|
-| `SINGLE_CHAR` | `FFE0` service, `FFE1` notify + write | `G`, `GX`, `K`, `N1`, `V` |
-| `SPLIT_CHAR` | notify `FFE0`/`FFE4`, write `FFE5`/`FFE9` | `I1` |
-| `NORDIC_UART` | `6E400001…`, RX `…0002`, TX `…0003` | `N2`, `I2` |
+| **JBD / Xiaoxiang BMS** | Header `0xDD`, status code, length, payload, checksum, footer `0x77`. Registers `0x03` (basic info) and `0x04` (individual cell voltages). | Total pack voltage, current, residual capacity, temperatures, cycle count, and millivolt-level cell balance. |
+| **Ant BMS** | Header `0xAA 0x55 0xAA`, structured telemetry report. | Multi-sensor battery telemetry. |
+| **VESC** | Comm frame format with `COMM_GET_VALUES` (`0x2F`) polling and 16-bit XMODEM CRC (`0xD58D`). | Duty cycle, motor/MOSFET temperatures, input voltage, current. |
 
-A UUID-only guess is never authoritative — the true family is confirmed by the family's
-bootstrap handshake after connect. Callers that already know the family should pass
-`expectedFamily` to `WheelRepository.connect()`.
+---
 
-> **Note on `§` references.** KDoc throughout the codebase cites section numbers
-> (`§1.1`, `§2.6`, `§9.*`) from the project's own protocol notes (`PROTOCOL_SPEC.md`, with
-> test vectors in `TEST_VECTORS.md`). Those notes are **not** part of this source tree and
-> are not published, so the citations cannot be followed from this repository; they only
-> label which part of the protocol each piece of code implements.
->
-> **Where the protocol knowledge comes from.** The decoders are RideFlux's own Kotlin code,
-> written with reference to open-source projects such as
-> [WheelLog](https://github.com/Wheellog/Wheellog.Android) (GPL-3.0). Some test vectors are
-> taken from WheelLog; see [`NOTICE`](../NOTICE).
+### 4. GATT Topologies & BLE Service Discovery
+
+| Topology | Service / Characteristics | Target Vehicles |
+|---|---|---|
+| `SINGLE_CHAR` | `FFE0` service, `FFE1` notify + write | Begode (`G`/`GX`), KingSong (`K`), Ninebot One (`N1`), Veteran (`V`), and Ninebot Retail fallback |
+| `SPLIT_CHAR` | Notify `FFE0`/`FFE4`, write `FFE5`/`FFE9` | Inmotion legacy (`I1`) |
+| `NORDIC_UART` | `6E400001…`, RX `…0002` (write), TX `…0003` (notify) | Ninebot Z (`N2`), Inmotion (`I2`), VESC, and Ninebot / Xiaomi Scooters |
+| `SERVICE_FE95` | `0000fe95-0000-1000-8000-00805f9b34fb` | Xiaomi / Ninebot scooter advertisement identifier |
+
+A UUID-only guess is never authoritative — the true family/dialect is confirmed by the bootstrap handshake after connect.
 
 ---
 
 ## 繁體中文
 
-RideFlux 解碼哪些車輛家族、如何透過 GATT 連上它們，以及協定知識的來源。各車款的驗證狀態請見 [README](../README.zh-TW.md#支援的車款)。
+RideFlux 解碼哪些車輛家族（電動獨輪車、電動滑板車與智慧 BMS）、如何透過 GATT 連上它們，以及協定知識的來源。各車款的驗證狀態請見 [README](../README.zh-TW.md#支援的車款)。
 
-### 支援的車輛協定家族
+### 1. 電動獨輪車（EUC）協定家族
 
-`WheelFamily` 是 domain 層唯一的路由鍵。列舉名稱屬於**穩定性契約**——它會被持久化並用於
-導覽深層連結，因此更名即為破壞性變更。
+`WheelFamily` 是 EUC 領域層唯一的路由鍵。列舉名稱屬於**穩定性契約**——它會被持久化並用於導覽深層連結，因此更名即為破壞性變更。
 
 | 家族 | 廠牌／型號 | 傳輸格式 |
 |---|---|---|
@@ -75,22 +82,36 @@ RideFlux 解碼哪些車輛家族、如何透過 GATT 連上它們，以及協�
 
 `G` 與 `GX` 共用 `BegodeWheelCodec`；其餘家族在 `:data:protocol` 中各自擁有獨立 codec。
 
-### GATT 拓撲
+---
 
-| 拓撲 | 服務／特徵值 | 適用家族 |
+### 2. 電動滑板車（PLEV Scooter）協定
+
+電動滑板車在領域層以 `ScooterDevice` 平行建模，由 `ScooterRepository` 統一管理連線與生命週期。
+
+| 協定方言 | 適用車型 | 封包結構與通訊特徵 | 關鍵功能 |
+|---|---|---|---|
+| **Ninebot Retail** | Ninebot KickScooter 系列（ES1/ES2/ES4、MAX G30、F20/F30/F40 等） | 幀頭 `5A A5`，長度為 `payload + 9`，校驗和涵蓋長度位元組的小端 16 位元累加和反碼。讀取暫存器目標為 `0x20`，帶 2-byte 小端長度。 | 三步無人值守動態配對（`0x5B` → `0x5C` → 儀表按鍵確認 → `0x5D` 接受）。`0xB0` 暫存器週期性遙測輪詢。`0x70`/`0x71` 靜止鎖車指令。 |
+| **Xiaomi M365** | 小米 M365、Pro、Pro 2、1S、Lite、Mi 3 | 幀頭 `55 AA`，長度為 `payload + 9`，16 位元校驗和。 | B0 鏡像暫存器解析，B5 速度刻度（`raw / 1000f` km/h），具備 `0xFF00` 減速/空轉無效哨兵值過濾。 |
+
+---
+
+### 3. 智慧電池管理系統（Smart BMS）與 VESC 協定
+
+| 系統 | 協定與封包特徵 | 解碼遙測指標 |
 |---|---|---|
-| `SINGLE_CHAR` | `FFE0` 服務，`FFE1` 通知 + 寫入 | `G`、`GX`、`K`、`N1`、`V` |
-| `SPLIT_CHAR` | 通知 `FFE0`/`FFE4`，寫入 `FFE5`/`FFE9` | `I1` |
-| `NORDIC_UART` | `6E400001…`，RX `…0002`，TX `…0003` | `N2`、`I2` |
+| **JBD / 小象 BMS** | 幀頭 `0xDD`，狀態碼、長度、負載、校驗和、幀尾 `0x77`。暫存器 `0x03`（基本資訊）與 `0x04`（單體電芯電壓）。 | 總電壓、電流、剩餘容量、溫度、循環次數、單體電芯毫伏級電壓平衡。 |
+| **Ant 螞蟻 BMS** | 幀頭 `0xAA 0x55 0xAA`，結構化資料幀。 | 多感測器電池健康度與電壓監控。 |
+| **VESC** | 通用通訊幀格式，支援 `COMM_GET_VALUES`（`0x2F`）輪詢與 16 位元 XMODEM CRC（`0xD58D`）。 | 占空比、馬達/MOSFET 溫度、輸入電壓、相電流。 |
 
-僅憑 UUID 的推測永遠不是定論——真正的家族要等連線後的啟動握手才會確認。若呼叫端已經知道
-家族，應將 `expectedFamily` 傳入 `WheelRepository.connect()`。
+---
 
-> **關於 `§` 章節編號。** 程式碼中的 KDoc 大量引用本專案自己的協定筆記（`PROTOCOL_SPEC.md`，
-> 測試向量在 `TEST_VECTORS.md`）的章節編號（`§1.1`、`§2.6`、`§9.*`）。這些筆記**並不在**本
-> 原始碼樹中，也未公開，因此無法從本儲存庫查閱這些引用；它們只用來標示各段程式碼實作的是協定
-> 的哪一部分。
->
-> **協定知識的來源。** 各解碼器是 RideFlux 自行以 Kotlin 撰寫的程式碼，撰寫時參考了
-> [WheelLog](https://github.com/Wheellog/Wheellog.Android)（GPL-3.0）等開源專案。部分測試向量
-> 取自 WheelLog，詳見 [`NOTICE`](../NOTICE)。
+### 4. GATT 拓撲與藍牙服務解析
+
+| 拓撲 | 服務／特徵值 | 適用載具 |
+|---|---|---|
+| `SINGLE_CHAR` | `FFE0` 服務，`FFE1` 通知 + 寫入 | Begode（`G`/`GX`）、KingSong（`K`）、Ninebot One（`N1`）、Veteran（`V`）及 Ninebot Retail 自動降級 |
+| `SPLIT_CHAR` | 通知 `FFE0`/`FFE4`，寫入 `FFE5`/`FFE9` | Inmotion 舊款（`I1`） |
+| `NORDIC_UART` | `6E400001…`，RX `…0002`（寫入），TX `…0003`（通知） | Ninebot Z（`N2`）、Inmotion 新款（`I2`）、VESC 及 Ninebot / 小米滑板車 |
+| `SERVICE_FE95` | `0000fe95-0000-1000-8000-00805f9b34fb` | 小米／九號滑板車專屬廣播識別服務 UUID |
+
+僅憑 UUID 的推測永遠不是定論——真正的家族要等連線後的啟動握手才會確認。

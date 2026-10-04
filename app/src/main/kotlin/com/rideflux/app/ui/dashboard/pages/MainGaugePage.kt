@@ -36,6 +36,7 @@ import com.rideflux.app.ui.dashboard.displayDistance
 import com.rideflux.app.ui.dashboard.displaySpeed
 import com.rideflux.app.ui.dashboard.distanceUnit
 import com.rideflux.app.ui.dashboard.speedUnit
+import com.rideflux.domain.device.PlevCategory
 import com.rideflux.app.ui.dashboard.components.BatteryBar
 import com.rideflux.app.ui.dashboard.components.MetricCard
 import com.rideflux.app.ui.dashboard.components.MetricRow
@@ -106,11 +107,13 @@ fun MainGaugePage(
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.weight(1f))
-                Text(
-                    text = (state.voltageV?.let { "%.1f".format(Locale.US, it) } ?: dash) + " " + volt,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                if (state.deviceCategory != PlevCategory.SCOOTER || state.voltageV != null) {
+                    Text(
+                        text = (state.voltageV?.let { "%.1f".format(Locale.US, it) } ?: dash) + " " + volt,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
             Spacer(Modifier.height(6.dp))
             BatteryBar(percent = state.batteryPercent)
@@ -130,6 +133,26 @@ fun MainGaugePage(
                     )
                 }
             }
+        }
+
+        if (state.deviceCategory == PlevCategory.SCOOTER) {
+            MetricRow(
+                left = {
+                    MetricCard(label = stringResource(R.string.metric_trip),
+                        icon = Icons.Filled.Speed,
+                        value = state.displayDistance(state.tripDistanceMetres)
+                            ?.let { "%.2f".format(Locale.US, it) } ?: dash,
+                        unit = state.distanceUnit, modifier = Modifier.fillMaxWidth())
+                },
+                right = {
+                    MetricCard(label = stringResource(R.string.metric_total),
+                        icon = Icons.Filled.Speed,
+                        value = state.displayDistance(state.totalDistanceMetres)
+                            ?.let { "%.1f".format(Locale.US, it) } ?: dash,
+                        unit = state.distanceUnit, modifier = Modifier.fillMaxWidth())
+                },
+            )
+            return@Column
         }
 
         // ---- 2×2 secondary stats grid ---------------------------------

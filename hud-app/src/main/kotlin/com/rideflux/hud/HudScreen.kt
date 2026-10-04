@@ -552,7 +552,7 @@ private fun phaseOf(s: HudUiState): HudPhase {
     }
     return when (val cs = s.connectionState) {
         ConnectionState.Connecting -> HudPhase.Scanning
-        is ConnectionState.Handshaking -> HudPhase.Connecting
+        is ConnectionState.Handshaking, ConnectionState.ScooterHandshaking -> HudPhase.Connecting
         ConnectionState.Ready -> HudPhase.Ready
         is ConnectionState.Failed -> HudPhase.Disconnected(cs.reason)
         ConnectionState.Disconnected -> HudPhase.Disconnected(reason = null)

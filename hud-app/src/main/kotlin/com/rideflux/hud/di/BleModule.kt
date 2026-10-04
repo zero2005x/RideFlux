@@ -10,8 +10,12 @@ import android.util.Log
 import com.rideflux.data.ble.BleWheelCodecFactory
 import com.rideflux.data.ble.WheelCodecFactoryImpl
 import com.rideflux.data.ble.WheelRepositoryImpl
+import com.rideflux.data.ble.ScooterRepositoryImpl
+import com.rideflux.protocol.repository.PlevRepositoryImpl
 import com.rideflux.domain.codec.WheelCodecFactory
 import com.rideflux.domain.repository.WheelRepository
+import com.rideflux.domain.repository.PlevRepository
+import com.rideflux.domain.repository.ScooterRepository
 import com.rideflux.data.preferences.DataStoreSettingsRepository
 import com.rideflux.domain.settings.SettingsRepository
 import dagger.Module
@@ -83,6 +87,18 @@ object BleModule {
             rootScope = scope,
             codecFactory = codecFactory,
         )
+
+    @Provides
+    @Singleton
+    fun provideScooterRepository(
+        @ApplicationContext context: Context,
+        @ApplicationScope scope: CoroutineScope,
+    ): ScooterRepository = ScooterRepositoryImpl(context, scope)
+
+    @Provides
+    @Singleton
+    fun providePlevRepository(wheels: WheelRepository, scooters: ScooterRepository): PlevRepository =
+        PlevRepositoryImpl(wheels, scooters)
 
     @Provides
     @Singleton

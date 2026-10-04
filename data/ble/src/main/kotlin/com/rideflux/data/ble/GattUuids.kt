@@ -54,6 +54,10 @@ internal object GattUuids {
     val CHAR_NUS_RX: UUID = UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e")
     val CHAR_NUS_TX: UUID = UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e")
 
+    // Xiaomi security service. Its characteristic layout must be verified per model.
+    // Ninebot Retail may instead use NORDIC_UART or SINGLE_CHAR transport topology.
+    val SERVICE_FE95: UUID = UUID.fromString("0000fe95-0000-1000-8000-00805f9b34fb")
+
     // ---- CCC descriptor shared by every family -------------------------
 
     val DESCRIPTOR_CCC: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")

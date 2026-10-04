@@ -227,6 +227,7 @@
     <string name="notification_recording_text">وہیل کی ٹیلی میٹری مقامی طور پر محفوظ کی جا رہی ہے</string>
 
     <string name="scanner_group_recognised">شناخت شدہ</string>
+    <string name="scanner_group_scooters">اسکوٹر</string>
     <string name="scanner_group_unrecognised">غیر شناخت شدہ (آزمانے کے لیے ٹیپ کریں)</string>
     <string name="scanner_signal_weak">سگنل کمزور ہے — قریب جائیں</string>
     <string name="settings_pairing_code_title">اس فون کا پیئرنگ کوڈ</string>

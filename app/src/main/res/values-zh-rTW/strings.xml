@@ -226,6 +226,7 @@
     <string name="notification_recording_text">車輛遙測資料正儲存至本機</string>
 
     <string name="scanner_group_recognised">已辨識</string>
+    <string name="scanner_group_scooters">滑板車</string>
     <string name="scanner_group_unrecognised">未辨識（點擊嘗試）</string>
     <string name="scanner_signal_weak">訊號微弱 — 請靠近一些</string>
     <string name="settings_pairing_code_title">本機配對碼</string>

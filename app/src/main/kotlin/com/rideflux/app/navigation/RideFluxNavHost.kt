@@ -26,6 +26,7 @@ import com.rideflux.app.ui.trips.TripDetailRoute
 import com.rideflux.app.ui.trips.TripDetailViewModel
 import com.rideflux.app.ui.trips.TripHistoryRoute
 import com.rideflux.domain.wheel.WheelFamily
+import com.rideflux.domain.device.PlevCategory
 
 private const val TAG = "RideFluxNavHost"
 
@@ -53,11 +54,11 @@ fun RideFluxNavHost(
     ) {
         composable(Routes.SCANNER) {
             ScannerRoute(
-                onDeviceSelected = { address, family ->
+                onDeviceSelected = { address, family, category ->
                     // Coalesce rapid double-taps so a device cannot be
                     // pushed twice onto the back stack (which would also
                     // confuse the pattern-only VM lookup below).
-                    navController.navigate(Routes.dashboard(address, family)) {
+                    navController.navigate(Routes.dashboard(address, family, category)) {
                         launchSingleTop = true
                     }
                 },
@@ -73,6 +74,11 @@ fun RideFluxNavHost(
                     nullable = false
                 },
                 navArgument(DashboardViewModel.ARG_FAMILY) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(DashboardViewModel.ARG_CATEGORY) {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
@@ -95,7 +101,10 @@ fun RideFluxNavHost(
             DashboardRoute(
                 onNavigateUp = { navController.popBackStack() },
                 onNavigateToHud = {
-                    navController.navigate(Routes.hud(address, family)) {
+                    val category = backStackEntry.arguments
+                        ?.getString(DashboardViewModel.ARG_CATEGORY)
+                        ?.let { runCatching { PlevCategory.valueOf(it) }.getOrNull() }
+                    navController.navigate(Routes.hud(address, family, category ?: PlevCategory.WHEEL)) {
                         launchSingleTop = true
                     }
                 },
@@ -110,6 +119,11 @@ fun RideFluxNavHost(
                     nullable = false
                 },
                 navArgument(DashboardViewModel.ARG_FAMILY) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(DashboardViewModel.ARG_CATEGORY) {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
@@ -193,11 +207,11 @@ object Routes {
 
     /** Navigation argument pattern used in [NavHost]. */
     const val DASHBOARD_PATTERN: String =
-        "dashboard/{${DashboardViewModel.ARG_ADDRESS}}?${DashboardViewModel.ARG_FAMILY}={${DashboardViewModel.ARG_FAMILY}}"
+        "dashboard/{${DashboardViewModel.ARG_ADDRESS}}?${DashboardViewModel.ARG_FAMILY}={${DashboardViewModel.ARG_FAMILY}}&${DashboardViewModel.ARG_CATEGORY}={${DashboardViewModel.ARG_CATEGORY}}"
 
     /** Navigation argument pattern for the AR HUD surface. */
     const val HUD_PATTERN: String =
-        "hud/{${DashboardViewModel.ARG_ADDRESS}}?${DashboardViewModel.ARG_FAMILY}={${DashboardViewModel.ARG_FAMILY}}"
+        "hud/{${DashboardViewModel.ARG_ADDRESS}}?${DashboardViewModel.ARG_FAMILY}={${DashboardViewModel.ARG_FAMILY}}&${DashboardViewModel.ARG_CATEGORY}={${DashboardViewModel.ARG_CATEGORY}}"
 
     /**
      * Build the concrete dashboard route. MAC addresses are
@@ -205,22 +219,23 @@ object Routes {
      * allowed in path segments — this keeps future, more exotic
      * identifiers (e.g. UUIDs) safe.
      */
-    fun dashboard(address: String, family: WheelFamily?): String =
-        buildRoute("dashboard", address, family)
+    fun dashboard(address: String, family: WheelFamily?, category: PlevCategory = PlevCategory.WHEEL): String =
+        buildRoute("dashboard", address, family, category)
 
     /** Build the concrete HUD route for the given wheel. */
-    fun hud(address: String, family: WheelFamily?): String =
-        buildRoute("hud", address, family)
+    fun hud(address: String, family: WheelFamily?, category: PlevCategory = PlevCategory.WHEEL): String =
+        buildRoute("hud", address, family, category)
 
     fun trip(tripId: Long): String = "trip/$tripId"
 
     /** Shared encode-and-build logic so dashboard/hud never drift. */
-    private fun buildRoute(destination: String, address: String, family: WheelFamily?): String {
+    private fun buildRoute(destination: String, address: String, family: WheelFamily?,
+                           category: PlevCategory): String {
         val encodedAddress = Uri.encode(address)
-        return if (family != null) {
-            "$destination/$encodedAddress?${DashboardViewModel.ARG_FAMILY}=${Uri.encode(family.name)}"
-        } else {
-            "$destination/$encodedAddress"
+        val query = buildList {
+            if (family != null) add("${DashboardViewModel.ARG_FAMILY}=${Uri.encode(family.name)}")
+            if (category != PlevCategory.WHEEL) add("${DashboardViewModel.ARG_CATEGORY}=${category.name}")
         }
+        return "$destination/$encodedAddress" + if (query.isEmpty()) "" else "?${query.joinToString("&")}"
     }
 }

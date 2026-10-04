@@ -22,6 +22,7 @@ import com.rideflux.app.ui.dashboard.displayDistance
 import com.rideflux.app.ui.dashboard.displaySpeed
 import com.rideflux.app.ui.dashboard.distanceUnit
 import com.rideflux.app.ui.dashboard.speedUnit
+import com.rideflux.domain.device.PlevCategory
 import com.rideflux.app.ui.dashboard.components.MetricCard
 import com.rideflux.app.ui.dashboard.components.MetricRow
 import com.rideflux.app.ui.dashboard.components.RideFluxColors
@@ -58,6 +59,31 @@ fun ParametersPage(state: DashboardUiState, modifier: Modifier = Modifier) {
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        if (state.deviceCategory == PlevCategory.SCOOTER) {
+            SectionHeader(stringResource(R.string.section_speed), accent = RideFluxColors.Cyan)
+            MetricRow(left = {
+                MetricCard(label = stringResource(R.string.metric_speed),
+                    value = state.displaySpeed(state.speedKmh)?.let { "%.1f".format(Locale.US, it) } ?: dash,
+                    unit = state.speedUnit, modifier = Modifier.fillMaxWidth())
+            }, right = {
+                MetricCard(label = stringResource(R.string.metric_battery),
+                    value = state.batteryPercent?.let { "${it.roundToInt()}" } ?: dash,
+                    unit = percent, modifier = Modifier.fillMaxWidth())
+            })
+            SectionHeader(stringResource(R.string.section_distance), accent = RideFluxColors.Neon)
+            MetricRow(left = {
+                MetricCard(label = stringResource(R.string.metric_trip),
+                    value = state.displayDistance(state.tripDistanceMetres)
+                        ?.let { "%.2f".format(Locale.US, it) } ?: dash,
+                    unit = state.distanceUnit, modifier = Modifier.fillMaxWidth())
+            }, right = {
+                MetricCard(label = stringResource(R.string.metric_total),
+                    value = state.displayDistance(state.totalDistanceMetres)
+                        ?.let { "%.1f".format(Locale.US, it) } ?: dash,
+                    unit = state.distanceUnit, modifier = Modifier.fillMaxWidth())
+            })
+            return@Column
+        }
         SectionHeader(stringResource(R.string.section_speed), accent = RideFluxColors.Cyan)
         MetricRow(
             left = {

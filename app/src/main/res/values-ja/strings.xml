@@ -226,6 +226,7 @@
     <string name="notification_recording_text">ホイールのテレメトリを端末に保存しています</string>
 
     <string name="scanner_group_recognised">認識済み</string>
+    <string name="scanner_group_scooters">スクーター</string>
     <string name="scanner_group_unrecognised">未認識（タップして試す）</string>
     <string name="scanner_signal_weak">電波が弱い — 近づいてください</string>
     <string name="settings_pairing_code_title">この端末のペアリングコード</string>

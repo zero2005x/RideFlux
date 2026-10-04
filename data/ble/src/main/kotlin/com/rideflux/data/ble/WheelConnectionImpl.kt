@@ -11,6 +11,8 @@ import com.rideflux.domain.command.CommandOutcome
 import com.rideflux.domain.command.WheelCommand
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
+import com.rideflux.domain.safety.DangerTier
+import com.rideflux.domain.safety.MotionInterlock
 import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.transport.BleTransport
@@ -90,6 +92,7 @@ class WheelConnectionImpl(
      * corrupt frame reassembly.
      */
     private val codecMutex = Mutex()
+    private val motionInterlock = MotionInterlock()
 
     // ---- Backing flows -------------------------------------------------
 
@@ -333,6 +336,7 @@ class WheelConnectionImpl(
         keepAliveJob = null
         handshakeTimeoutJob?.cancel()
         _telemetry.value = WheelTelemetry.EMPTY
+        motionInterlock.reset()
     }
 
     private suspend fun handleBytes(bytes: ByteArray) {
@@ -352,6 +356,8 @@ class WheelConnectionImpl(
             if (event !is DecodeEvent.Malformed) sawWheelData = true
             when (event) {
                 is DecodeEvent.TelemetryUpdate -> {
+                    // Only a fresh decoded speed frame counts; retained snapshot values do not.
+                    event.snapshot.speedKmh?.let { motionInterlock.observe(it, clock()) }
                     _telemetry.update { current -> merge(current, event.snapshot) }
                 }
                 is DecodeEvent.Alert -> {
@@ -363,7 +369,7 @@ class WheelConnectionImpl(
                     _state.value = ConnectionState.Ready
                     handshakeTimeoutJob?.cancel()
                 }
-                is DecodeEvent.Malformed -> Unit // discard; diagnostics elsewhere
+                is DecodeEvent.Malformed -> motionInterlock.reset()
             }
         }
     }
@@ -405,19 +411,20 @@ class WheelConnectionImpl(
     // ---- Commands ------------------------------------------------------
 
     override suspend fun dispatch(command: WheelCommand): CommandOutcome {
-        val currentSpeed = speedKmh.value ?: 0f
-        if (currentSpeed > 0f) {
-            when (command) {
-                is WheelCommand.PowerOff,
-                is WheelCommand.Calibrate,
-                is WheelCommand.SetMaxSpeedKmh -> {
-                    return CommandOutcome.InvalidArgument(
-                        command,
-                        "Safety violation: command ${command::class.simpleName} rejected because vehicle speed is $currentSpeed km/h (> 0)",
-                    )
-                }
-                else -> Unit
-            }
+        val tier = when (command) {
+            is WheelCommand.Raw -> DangerTier.FORBIDDEN
+            // Remote power-off stays available, but only after three fresh stationary frames;
+            // the UI adds its own confirmation dialog.
+            is WheelCommand.PowerOff, is WheelCommand.Calibrate, is WheelCommand.SetMaxSpeedKmh,
+            is WheelCommand.SetTiltbackKmh, is WheelCommand.SetPedalSensitivity,
+            is WheelCommand.SetPedalHorizontal, is WheelCommand.SetRideMode,
+            is WheelCommand.UnlockWithPin -> DangerTier.CRITICAL
+            else -> DangerTier.BENIGN
+        }
+        try {
+            motionInterlock.requireAllowed(tier, clock())
+        } catch (e: SecurityException) {
+            return CommandOutcome.InvalidArgument(command, e.message ?: "Safety interlock rejected command")
         }
 
         val frames = try {
@@ -436,6 +443,12 @@ class WheelConnectionImpl(
 
         return try {
             for (frame in frames) {
+                // Recheck immediately before each physical write, including multi-frame commands.
+                try {
+                    motionInterlock.requireAllowed(tier, clock())
+                } catch (e: SecurityException) {
+                    return CommandOutcome.InvalidArgument(command, e.message ?: "Safety interlock rejected command")
+                }
                 transport.write(frame)
             }
             CommandOutcome.Success
@@ -491,6 +504,7 @@ class WheelConnectionImpl(
         // stale speed/battery as if the wheel were still live after
         // teardown (StateFlow retains its last value otherwise).
         _telemetry.value = WheelTelemetry.EMPTY
+        motionInterlock.reset()
         // Each derived single-field flow has its own MutableStateFlow;
         // resetting _telemetry does not clear them, so consumers could
         // still read pre-close speedKmh/voltageV/... after Disconnected.
@@ -534,5 +548,6 @@ class WheelConnectionImpl(
             rideMode = delta.rideMode ?: base.rideMode,
             workMode = delta.workMode ?: base.workMode,
             faults = delta.faults ?: base.faults,
+            bmsStatus = delta.bmsStatus ?: base.bmsStatus,
         )
 }

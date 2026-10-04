@@ -37,6 +37,9 @@ sealed class ConnectionState {
      */
     data class Handshaking(val family: WheelFamily) : ConnectionState()
 
+    /** Scooter pairing is independent of the wheel-family classifier. */
+    data object ScooterHandshaking : ConnectionState()
+
     /** Handshake complete; telemetry and commands are both available. */
     data object Ready : ConnectionState()
 

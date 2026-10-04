@@ -12,7 +12,7 @@ package com.rideflux.protocol.familyk
 /**
  * Command builder for Family K (KingSong) host-to-device frames.
  *
- * Every command is a fixed 20-byte frame (§2.2):
+ * The supported commands here use a fixed 20-byte frame (§2.2):
  * ```
  *   [0]  AA                     header high
  *   [1]  55                     header low

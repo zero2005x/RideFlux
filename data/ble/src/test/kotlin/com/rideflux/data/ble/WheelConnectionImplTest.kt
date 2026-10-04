@@ -38,6 +38,46 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class WheelConnectionImplTest {
     @Test
+    fun `direct dispatch requires three stationary frames for power off and always rejects raw`() = runTest {
+        val transport = FakeBleTransport()
+        val codec = FakeWheelCodec().apply {
+            onDecode = { bytes ->
+                listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(
+                    timestampMillis = 1_000L,
+                    speedKmh = bytes[0].toInt().toFloat(),
+                )))
+            }
+            onEncode = { listOf(byteArrayOf(0x33)) }
+        }
+        val conn = connection(transport, codec, backgroundScope)
+        conn.start()
+        runCurrent()
+        val critical = WheelCommand.SetMaxSpeedKmh(20f)
+        assertTrue(conn.dispatch(critical) is CommandOutcome.InvalidArgument)
+        repeat(2) {
+            transport.emit(byteArrayOf(0))
+            runCurrent()
+        }
+        assertTrue(conn.dispatch(critical) is CommandOutcome.InvalidArgument)
+        transport.emit(byteArrayOf(0))
+        runCurrent()
+        assertEquals(CommandOutcome.Success, conn.dispatch(critical))
+        transport.emit(byteArrayOf(1))
+        runCurrent()
+        assertTrue(conn.dispatch(critical) is CommandOutcome.InvalidArgument)
+        assertTrue(conn.dispatch(WheelCommand.PowerOff) is CommandOutcome.InvalidArgument)
+        assertTrue(conn.dispatch(WheelCommand.Raw(byteArrayOf(0x00))) is CommandOutcome.InvalidArgument)
+        assertEquals(1, transport.writes.size)
+        repeat(3) {
+            transport.emit(byteArrayOf(0))
+            runCurrent()
+        }
+        assertEquals(CommandOutcome.Success, conn.dispatch(WheelCommand.PowerOff))
+        assertTrue(conn.dispatch(WheelCommand.Raw(byteArrayOf(0x00))) is CommandOutcome.InvalidArgument)
+        assertEquals(2, transport.writes.size)
+    }
+
+    @Test
     fun `silent wheel fails handshake and releases transport`() = runTest {
         val transport = FakeBleTransport()
         val conn = connection(transport, FakeWheelCodec(), backgroundScope)
@@ -552,7 +592,7 @@ class WheelConnectionImplTest {
     }
 
     @Test
-    fun `dispatch permits dangerous commands when vehicle is stationary`() = runTest {
+    fun `dispatch permits stationary controls including power off`() = runTest {
         val transport = FakeBleTransport()
         val codec = FakeWheelCodec()
         codec.onDecode = {
@@ -562,8 +602,7 @@ class WheelConnectionImplTest {
         val conn = connection(transport, codec, backgroundScope)
         conn.start()
         runCurrent()
-        transport.emit(byteArrayOf(1))
-        runCurrent()
+        repeat(3) { transport.emit(byteArrayOf(1)); runCurrent() }
 
         assertEquals(0f, conn.speedKmh.value)
 

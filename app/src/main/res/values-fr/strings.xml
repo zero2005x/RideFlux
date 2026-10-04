@@ -226,6 +226,7 @@
     <string name="notification_recording_text">La télémétrie est enregistrée localement</string>
 
     <string name="scanner_group_recognised">Reconnus</string>
+    <string name="scanner_group_scooters">Trottinettes</string>
     <string name="scanner_group_unrecognised">Non reconnus (appuyez pour essayer)</string>
     <string name="scanner_signal_weak">Signal faible — rapprochez-vous</string>
     <string name="settings_pairing_code_title">Code d\'association de ce téléphone</string>
