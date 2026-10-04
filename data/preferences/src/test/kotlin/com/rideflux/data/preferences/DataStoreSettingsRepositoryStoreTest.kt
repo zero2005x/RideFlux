@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import com.rideflux.domain.settings.AlertThresholds
 import com.rideflux.domain.settings.AppSettings
+import com.rideflux.domain.settings.HudLayoutProfile
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,22 @@ import java.io.IOException
  * fallback and every optional-value branch can be reached without the process-wide file store.
  */
 class DataStoreSettingsRepositoryStoreTest {
+    @Test
+    fun hudProfilesPersistPerGlassesAndRestoreWithSettings() = runBlocking {
+        val repository = DataStoreSettingsRepository(InMemoryStore(), scope)
+        val first = HudLayoutProfile(leftInset = 12, offsetX = -4, visibleItems = HudLayoutProfile.CLOCK)
+        val second = HudLayoutProfile(fontPercent = 125, bottomInset = 9)
+
+        repository.setHudProfile("AABBCCDDEEFF", first)
+        repository.setHudProfile("112233445566", second)
+        assertEquals(mapOf("AABBCCDDEEFF" to first, "112233445566" to second), repository.current().hudProfiles)
+
+        repository.updateSettings(AppSettings(hudProfiles = mapOf("AABBCCDDEEFF" to second)))
+        assertEquals(mapOf("AABBCCDDEEFF" to second), repository.current().hudProfiles)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { repository.setHudProfile("invalid:id", first) }
+        }
+    }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined + CoroutineExceptionHandler { _, _ -> })
 
     @After

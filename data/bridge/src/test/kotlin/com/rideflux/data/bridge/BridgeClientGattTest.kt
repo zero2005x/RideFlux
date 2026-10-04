@@ -41,11 +41,49 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import com.rideflux.domain.settings.HudLayoutProfile
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class BridgeClientGattTest {
+    @Test
+    fun subscribedClientPollsAndDecodesHudProfileWithoutForwardingInvalidData() = runTest {
+        val fixture = Fixture()
+        val profileCharacteristic = fixture.addHudProfile()
+        every { fixture.gatt.readCharacteristic(profileCharacteristic) } returns true
+        val received = mutableListOf<HudLayoutProfile>()
+        val client = BridgeClient(
+            fixture.context,
+            scanThrottle = BleScanThrottle(now = { 0L }),
+            onHudProfile = received::add,
+        )
+        val job = backgroundScope.launch { client.frames().collect() }
+        runCurrent()
+        connectAndDiscover(fixture)
+        fixture.gattCallback.onDescriptorWrite(fixture.gatt, fixture.cccd, BluetoothGatt.GATT_SUCCESS)
+        runCurrent()
+        verify(exactly = 1) { fixture.gatt.readCharacteristic(profileCharacteristic) }
+
+        val profile = HudLayoutProfile(leftInset = 8, fontPercent = 120)
+        fixture.gattCallback.onCharacteristicRead(
+            fixture.gatt, profileCharacteristic, HudProfileCodec.encode(profile), BluetoothGatt.GATT_SUCCESS,
+        )
+        assertEquals(listOf(profile), received)
+
+        advanceTimeBy(1_000)
+        runCurrent()
+        verify(exactly = 2) { fixture.gatt.readCharacteristic(profileCharacteristic) }
+        fixture.gattCallback.onCharacteristicRead(
+            fixture.gatt, profileCharacteristic, byteArrayOf(1), BluetoothGatt.GATT_SUCCESS,
+        )
+        fixture.gattCallback.onCharacteristicRead(
+            fixture.gatt, profileCharacteristic, HudProfileCodec.encode(profile), BluetoothGatt.GATT_FAILURE,
+        )
+        assertEquals(listOf(profile), received)
+        job.cancelAndJoin()
+    }
+
     @Test
     fun connectsSubscribesDeliversFramesAndClosesGattOnCancellation() = runTest {
         val fixture = Fixture()
@@ -423,6 +461,11 @@ class BridgeClientGattTest {
         private val service = BluetoothGattService(
             BridgeProtocol.SERVICE_UUID, BluetoothGattService.SERVICE_TYPE_PRIMARY,
         )
+        fun addHudProfile() = BluetoothGattCharacteristic(
+            BridgeProtocol.HUD_PROFILE_CHAR_UUID,
+            BluetoothGattCharacteristic.PROPERTY_READ,
+            BluetoothGattCharacteristic.PERMISSION_READ,
+        ).also(service::addCharacteristic)
         private val scanSlot = slot<ScanCallback>()
         private val gattSlot = slot<BluetoothGattCallback>()
         val scanCallback: ScanCallback get() = scanSlot.captured

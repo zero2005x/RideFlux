@@ -54,6 +54,8 @@ val rokidSnAuthBase64 = if (embedCxrCredentials) {
 }
 
 android {
+    // The in-app picker must be able to select every supported language from one install.
+    bundle { language { enableSplit = false } }
     namespace = "com.rideflux.app"
     androidResources { generateLocaleConfig = true }
     compileSdk = 36

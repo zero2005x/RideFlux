@@ -26,6 +26,8 @@ fun signingCredential(name: String): String? =
         }
 
 android {
+    // Keep all HUD translations available to the independent language picker.
+    bundle { language { enableSplit = false } }
     androidResources { generateLocaleConfig = true }
     namespace = "com.rideflux.hud"
     compileSdk = 36

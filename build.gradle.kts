@@ -288,6 +288,7 @@ sonar {
                 "**/com/rideflux/app/ui/trips/TripScreens.kt",
                 "**/com/rideflux/app/ui/scanner/ScannerScreen.kt",
                 "**/com/rideflux/app/ui/settings/SettingsScreen.kt",
+                "**/com/rideflux/app/ui/settings/HudProfileEditor.kt",
                 "**/com/rideflux/app/ui/settings/GlassesSetupScreen.kt",
                 "**/com/rideflux/app/ui/dashboard/DashboardScreen.kt",
                 "**/com/rideflux/app/ui/dashboard/components/MetricCard.kt",

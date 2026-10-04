@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import com.rideflux.domain.settings.HudLayoutProfile
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -42,6 +43,41 @@ import java.util.concurrent.TimeUnit
 class BridgeServerGattTest {
     private val peer = mockk<BluetoothDevice> {
         every { address } returns "AA:BB:CC:DD:EE:FF"
+    }
+
+    @Test
+    fun hudProfileReadRequiresSubscriptionAndUsesTheApprovedPeerIdentity() {
+        val fixture = Fixture()
+        val token = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+        val profile = HudLayoutProfile(leftInset = 12, offsetX = -7)
+        val lookups = mutableListOf<Pair<ByteArray?, String>>()
+        val server = BridgeServer(fixture.context, profileFor = { offered, mac ->
+            lookups += offered to mac
+            profile
+        })
+        assertTrue(server.open())
+        val hudProfile = fixture.service.characteristics.first { it.uuid == BridgeProtocol.HUD_PROFILE_CHAR_UUID }
+        val descriptor = fixture.service.characteristics.first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+            .getDescriptor(BridgeProtocol.CCCD_UUID)
+        val handshake = fixture.service.characteristics.first { it.uuid == BridgeProtocol.HANDSHAKE_CHAR_UUID }
+
+        fixture.callback.onCharacteristicReadRequest(peer, 1, 0, hudProfile)
+        verify { fixture.gatt.sendResponse(peer, 1, BluetoothGatt.GATT_READ_NOT_PERMITTED, 0, null) }
+        assertTrue(lookups.isEmpty())
+
+        fixture.callback.onCharacteristicWriteRequest(peer, 2, handshake, false, false, 0, token)
+        fixture.callback.onDescriptorWriteRequest(peer, 3, descriptor, false, false, 0, byteArrayOf(1, 0))
+        fixture.callback.onCharacteristicReadRequest(peer, 4, 0, hudProfile)
+        fixture.callback.onCharacteristicReadRequest(peer, 5, 3, hudProfile)
+        fixture.callback.onCharacteristicReadRequest(peer, 6, 11, hudProfile)
+
+        val encoded = HudProfileCodec.encode(profile)
+        verify { fixture.gatt.sendResponse(peer, 4, BluetoothGatt.GATT_SUCCESS, 0, match { it.contentEquals(encoded) }) }
+        verify { fixture.gatt.sendResponse(peer, 5, BluetoothGatt.GATT_SUCCESS, 3, match { it.contentEquals(encoded.copyOfRange(3, encoded.size)) }) }
+        verify { fixture.gatt.sendResponse(peer, 6, BluetoothGatt.GATT_INVALID_OFFSET, 11, null) }
+        assertEquals(3, lookups.size)
+        assertTrue(lookups.all { (offered, mac) -> offered?.contentEquals(token) == true && mac == peer.address })
+        server.stop()
     }
 
     @Test
