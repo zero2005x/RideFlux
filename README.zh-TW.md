@@ -8,7 +8,7 @@
 
 時速 · 電量 · 溫度 · PWM 警示 · 行程記錄 · Rokid HUD
 
-[English](README.md) &nbsp;·&nbsp; [**繁體中文**](README.zh-TW.md) &nbsp;·&nbsp; [官方網站](https://zero2005x.github.io/RideFlux/zh-TW/) &nbsp;·&nbsp; [隱私權政策](PRIVACY.md) &nbsp;·&nbsp; [開發文件](docs/README.md)
+[English](README.md) &nbsp;·&nbsp; [**繁體中文**](README.zh-TW.md) &nbsp;·&nbsp; [官方網站](https://zero2005x.github.io/RideFlux/zh-TW/) &nbsp;·&nbsp; [隱私權政策](PRIVACY.md) &nbsp;·&nbsp; [開發文件](docs/README.md) &nbsp;·&nbsp; [故事（英文）](https://zero2005x.github.io/RideFlux/story/)
 
 <a href="https://play.google.com/store/apps/details?id=com.rideflux.app&hl=zh-TW">
   <img alt="前往 Google Play 下載" src="https://play.google.com/intl/en_us/badges/static/images/badges/zh-tw_badge_web_generic.png" height="76">
@@ -63,6 +63,8 @@ flowchart LR
 - **免動手。** 與眼鏡配對的藍牙指環可以顯示或隱藏 HUD。安全警示即使在 HUD 被隱藏時也會跳出來。
 - **選用。** 手機端單獨使用就是一個完整的儀表板。
 
+**開發與測試所用的硬體：** Begode A2 電動獨輪車、**Rokid Glasses RV101**（獨立運作、以無線方式連接手機、不需要接線的眼鏡），以及一支 Android 手機。
+
 橋接的運作細節（逐位元組）：[docs/BRIDGE_PROTOCOL.md](docs/BRIDGE_PROTOCOL.md#繁體中文)。
 
 ## 支援的車款
@@ -87,7 +89,8 @@ flowchart LR
 | | |
 |---|---|
 | 📱 **手機端 App** | [**Google Play**](https://play.google.com/store/apps/details?id=com.rideflux.app&hl=zh-TW) —— 需要 Android 9（API 28）以上。 |
-| 🥽 **眼鏡端 HUD App** | 放在 [GitHub Releases](https://github.com/zero2005x/RideFlux/releases/latest) 的 APK，供 Rokid 眼鏡側載安裝。 |
+| 🥽 **眼鏡端 HUD App** | 放在 [GitHub Releases](https://github.com/zero2005x/RideFlux/releases/latest) 的 APK，供 Rokid 眼鏡側載安裝（以 Rokid Glasses RV101 開發與測試）。 |
+| 📖 **故事** | [RideFlux 為什麼、怎麼做出來](https://zero2005x.github.io/RideFlux/story/)（英文）——見下一節。 |
 | 🛠️ **從原始碼建置** | 請見 [docs/BUILDING.md](docs/BUILDING.md#繁體中文)。 |
 
 ```bash
@@ -97,6 +100,14 @@ flowchart LR
 ```
 
 以 Kotlin、Jetpack Compose、Hilt、Room 與 DataStore 打造。需要 **JDK 17 或 21**；更新的 JDK 尚未驗證。
+
+## RideFlux 背後的故事
+
+一篇長文，記錄這個專案怎麼來的：為什麼不是 WheelLog 的 fork、藍牙協定如何解碼以及真實封包抓出哪些 bug、手機如何與眼鏡通訊，以及哪些功能已驗證、哪些還沒有。它最初於 2025 年 12 月發表在 Medium，現已依 RideFlux 目前的樣貌更新。**文章以英文撰寫。**
+
+- **在網站上閱讀：** [zero2005x.github.io/RideFlux/story](https://zero2005x.github.io/RideFlux/story/)——內容與下方的原始檔相同，只是套用網站的版型。
+- **本儲存庫中的原始檔：** [docs/articles/cyberpunk-commute-update-2026-10.md](docs/articles/cyberpunk-commute-update-2026-10.md)，另附[修改清單](docs/articles/cyberpunk-commute-update-2026-10.changes.md)（繁體中文），說明與 Medium 原文有何不同、為什麼。
+- **原文：** [Medium 上的貼文](https://medium.com/@20x05zero/cyberpunk-commute-building-an-ar-heads-up-display-for-the-inmotion-v5f-2d5264bb451e)。
 
 ## 隱私
 
@@ -120,6 +131,7 @@ flowchart LR
 | [建置與發行](docs/BUILDING.md#繁體中文) | JDK 與 SDK、簽章與機密、測試、Sonar、相依驗證 |
 | [Play 商店素材](docs/play-store/README.md#繁體中文) | 商店圖片，以及重新產生它們的腳本 |
 | [網站](site/README.md) | `site/` 裡的 GitHub Pages 網站與其建置方式 |
+| [文章](docs/articles/) | 關於專案的長文；網站的 `/story/` 頁就是由這裡的文章轉出來的 |
 
 ## 聲明
 

@@ -36,6 +36,8 @@ site/
 └── tools/optimize_images.py # regenerates assets/ from docs/play-store (needs Pillow)
 ```
 
+**The story page** (`/story/`) is rendered from `docs/articles/cyberpunk-commute-update-2026-10.md` on every build, so the article is edited in one place only. It is English only; the home page links to it in every language (the `story.*` keys) and from the footer. The build fails if the file is missing or does not start with a `# Title` line.
+
 Output URLs: English at `/`, every other language at `/<code>/` (`/zh-TW/`, `/ja/`, …), the privacy policy at `/privacy/` and `/zh-TW/privacy/`, release notes at `/changelog/`.
 
 ## Everyday tasks

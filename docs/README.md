@@ -17,6 +17,7 @@ Developer documentation for RideFlux. Each page carries both languages, English 
 | [BUILDING.md](BUILDING.md) | JDK and SDK, build and install, signing and secrets, tests, Sonar, dependency verification |
 | [play-store/](play-store/README.md) | Play Store graphics and the scripts that regenerate them |
 | [../site/](../site/README.md) | The GitHub Pages website: sources, translations, build script |
+| [articles/](articles/) | Long-form writing. [The story behind RideFlux](articles/cyberpunk-commute-update-2026-10.md) is rendered as the website's `/story/` page |
 
 Other files in the repository: [`PRIVACY.md`](../PRIVACY.md) (privacy policy), [`NOTICE`](../NOTICE) (third-party credits), [`LICENSE`](../LICENSE).
 
@@ -35,5 +36,6 @@ RideFlux 的開發者文件。每份文件都同時包含兩種語言，英文�
 | [BUILDING.md](BUILDING.md#繁體中文) | JDK 與 SDK、建置與安裝、簽章與機密、測試、Sonar、相依驗證 |
 | [play-store/](play-store/README.md#繁體中文) | Play 商店圖片，以及重新產生它們的腳本 |
 | [../site/](../site/README.md) | GitHub Pages 網站：原始檔、翻譯、建置腳本 |
+| [articles/](articles/) | 長文。〈[RideFlux 背後的故事](articles/cyberpunk-commute-update-2026-10.md)〉（英文）會被轉成網站的 `/story/` 頁 |
 
 儲存庫中的其他檔案：[`PRIVACY.md`](../PRIVACY.md)（隱私權政策）、[`NOTICE`](../NOTICE)（第三方致謝）、[`LICENSE`](../LICENSE)。
