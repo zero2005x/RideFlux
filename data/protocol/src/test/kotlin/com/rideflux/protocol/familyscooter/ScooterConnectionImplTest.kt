@@ -53,7 +53,10 @@ class ScooterConnectionImplTest {
         assertArrayEquals(NinebotRetailCodec.buildHandshakeStep1(), ble.writes.single())
         assertEquals(ConnectionState.ScooterHandshaking, connection.state.value)
         repeat(3) { ble.emit(reply(0x01)); runCurrent() }
-        ble.emit(reply(0x5b, payload = byteArrayOf(1)))
+        val randomReply = reply(0x5b, payload = byteArrayOf(1))
+        ble.emit(randomReply.copyOfRange(0, 4)); runCurrent()
+        assertEquals(1, ble.writes.size)
+        ble.emit(randomReply.copyOfRange(4, randomReply.size))
         runCurrent()
         assertEquals(0x5c, NinebotRetailCodec.decodeFrame(ble.writes.last())?.command)
         assertEquals(ScooterHandshakeState.WAITING_FOR_USER_CONFIRMATION, connection.handshakeState.value)

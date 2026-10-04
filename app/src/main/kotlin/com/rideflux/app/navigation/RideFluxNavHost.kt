@@ -54,11 +54,11 @@ fun RideFluxNavHost(
     ) {
         composable(Routes.SCANNER) {
             ScannerRoute(
-                onDeviceSelected = { address, family ->
+                onDeviceSelected = { address, family, category ->
                     // Coalesce rapid double-taps so a device cannot be
                     // pushed twice onto the back stack (which would also
                     // confuse the pattern-only VM lookup below).
-                    navController.navigate(Routes.dashboard(address, family)) {
+                    navController.navigate(Routes.dashboard(address, family, category)) {
                         launchSingleTop = true
                     }
                 },

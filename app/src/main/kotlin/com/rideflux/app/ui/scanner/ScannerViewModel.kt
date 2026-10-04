@@ -10,6 +10,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rideflux.domain.repository.DiscoveredWheel
 import com.rideflux.domain.repository.WheelRepository
+import com.rideflux.domain.repository.ScooterRepository
+import com.rideflux.domain.device.ScooterDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onCompletion
@@ -28,6 +31,7 @@ import javax.inject.Inject
 data class ScannerUiState(
     val isScanning: Boolean = false,
     val devices: List<DiscoveredWheel> = emptyList(),
+    val scooters: List<ScooterDevice> = emptyList(),
     val errorMessage: String? = null,
 )
 
@@ -43,6 +47,7 @@ data class ScannerUiState(
 @HiltViewModel
 class ScannerViewModel @Inject constructor(
     private val wheelRepository: WheelRepository,
+    private val scooterRepository: ScooterRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScannerUiState())
@@ -72,7 +77,9 @@ class ScannerViewModel @Inject constructor(
             errorMessage = null,
         )
         val scanFlow = try {
-            wheelRepository.scan()
+            combine(wheelRepository.scan(), scooterRepository.scan()) { wheels, scooters ->
+                wheels.filterNot { wheel -> scooters.any { it.address == wheel.address } } to scooters
+            }
         } catch (t: Throwable) {
             Log.e(TAG, "scan() threw before collection", t)
             if (generation == scanGeneration) {
@@ -84,9 +91,9 @@ class ScannerViewModel @Inject constructor(
             return
         }
         scanJob = scanFlow
-            .onEach { list ->
+            .onEach { (wheels, scooters) ->
                 if (generation == scanGeneration) {
-                    _uiState.value = _uiState.value.copy(devices = list)
+                    _uiState.value = _uiState.value.copy(devices = wheels, scooters = scooters)
                 }
             }
             .catch { t ->

@@ -585,7 +585,7 @@ class WheelConnectionImplTest {
     }
 
     @Test
-    fun `dispatch permits dangerous commands when vehicle is stationary`() = runTest {
+    fun `dispatch permits stationary controls but forbids power off`() = runTest {
         val transport = FakeBleTransport()
         val codec = FakeWheelCodec()
         codec.onDecode = {
@@ -595,13 +595,12 @@ class WheelConnectionImplTest {
         val conn = connection(transport, codec, backgroundScope)
         conn.start()
         runCurrent()
-        transport.emit(byteArrayOf(1))
-        runCurrent()
+        repeat(3) { transport.emit(byteArrayOf(1)); runCurrent() }
 
         assertEquals(0f, conn.speedKmh.value)
 
         val powerOutcome = conn.powerOff()
-        assertTrue("powerOff was $powerOutcome", powerOutcome is CommandOutcome.Success)
+        assertTrue("powerOff was $powerOutcome", powerOutcome is CommandOutcome.InvalidArgument)
 
         val calibrateOutcome = conn.calibrate()
         assertTrue("calibrate was $calibrateOutcome", calibrateOutcome is CommandOutcome.Success)

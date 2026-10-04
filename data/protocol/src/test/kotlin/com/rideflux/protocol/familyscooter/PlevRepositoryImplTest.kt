@@ -9,6 +9,7 @@ import com.rideflux.domain.device.ScooterDevice
 import com.rideflux.domain.device.WheelDevice
 import com.rideflux.domain.repository.DiscoveredWheel
 import com.rideflux.domain.repository.PlevConnectionHandle
+import com.rideflux.domain.repository.ScooterRepository
 import com.rideflux.domain.repository.WheelRepository
 import com.rideflux.domain.telemetry.ScooterTelemetry
 import com.rideflux.domain.wheel.WheelFamily
@@ -41,6 +42,27 @@ class PlevRepositoryImplTest {
         assertEquals(scooter.device.address, handle.address)
         handle.close()
         assertTrue(scooter.closed)
+    }
+
+    @Test fun `discovered scooter routes directly and connection failure never falls back to wheel`() = runBlocking {
+        val wheels = object : WheelRepository {
+            override fun scan() = flowOf(emptyList<DiscoveredWheel>())
+            override suspend fun connect(address: String, expectedFamily: WheelFamily?): WheelConnection =
+                error("must not open wheel transport for a scooter")
+            override fun activeConnections(): Flow<Map<String, WheelConnection>> = flowOf(emptyMap())
+        }
+        val scooters = object : ScooterRepository {
+            override fun scan() = flowOf(emptyList<ScooterDevice>())
+            override fun isDiscovered(address: String) = address == "scooter"
+            override suspend fun connect(address: String): ScooterConnection =
+                throw IllegalStateException("Scooter profile unavailable")
+            override fun activeConnections(): Flow<Map<String, ScooterConnection>> = flowOf(emptyMap())
+        }
+        val repository = PlevRepositoryImpl(wheels, scooters)
+        val failure = assertThrows(IllegalStateException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.connect("scooter") }
+        }
+        assertEquals("Scooter profile unavailable", failure.message)
     }
 
     private class FakeScooter : ScooterConnection {

@@ -10,6 +10,7 @@ import com.rideflux.domain.safety.MotionInterlock
 import com.rideflux.domain.telemetry.ScooterTelemetry
 import com.rideflux.domain.transport.BleTransport
 import com.rideflux.protocol.familyscooter.ninebot.NinebotRetailCodec
+import com.rideflux.protocol.familyscooter.ninebot.NinebotRetailFrameAssembler
 import com.rideflux.protocol.familyscooter.ninebot.ScooterHandshakeStateMachine
 import java.security.SecureRandom
 import kotlinx.coroutines.CancellationException
@@ -58,6 +59,7 @@ class ScooterConnectionImpl(
     private data class PendingRead(val register: Int, val length: Int,
                                    val result: CompletableDeferred<ByteArray>)
     private var pendingRead: PendingRead? = null
+    private val frameAssembler = NinebotRetailFrameAssembler()
     private var closed = false
 
     override suspend fun start() {
@@ -87,6 +89,7 @@ class ScooterConnectionImpl(
         ingestJob?.cancel()
         pendingRead?.result?.cancel()
         pendingRead = null
+        frameAssembler.reset()
         try { transport.disconnect() } finally {
             handshake.reset()
             publishHandshake()
@@ -97,17 +100,19 @@ class ScooterConnectionImpl(
 
     private suspend fun ingest() {
         try {
-            transport.incoming.collect { bytes ->
-                val frame = NinebotRetailCodec.decodeFrame(bytes) ?: return@collect
-                val now = clock()
-                // Only a verified model-specific decoder can supply speed for safety gating.
-                val speed = verifiedSpeed(bytes)
-                val b0Reply = NinebotRetailCodec.readReplyPayload(bytes, 0xb0, 32) != null
-                if (speed != null || b0Reply) interlock.observe(speed, now)
-                when (_state.value) {
-                    ConnectionState.ScooterHandshaking -> advanceHandshake(bytes, frame.command, frame.argument)
-                    ConnectionState.Ready -> ingestTelemetry(bytes, frame.command, speed, now)
-                    else -> Unit
+            transport.incoming.collect { chunk ->
+                for (bytes in frameAssembler.append(chunk)) {
+                    val frame = NinebotRetailCodec.decodeFrame(bytes) ?: continue
+                    val now = clock()
+                    // Only a verified model-specific decoder can supply speed for safety gating.
+                    val speed = verifiedSpeed(bytes)
+                    val b0Reply = NinebotRetailCodec.readReplyPayload(bytes, 0xb0, 32) != null
+                    if (speed != null || b0Reply) interlock.observe(speed, now)
+                    when (_state.value) {
+                        ConnectionState.ScooterHandshaking -> advanceHandshake(bytes, frame.command, frame.argument)
+                        ConnectionState.Ready -> ingestTelemetry(bytes, frame.command, speed, now)
+                        else -> Unit
+                    }
                 }
             }
             if (!closed && _state.value != ConnectionState.Disconnected) {
@@ -238,6 +243,7 @@ class ScooterConnectionImpl(
         watchdogJob?.cancel()
         pendingRead?.result?.cancel()
         pendingRead = null
+        frameAssembler.reset()
         interlock.reset()
         _state.value = ConnectionState.Failed(reason, cause?.message)
         scope.launch {
