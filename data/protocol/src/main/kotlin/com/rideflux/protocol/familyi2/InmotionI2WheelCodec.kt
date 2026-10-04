@@ -217,7 +217,7 @@ class InmotionI2WheelCodec(
         // identified model; until the car type is known, only the
         // universal core fields above are decoded.
         if (isV11EarlyLayout(s)) {
-            if (frame.data.size >= InmotionI2RealtimeV11Early.MIN_DATA_SIZE) {
+            if (frame.data.size >= 56 && frame.data.size >= InmotionI2RealtimeV11Early.MIN_DATA_SIZE) {
                 val t = InmotionI2RealtimeV11Early.parse(frame.data)
                 merged = merged.copy(
                     speedKmh = t.speedKmh.toFloat(),
@@ -237,14 +237,12 @@ class InmotionI2WheelCodec(
     }
 
     /**
-     * True when the identified car type indicates the V11 early-layout
-     * family. The car-type string is matched case-insensitively for
-     * "v11" — firmware < 1.4 cannot be distinguished from the car
-     * type alone, so this is a best-effort gate pending a per-variant
-     * layout table.
+     * Exact model lookup prevents V11Y's distinct 74-byte layout from
+     * entering the 56-byte V11 path. Firmware-specific V11 offsets still
+     * require a firmware-qualified profile before broader publication.
      */
     private fun isV11EarlyLayout(s: InmotionI2State): Boolean =
-        s.carType?.contains("v11", ignoreCase = true) == true
+        s.carType?.let { InmotionModelRegistry.find(it)?.key == "v11" } == true
 
     private fun maybeEmitFaultChange(s: InmotionI2State, now: Long): DecodeEvent.Alert? {
         // faults is nullable: null means "no fault report yet", which is

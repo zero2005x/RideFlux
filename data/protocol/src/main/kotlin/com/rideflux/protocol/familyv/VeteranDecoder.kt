@@ -83,6 +83,7 @@ object VeteranDecoder {
         buffer: ByteArray,
         offset: Int = 0,
         expectCrcAlways: Boolean = false,
+        profile: VeteranProtocolProfile = VeteranProtocolProfile.LEGACY,
     ): DecodeResult {
         // Reject an invalid offset explicitly so a negative/out-of-range
         // offset fails as a decode error instead of crashing the caller
@@ -131,14 +132,21 @@ object VeteranDecoder {
             phaseCurrentHundredthsA = ByteReader.s16BE(buffer, offset + 16),
             temperatureHundredthsC = ByteReader.s16BE(buffer, offset + 18),
             autoPowerOffSeconds = ByteReader.u16BE(buffer, offset + 20),
-            chargeMode = ByteReader.u16BE(buffer, offset + 22),
+            chargeMode = if (profile == VeteranProtocolProfile.MODERN_NOSFET)
+                ByteReader.u8(buffer, offset + 23) else ByteReader.u16BE(buffer, offset + 22),
             speedAlertTenthsKmh = ByteReader.u16BE(buffer, offset + 24),
             speedTiltbackTenthsKmh = ByteReader.u16BE(buffer, offset + 26),
-            firmwareVersionRaw = ByteReader.u16BE(buffer, offset + 28),
-            pedalsMode = ByteReader.u16BE(buffer, offset + 30),
+            firmwareVersionRaw = if (profile == VeteranProtocolProfile.MODERN_NOSFET)
+                (ByteReader.u8(buffer, offset + 30) shl 16) or
+                    (ByteReader.u8(buffer, offset + 28) shl 8) or
+                    ByteReader.u8(buffer, offset + 29)
+                else ByteReader.u16BE(buffer, offset + 28),
+            pedalsMode = if (profile == VeteranProtocolProfile.MODERN_NOSFET)
+                ByteReader.u8(buffer, offset + 31) else ByteReader.u16BE(buffer, offset + 30),
             pitchAngleHundredthsDeg = ByteReader.s16BE(buffer, offset + 32),
             hardwarePwmHundredthsPercent = ByteReader.u16BE(buffer, offset + 34),
             crc32Present = crcPresent,
+            protocolProfile = profile,
         )
         return DecodeResult.Ok(frame, consumed)
     }

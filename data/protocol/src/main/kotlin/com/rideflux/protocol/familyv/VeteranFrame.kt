@@ -39,6 +39,7 @@ data class VeteranFrame(
     val pitchAngleHundredthsDeg: Int,
     val hardwarePwmHundredthsPercent: Int,
     val crc32Present: Boolean,
+    val protocolProfile: VeteranProtocolProfile = VeteranProtocolProfile.LEGACY,
 ) {
 
     val voltageVolts: Double get() = voltageHundredthsV / 100.0
@@ -46,12 +47,20 @@ data class VeteranFrame(
     /** Speed in km/h, derived from the 0.1 km/h-equivalent raw field (§3.3). */
     val speedKmh: Double get() = speedTenthsKmh / 10.0
 
-    val phaseCurrentAmps: Double get() = phaseCurrentHundredthsA / 100.0
+    val phaseCurrentAmps: Double get() = phaseCurrentHundredthsA /
+        (if (protocolProfile == VeteranProtocolProfile.MODERN_NOSFET) 10.0 else 100.0)
     val temperatureCelsius: Double get() = temperatureHundredthsC / 100.0
     val speedAlertKmh: Double get() = speedAlertTenthsKmh / 10.0
     val speedTiltbackKmh: Double get() = speedTiltbackTenthsKmh / 10.0
     val pitchAngleDegrees: Double get() = pitchAngleHundredthsDeg / 100.0
     val hardwarePwmPercent: Double get() = hardwarePwmHundredthsPercent / 100.0
+
+    /** NOSFET calls offset 34 output, a multiplier in its current calculation; it is not proven PWM. */
+    val outputRaw: Int? get() = hardwarePwmHundredthsPercent.takeIf {
+        protocolProfile == VeteranProtocolProfile.MODERN_NOSFET
+    }
+
+    val hardwareKey: String get() = firmwareVersionRaw.toString().padStart(6, '0').take(4)
 
     /** Firmware-version string per §8.4 ("%03d.%d.%02d"). */
     val firmwareVersionString: String

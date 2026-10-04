@@ -38,6 +38,39 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class WheelConnectionImplTest {
     @Test
+    fun `direct dispatch requires three stationary frames and rejects raw and power off`() = runTest {
+        val transport = FakeBleTransport()
+        val codec = FakeWheelCodec().apply {
+            onDecode = { bytes ->
+                listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(
+                    timestampMillis = 1_000L,
+                    speedKmh = bytes[0].toInt().toFloat(),
+                )))
+            }
+            onEncode = { listOf(byteArrayOf(0x33)) }
+        }
+        val conn = connection(transport, codec, backgroundScope)
+        conn.start()
+        runCurrent()
+        val critical = WheelCommand.SetMaxSpeedKmh(20f)
+        assertTrue(conn.dispatch(critical) is CommandOutcome.InvalidArgument)
+        repeat(2) {
+            transport.emit(byteArrayOf(0))
+            runCurrent()
+        }
+        assertTrue(conn.dispatch(critical) is CommandOutcome.InvalidArgument)
+        transport.emit(byteArrayOf(0))
+        runCurrent()
+        assertEquals(CommandOutcome.Success, conn.dispatch(critical))
+        transport.emit(byteArrayOf(1))
+        runCurrent()
+        assertTrue(conn.dispatch(critical) is CommandOutcome.InvalidArgument)
+        assertTrue(conn.dispatch(WheelCommand.PowerOff) is CommandOutcome.InvalidArgument)
+        assertTrue(conn.dispatch(WheelCommand.Raw(byteArrayOf(0x00))) is CommandOutcome.InvalidArgument)
+        assertEquals(1, transport.writes.size)
+    }
+
+    @Test
     fun `silent wheel fails handshake and releases transport`() = runTest {
         val transport = FakeBleTransport()
         val conn = connection(transport, FakeWheelCodec(), backgroundScope)

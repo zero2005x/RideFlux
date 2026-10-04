@@ -22,9 +22,15 @@ import com.rideflux.domain.wheel.WheelIdentity
  * [handshakeFrames] is empty. The Veteran spec does not define any
  * host-to-device commands, so every [WheelCommand] returns an empty
  * list.
+ *
+ * [profile] is explicit. The production factory currently uses the legacy
+ * default because an advertisement name or pack voltage cannot establish
+ * which layout a connected wheel speaks. Modern NOSFET decoding becomes
+ * available only when a caller supplies that profile deliberately.
  */
 class VeteranWheelCodec(
     private val deviceAddress: String = "",
+    private val profile: VeteranProtocolProfile = VeteranProtocolProfile.LEGACY,
 ) : WheelCodec {
 
     override val family: WheelFamily = WheelFamily.V
@@ -63,7 +69,7 @@ class VeteranWheelCodec(
         while (progress && s.buffer.isNotEmpty()) {
             progress = false
             val wire = ByteArray(s.buffer.size) { s.buffer[it] }
-            when (val r = VeteranDecoder.decode(wire, offset = 0, expectCrcAlways = s.expectCrcAlways)) {
+            when (val r = VeteranDecoder.decode(wire, offset = 0, expectCrcAlways = s.expectCrcAlways, profile = profile)) {
                 is VeteranDecoder.DecodeResult.Ok -> {
                     repeat(r.consumedBytes) { s.buffer.removeAt(0) }
                     if (r.frame.crc32Present) s.expectCrcAlways = true
@@ -75,7 +81,9 @@ class VeteranWheelCodec(
                                 identity = WheelIdentity(
                                     address = deviceAddress,
                                     family = WheelFamily.V,
-                                    modelName = "Veteran",
+                                    modelName = if (profile == VeteranProtocolProfile.MODERN_NOSFET)
+                                        VeteranModelRegistry.fromHardwareKey(r.frame.hardwareKey)?.name ?: "NOSFET / Veteran"
+                                        else "Veteran",
                                     firmwareVersion = r.frame.firmwareVersionString,
                                 ),
                                 capabilities = DEFAULT_CAPABILITIES,
@@ -92,7 +100,8 @@ class VeteranWheelCodec(
                         totalDistanceMetres = r.frame.totalMeters,
                         phaseCurrentA = r.frame.phaseCurrentAmps.toFloat(),
                         mosTemperatureC = r.frame.temperatureCelsius.toFloat(),
-                        pwmPercent = r.frame.hardwarePwmPercent.toFloat(),
+                        pwmPercent = if (profile == VeteranProtocolProfile.MODERN_NOSFET)
+                            null else r.frame.hardwarePwmPercent.toFloat(),
                         pitchAngleDegrees = r.frame.pitchAngleDegrees.toFloat(),
                         chargingState = when (r.frame.chargeStatus) {
                             VeteranFrame.ChargeStatus.IDLE -> ChargingState.NOT_CONNECTED
