@@ -22,6 +22,7 @@ class ScooterHandshakeStateMachine(
 
     var state: State = State.Unbonded
         private set
+    private var proposedAppRandom: ByteArray? = null
 
     fun begin(): ByteArray {
         check(state == State.Unbonded) { "Pairing has already started" }
@@ -41,19 +42,22 @@ class ScooterHandshakeStateMachine(
         val now = clockMillis()
         val proposal = NinebotRetailCodec.buildHandshakeStep2(appRandom, motionInterlock, now)
         require(now <= Long.MAX_VALUE - CONFIRMATION_TIMEOUT_MILLIS)
+        proposedAppRandom = appRandom.copyOf()
         state = State.WaitingForUserConfirmation(now + CONFIRMATION_TIMEOUT_MILLIS)
         return proposal
     }
 
     /**
      * A proposal ACK alone is insufficient. The reply must be the 0x5C/0x01 user-confirmation
-     * event within the 20-second window. The 0x5D payload is supplied by a verified profile.
+     * event within the 20-second window. SHU's AOT copies the proposed 16-byte random into
+     * its 0x5D body. An explicit payload remains available for alternate verified profiles.
      */
-    fun onUserConfirmed(confirmationFrame: ByteArray, confirmedPayload: ByteArray): ByteArray {
+    fun onUserConfirmed(confirmationFrame: ByteArray, confirmedPayload: ByteArray? = null): ByteArray {
         val waiting = state as? State.WaitingForUserConfirmation
             ?: error("Not awaiting user confirmation")
         val now = clockMillis()
         if (now >= waiting.deadlineMillis) {
+            clearRandom()
             state = State.Unbonded
             throw IllegalStateException("Power-button confirmation timed out")
         }
@@ -64,7 +68,8 @@ class ScooterHandshakeStateMachine(
             "A 0x5C proposal ACK is not power-button confirmation"
         }
         val accept = NinebotRetailCodec.buildHandshakeStep3(
-            confirmedPayload, motionInterlock, now)
+            confirmedPayload ?: requireNotNull(proposedAppRandom) { "No proposed app random" },
+            motionInterlock, now)
         state = State.AwaitingPairingAcceptance
         return accept
     }
@@ -78,6 +83,7 @@ class ScooterHandshakeStateMachine(
             "Expected 0x5D acceptance from dashboard"
         }
         state = State.PairingComplete
+        clearRandom()
     }
 
     fun markReadyForTelemetry() {
@@ -88,13 +94,20 @@ class ScooterHandshakeStateMachine(
     fun pollTimeout(): Boolean {
         val waiting = state as? State.WaitingForUserConfirmation ?: return false
         if (clockMillis() < waiting.deadlineMillis) return false
+        clearRandom()
         state = State.Unbonded
         return true
     }
 
     fun reset() {
+        clearRandom()
         state = State.Unbonded
         motionInterlock.reset()
+    }
+
+    private fun clearRandom() {
+        proposedAppRandom?.fill(0)
+        proposedAppRandom = null
     }
 
     companion object { const val CONFIRMATION_TIMEOUT_MILLIS = 20_000L }

@@ -53,7 +53,7 @@ class NinebotRetailCodecTest {
         NinebotRetailCodec.requireControlAllowed(0x70, gate, 300)
         gate.observe(1f, 400)
         assertThrows(SecurityException::class.java) {
-            NinebotRetailCodec.buildHandshakeStep3(byteArrayOf(1), gate, 400)
+            NinebotRetailCodec.buildHandshakeStep3(random, gate, 400)
         }
         assertThrows(SecurityException::class.java) {
             NinebotRetailCodec.requireControlAllowed(0x71, gate, 400)
@@ -64,12 +64,30 @@ class NinebotRetailCodecTest {
         }
     }
 
-    @Test fun `ES2 block leaves speed unknown until scale is verified`() {
+    @Test fun `ES2 block exposes only a diagnostic speed candidate`() {
         val payload = ByteArray(32)
         payload[8] = 80
         payload[10] = 42
         val block = requireNotNull(NinebotRetailCodec.decodeEs2B0(payload))
         assertEquals(42, block.speedRaw)
-        assertNull(block.toTelemetry(1).speedKmh)
+        assertEquals(0.042f, block.toTelemetry(1).speedKmh!!, 0.0001f)
+    }
+
+    @Test fun `lock writers use the restricted LE16 write form and stationary gate`() {
+        val gate = MotionInterlock()
+        assertThrows(SecurityException::class.java) {
+            NinebotRetailCodec.buildLockRequest(gate, 0)
+        }
+        repeat(3) { gate.observe(0f, it * 100L) }
+        assertArrayEquals(hex("5A A5 02 3E 20 02 70 01 00 2C FF"),
+            NinebotRetailCodec.buildLockRequest(gate, 200))
+        assertArrayEquals(hex("5A A5 02 3E 20 02 71 01 00 2B FF"),
+            NinebotRetailCodec.buildUnlockRequest(gate, 200))
+        assertThrows(IllegalArgumentException::class.java) {
+            NinebotRetailCodec.buildWriteRequest(0x78, hex("01 00"), gate, 200)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NinebotRetailCodec.buildWriteRequest(0x70, hex("00 00"), gate, 200)
+        }
     }
 }

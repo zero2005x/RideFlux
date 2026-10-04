@@ -23,23 +23,25 @@ class ScooterHandshakeStateMachineTest {
         assertEquals(ScooterHandshakeStateMachine.State.RequestingBleRandom, machine.state)
 
         repeat(3) { gate.observe(0f, 800 + it * 100L) }
-        val proposal = machine.onBleRandomReceived(hex("5A A5 01 04 3E 5B 00 01 60 FF"),
-            ByteArray(16) { it.toByte() })
+        val appRandom = ByteArray(16) { it.toByte() }
+        val proposal = machine.onBleRandomReceived(hex("5A A5 01 04 3E 5B 00 01 60 FF"), appRandom)
+        appRandom.fill(0x7f)
         assertEquals(0x5c, NinebotRetailCodec.decodeFrame(proposal)?.command)
         assertTrue(machine.state is ScooterHandshakeStateMachine.State.WaitingForUserConfirmation)
 
         // 0x5C/0x00 is only a proposal ACK. It must not advance to 0x5D.
         assertThrows(IllegalArgumentException::class.java) {
-            machine.onUserConfirmed(hex("5A A5 00 04 3E 5C 00 61 FF"), byteArrayOf(1))
+            machine.onUserConfirmed(hex("5A A5 00 04 3E 5C 00 61 FF"))
         }
         now = 5_000L
         assertThrows(SecurityException::class.java) {
-            machine.onUserConfirmed(hex("5A A5 00 04 3E 5C 01 60 FF"), byteArrayOf(1))
+            machine.onUserConfirmed(hex("5A A5 00 04 3E 5C 01 60 FF"))
         }
         repeat(3) { gate.observe(0f, 4_800 + it * 100L) }
-        val accept = machine.onUserConfirmed(hex("5A A5 00 04 3E 5C 01 60 FF"),
-            byteArrayOf(1))
+        val accept = machine.onUserConfirmed(hex("5A A5 00 04 3E 5C 01 60 FF"))
         assertEquals(0x5d, NinebotRetailCodec.decodeFrame(accept)?.command)
+        assertArrayEquals(ByteArray(16) { it.toByte() },
+            NinebotRetailCodec.decodeFrame(accept)?.payload)
         assertEquals(ScooterHandshakeStateMachine.State.AwaitingPairingAcceptance, machine.state)
         assertThrows(IllegalArgumentException::class.java) {
             machine.onPairingAccepted(hex("5A A5 00 04 3E 5C 01 60 FF"))

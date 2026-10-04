@@ -29,18 +29,15 @@ object NinebotRetailCodec {
         return frame(destination, 0x5c, 0, appRandom)
     }
 
-    /**
-     * The 0x5D payload is not established by SHU AOT. The caller must supply bytes from a
-     * separately verified pairing profile; this method never guesses serial/random contents.
-     */
+    /** SHU's 0x5D body is the 16-byte random proposed at 0x5C. */
     fun buildHandshakeStep3(confirmedPayload: ByteArray, interlock: MotionInterlock,
                             nowMillis: Long, destination: Int = 0x04): ByteArray {
-        require(confirmedPayload.size <= 255)
+        require(confirmedPayload.size == 16)
         interlock.requireAllowed(DangerTier.CRITICAL, nowMillis)
         return frame(destination, 0x5d, 0, confirmedPayload)
     }
 
-    /** Classify hazardous retail registers without exposing a speculative write encoder. */
+    /** Restricted retail write surface. Reboot, power, and firmware opcodes have no encoder. */
     fun controlTier(register: Int): DangerTier = when (register) {
         0x70, 0x71 -> DangerTier.CRITICAL // lock/unlock reset the scooter
         0x78, 0x79, 0x07, 0x08, 0x09 -> DangerTier.FORBIDDEN // reboot, power, firmware
@@ -49,6 +46,23 @@ object NinebotRetailCodec {
 
     fun requireControlAllowed(register: Int, interlock: MotionInterlock, nowMillis: Long) =
         interlock.requireAllowed(controlTier(register), nowMillis)
+
+    /** Only the two lock registers and the observed value 1 are representable here. */
+    fun buildWriteRequest(register: Int, payload: ByteArray, interlock: MotionInterlock,
+                          nowMillis: Long, destination: Int = 0x20): ByteArray {
+        require(register == 0x70 || register == 0x71) { "Unsupported retail write register" }
+        require(payload.contentEquals(byteArrayOf(1, 0))) { "Lock value must be LE16 1" }
+        requireControlAllowed(register, interlock, nowMillis)
+        return frame(destination, 0x02, register, payload)
+    }
+
+    fun buildLockRequest(interlock: MotionInterlock, nowMillis: Long,
+                         destination: Int = 0x20): ByteArray =
+        buildWriteRequest(0x70, byteArrayOf(1, 0), interlock, nowMillis, destination)
+
+    fun buildUnlockRequest(interlock: MotionInterlock, nowMillis: Long,
+                           destination: Int = 0x20): ByteArray =
+        buildWriteRequest(0x71, byteArrayOf(1, 0), interlock, nowMillis, destination)
 
     /** Validate one complete plaintext frame. Encrypted `55 AB` traffic is a separate layer. */
     fun decodeFrame(bytes: ByteArray): Frame? {
@@ -72,6 +86,10 @@ object NinebotRetailCodec {
 
     /** ES2 B0..BB core shares word positions with M365; speed remains raw. */
     fun decodeEs2B0(payload: ByteArray): M365Codec.B0Block? = M365Codec.decodeB0(payload)
+
+    /** Diagnostic candidate only: B5 scale is owner-verified on M365, not on Ninebot ES2. */
+    fun decodeSpeedKmh(bytes: ByteArray): Float? =
+        readReplyPayload(bytes, 0xb0, 32)?.let(M365Codec::decodeB0)?.speedKmh
 
     enum class EscFamily { ES2, M365 }
     enum class RegisterMeaning { BATTERY_CURRENT_RAW, EXTERNAL_BATTERY_TEMPERATURE_C, UNKNOWN }

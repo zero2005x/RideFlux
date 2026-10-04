@@ -27,8 +27,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 /**
  * Plaintext Ninebot Retail connection. Encrypted 55 AB traffic is outside this pipeline.
  * [verifiedSpeed] must be supplied only for a model with a proven speed scale and source;
- * the default keeps every critical action closed. [acceptancePayload] likewise requires
- * a separately verified pairing profile because the 0x5D payload is not established.
+ * the default keeps every critical action closed. The SHU-specific 0x5D body reuses the
+ * proposed app random. Lock writes require an explicit model-profile opt-in.
  */
 class ScooterConnectionImpl(
     private val transport: BleTransport,
@@ -41,6 +41,7 @@ class ScooterConnectionImpl(
     private val verifiedSpeed: (ByteArray) -> Float? = { null },
     private val acceptancePayload: (ByteArray) -> ByteArray? = { null },
     private val appRandom: () -> ByteArray = { ByteArray(16).also(SecureRandom()::nextBytes) },
+    private val lockProfileVerified: Boolean = false,
 ) : ScooterConnection {
     init { require(pollingIntervalMillis > 0L) }
 
@@ -50,6 +51,7 @@ class ScooterConnectionImpl(
     override val telemetry: StateFlow<ScooterTelemetry?> = _telemetry.asStateFlow()
     private val _handshakeState = MutableStateFlow(ScooterHandshakeState.UNBONDED)
     override val handshakeState: StateFlow<ScooterHandshakeState> = _handshakeState.asStateFlow()
+    override val lockSupported: Boolean get() = lockProfileVerified
     private var ingestJob: Job? = null
     private var watchdogJob: Job? = null
     private var pollingJob: Job? = null
@@ -100,7 +102,8 @@ class ScooterConnectionImpl(
                 val now = clock()
                 // Only a verified model-specific decoder can supply speed for safety gating.
                 val speed = verifiedSpeed(bytes)
-                if (speed != null) interlock.observe(speed, now)
+                val b0Reply = NinebotRetailCodec.readReplyPayload(bytes, 0xb0, 32) != null
+                if (speed != null || b0Reply) interlock.observe(speed, now)
                 when (_state.value) {
                     ConnectionState.ScooterHandshaking -> advanceHandshake(bytes, frame.command, frame.argument)
                     ConnectionState.Ready -> ingestTelemetry(bytes, frame.command, speed, now)
@@ -136,9 +139,7 @@ class ScooterConnectionImpl(
             }
             is ScooterHandshakeStateMachine.State.WaitingForUserConfirmation ->
                 if (command == 0x5c && argument == 0x01) {
-                    val payload = acceptancePayload(bytes)
-                        ?: throw IllegalStateException("No verified 0x5D acceptance payload")
-                    transport.write(handshake.onUserConfirmed(bytes, payload))
+                    transport.write(handshake.onUserConfirmed(bytes, acceptancePayload(bytes)))
                     watchdogJob?.cancel()
                     publishHandshake()
                 }
@@ -206,10 +207,17 @@ class ScooterConnectionImpl(
         if (_state.value != ConnectionState.Ready) return CommandOutcome.TransportError(command, null)
         return try {
             NinebotRetailCodec.requireControlAllowed(register, interlock, clock())
-            // Lock write geometry and acknowledgement are not established by the cited evidence.
-            CommandOutcome.Unsupported(command)
+            if (!lockProfileVerified) return CommandOutcome.Unsupported(command)
+            transport.write(if (register == 0x70)
+                NinebotRetailCodec.buildLockRequest(interlock, clock())
+            else NinebotRetailCodec.buildUnlockRequest(interlock, clock()))
+            CommandOutcome.Success // BLE transport write completed; device state is not inferred.
         } catch (denied: SecurityException) {
             CommandOutcome.InvalidArgument(command, denied.message ?: "Vehicle speed unverified")
+        } catch (cancel: CancellationException) {
+            throw cancel
+        } catch (failure: Exception) {
+            CommandOutcome.TransportError(command, failure)
         }
     }
 

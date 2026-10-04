@@ -45,9 +45,10 @@ class ScooterConnectionImplTest {
         val machine = ScooterHandshakeStateMachine(gate) { testScheduler.currentTime }
         val connection = ScooterConnectionImpl(ble, ScooterDevice("AA", "ES2"), backgroundScope,
             machine, gate, { testScheduler.currentTime }, 1_000L,
-            verifiedSpeed = { speed }, acceptancePayload = { byteArrayOf(1) },
-            appRandom = { ByteArray(16) { it.toByte() } })
+            verifiedSpeed = { speed },
+            appRandom = { ByteArray(16) { it.toByte() } }, lockProfileVerified = true)
         connection.start()
+        assertTrue(connection.lockSupported)
         runCurrent()
         assertArrayEquals(NinebotRetailCodec.buildHandshakeStep1(), ble.writes.single())
         assertEquals(ConnectionState.ScooterHandshaking, connection.state.value)
@@ -59,6 +60,8 @@ class ScooterConnectionImplTest {
         ble.emit(reply(0x5c, argument = 1))
         runCurrent()
         assertEquals(0x5d, NinebotRetailCodec.decodeFrame(ble.writes.last())?.command)
+        assertArrayEquals(ByteArray(16) { it.toByte() },
+            NinebotRetailCodec.decodeFrame(ble.writes.last())?.payload)
         ble.emit(reply(0x5d))
         runCurrent()
         assertEquals(ConnectionState.Ready, connection.state.value)
@@ -68,6 +71,7 @@ class ScooterConnectionImplTest {
         ble.emit(reply(0xb0, argument = 4, payload = block, source = 0x23))
         runCurrent()
         assertEquals(72f, connection.telemetry.value?.batteryPercent)
+        assertEquals(0f, connection.telemetry.value?.speedKmh)
         speed = 15f
         ble.emit(reply(0xb0, argument = 4, payload = block, source = 0x23)); runCurrent()
         assertTrue(connection.lock() is CommandOutcome.InvalidArgument)
@@ -75,9 +79,10 @@ class ScooterConnectionImplTest {
         repeat(3) {
             ble.emit(reply(0xb0, argument = 4, payload = block, source = 0x23)); runCurrent()
         }
-        // Stationary permits the tier, but no unverified lock-write bytes are sent.
-        assertTrue(connection.lock() is CommandOutcome.Unsupported)
-        assertTrue(connection.unlock() is CommandOutcome.Unsupported)
+        assertEquals(CommandOutcome.Success, connection.lock())
+        assertArrayEquals(NinebotRetailCodec.buildLockRequest(gate, testScheduler.currentTime), ble.writes.last())
+        assertEquals(CommandOutcome.Success, connection.unlock())
+        assertArrayEquals(NinebotRetailCodec.buildUnlockRequest(gate, testScheduler.currentTime), ble.writes.last())
         assertTrue(connection.control(0x78) is CommandOutcome.InvalidArgument)
         assertTrue(connection.control(0x79) is CommandOutcome.InvalidArgument)
         advanceTimeBy(1_001)
@@ -103,12 +108,42 @@ class ScooterConnectionImplTest {
         connection.close()
     }
 
+    @Test fun `unknown B0 sentinel revokes prior stationary lock permit`() = runTest {
+        val ble = FakeTransport()
+        val gate = MotionInterlock()
+        val machine = ScooterHandshakeStateMachine(gate) { testScheduler.currentTime }
+        val connection = ScooterConnectionImpl(ble, ScooterDevice("AA", "capture-verified"),
+            backgroundScope, machine, gate, { testScheduler.currentTime },
+            verifiedSpeed = NinebotRetailCodec::decodeSpeedKmh, lockProfileVerified = true)
+        fun b0(raw: Int): ByteArray {
+            val payload = ByteArray(32)
+            payload[10] = raw.toByte()
+            payload[11] = (raw ushr 8).toByte()
+            return reply(0xb0, argument = 4, payload = payload, source = 0x23)
+        }
+        connection.start(); runCurrent()
+        repeat(3) { ble.emit(b0(0)); runCurrent() }
+        ble.emit(reply(0x5b, payload = byteArrayOf(1))); runCurrent()
+        ble.emit(reply(0x5c, argument = 1)); runCurrent()
+        ble.emit(reply(0x5d)); runCurrent()
+        assertEquals(ConnectionState.Ready, connection.state.value)
+        repeat(3) { ble.emit(b0(0)); runCurrent() }
+        assertEquals(CommandOutcome.Success, connection.lock())
+        val writeCount = ble.writes.size
+        ble.emit(b0(0xff3e)); runCurrent()
+        assertNull(connection.telemetry.value?.speedKmh)
+        assertTrue(connection.unlock() is CommandOutcome.InvalidArgument)
+        assertEquals(writeCount, ble.writes.size)
+        connection.close()
+    }
+
     @Test fun `unverified speed blocks pairing and forbidden controls never write`() = runTest {
         val ble = FakeTransport()
         val gate = MotionInterlock()
         val machine = ScooterHandshakeStateMachine(gate) { testScheduler.currentTime }
         val connection = ScooterConnectionImpl(ble, ScooterDevice("AA", "ES2"), backgroundScope,
             machine, gate, { testScheduler.currentTime })
+        assertFalse(connection.lockSupported)
         connection.start(); runCurrent()
         ble.emit(reply(0x5b, payload = byteArrayOf(1))); runCurrent()
         assertTrue(connection.state.value is ConnectionState.Failed)

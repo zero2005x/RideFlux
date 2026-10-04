@@ -31,10 +31,25 @@ class M365CodecTest {
         assertEquals(2500, block.speedRaw)
         assertEquals(74565L, block.totalDistanceMetres)
         assertEquals(1230, block.tripDistanceMetres)
-        assertNull(block.toTelemetry(10).speedKmh) // CONFLICT-N4 blocks motion inference.
+        assertEquals(2.5f, block.speedKmh!!, 0.001f)
+        assertEquals(2.5f, block.toTelemetry(10).speedKmh!!, 0.001f)
         assertEquals(74565L, block.toTelemetry(10).totalDistanceMetres)
         word(0xb4, 101)
         assertNull(M365Codec.decodeB0(payload))
+    }
+
+    @Test fun invalidSpeedSentinelsRemainUnknownEvenWhenWheelMayBeTurning() {
+        val payload = ByteArray(32)
+        for (raw in listOf(0xff00, 0xff3e, 0xfff4, 0xffff)) {
+            payload[10] = raw.toByte()
+            payload[11] = (raw ushr 8).toByte()
+            val block = requireNotNull(M365Codec.decodeB0(payload))
+            assertNull(block.speedKmh)
+            assertNull(block.toTelemetry(1).speedKmh)
+        }
+        payload[10] = 0
+        payload[11] = 0
+        assertEquals(0f, requireNotNull(M365Codec.decodeB0(payload)).speedKmh!!, 0f)
     }
 
     @Test fun replyRejectsBadChecksumAndWrongLength() {
