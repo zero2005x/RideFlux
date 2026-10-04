@@ -70,11 +70,14 @@ class BridgeServerGattTest {
         fixture.callback.onCharacteristicReadRequest(peer, 4, 0, hudProfile)
         fixture.callback.onCharacteristicReadRequest(peer, 5, 3, hudProfile)
         fixture.callback.onCharacteristicReadRequest(peer, 6, 11, hudProfile)
+        val telemetry = fixture.service.characteristics.first { it.uuid == BridgeProtocol.TELEMETRY_CHAR_UUID }
+        fixture.callback.onCharacteristicReadRequest(peer, 7, 0, telemetry)
 
         val encoded = HudProfileCodec.encode(profile)
         verify { fixture.gatt.sendResponse(peer, 4, BluetoothGatt.GATT_SUCCESS, 0, match { it.contentEquals(encoded) }) }
         verify { fixture.gatt.sendResponse(peer, 5, BluetoothGatt.GATT_SUCCESS, 3, match { it.contentEquals(encoded.copyOfRange(3, encoded.size)) }) }
         verify { fixture.gatt.sendResponse(peer, 6, BluetoothGatt.GATT_INVALID_OFFSET, 11, null) }
+        verify { fixture.gatt.sendResponse(peer, 7, BluetoothGatt.GATT_READ_NOT_PERMITTED, 0, null) }
         assertEquals(3, lookups.size)
         assertTrue(lookups.all { (offered, mac) -> offered?.contentEquals(token) == true && mac == peer.address })
         server.stop()

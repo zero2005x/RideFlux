@@ -18,5 +18,8 @@ class HudProfileCodecTest {
         assertNull(HudProfileCodec.decode(payload.copyOf(9)))
         payload[1] = 2
         assertNull(HudProfileCodec.decode(payload))
+        payload[1] = 1
+        payload[0] = 0
+        assertNull(HudProfileCodec.decode(payload))
     }
 }

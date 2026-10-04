@@ -20,6 +20,7 @@ import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.os.ParcelUuid
+import android.os.Looper
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -41,12 +42,61 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.Shadows.shadowOf
+import java.util.concurrent.TimeUnit
 import com.rideflux.domain.settings.HudLayoutProfile
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class BridgeClientGattTest {
+    @Test
+    fun missingHudProfileResponseTimesOutAndIsPolledAgain() = runTest {
+        val fixture = Fixture()
+        val profileCharacteristic = fixture.addHudProfile()
+        every { fixture.gatt.readCharacteristic(profileCharacteristic) } returns true
+        val client = BridgeClient(fixture.context, scanThrottle = BleScanThrottle(now = { 0L }))
+        val job = backgroundScope.launch { client.frames().collect() }
+        runCurrent()
+        connectAndDiscover(fixture)
+        fixture.gattCallback.onDescriptorWrite(fixture.gatt, fixture.cccd, BluetoothGatt.GATT_SUCCESS)
+        runCurrent()
+        verify(exactly = 1) { fixture.gatt.readCharacteristic(profileCharacteristic) }
+
+        shadowOf(Looper.getMainLooper()).idleFor(4, TimeUnit.SECONDS)
+        advanceTimeBy(1_000)
+        runCurrent()
+        verify(exactly = 2) { fixture.gatt.readCharacteristic(profileCharacteristic) }
+        job.cancelAndJoin()
+    }
+
+    @Test
+    @Config(sdk = [28])
+    @Suppress("DEPRECATION")
+    fun legacyGattReadCallbackDecodesHudProfile() = runTest {
+        val fixture = Fixture()
+        val profileCharacteristic = fixture.addHudProfile()
+        every { fixture.gatt.writeDescriptor(fixture.cccd) } returns true
+        every { fixture.gatt.readCharacteristic(profileCharacteristic) } returns true
+        val received = mutableListOf<HudLayoutProfile>()
+        val client = BridgeClient(
+            fixture.context,
+            scanThrottle = BleScanThrottle(now = { 0L }),
+            onHudProfile = received::add,
+        )
+        val job = backgroundScope.launch { client.frames().collect() }
+        runCurrent()
+        connectAndDiscover(fixture)
+        fixture.gattCallback.onDescriptorWrite(fixture.gatt, fixture.cccd, BluetoothGatt.GATT_SUCCESS)
+        runCurrent()
+
+        val profile = HudLayoutProfile(topInset = 10)
+        profileCharacteristic.value = HudProfileCodec.encode(profile)
+        fixture.gattCallback.onCharacteristicRead(fixture.gatt, profileCharacteristic, BluetoothGatt.GATT_SUCCESS)
+        assertEquals(listOf(profile), received)
+        job.cancelAndJoin()
+    }
+
     @Test
     fun rejectedHudProfileReadIsRetriedWithoutWaitingForAResponse() = runTest {
         val fixture = Fixture()
@@ -93,6 +143,8 @@ class BridgeClientGattTest {
         verify(exactly = 1) { fixture.gatt.readCharacteristic(profileCharacteristic) }
 
         val profile = HudLayoutProfile(leftInset = 8, fontPercent = 120)
+        fixture.gattCallback.onCharacteristicRead(fixture.gatt, fixture.telemetry, HudProfileCodec.encode(profile), BluetoothGatt.GATT_SUCCESS)
+        assertTrue(received.isEmpty())
         fixture.gattCallback.onCharacteristicRead(
             fixture.gatt, profileCharacteristic, HudProfileCodec.encode(profile), BluetoothGatt.GATT_SUCCESS,
         )
