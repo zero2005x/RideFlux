@@ -58,7 +58,7 @@ class ScooterConnectionImpl(
     private var pollingJob: Job? = null
     private data class PendingRead(val register: Int, val length: Int,
                                    val result: CompletableDeferred<ByteArray>)
-    private var pendingRead: PendingRead? = null
+    @Volatile private var pendingRead: PendingRead? = null
     private val frameAssembler = NinebotRetailFrameAssembler()
     private var closed = false
 
@@ -73,6 +73,7 @@ class ScooterConnectionImpl(
             val request = handshake.begin()
             publishHandshake()
             transport.write(request)
+            armStepWatchdog(ScooterHandshakeStateMachine.State.RequestingBleRandom)
         } catch (cancel: CancellationException) {
             throw cancel
         } catch (failure: Exception) {
@@ -145,10 +146,11 @@ class ScooterConnectionImpl(
             is ScooterHandshakeStateMachine.State.WaitingForUserConfirmation ->
                 if (command == 0x5c && argument == 0x01) {
                     transport.write(handshake.onUserConfirmed(bytes, acceptancePayload(bytes)))
-                    watchdogJob?.cancel()
                     publishHandshake()
+                    armStepWatchdog(ScooterHandshakeStateMachine.State.AwaitingPairingAcceptance)
                 }
             ScooterHandshakeStateMachine.State.AwaitingPairingAcceptance -> if (command == 0x5d) {
+                watchdogJob?.cancel()
                 handshake.onPairingAccepted(bytes)
                 publishHandshake()
                 handshake.markReadyForTelemetry()
@@ -226,6 +228,23 @@ class ScooterConnectionImpl(
         }
     }
 
+    /**
+     * Steps without a user action (BLE random, pairing acceptance) must also time out, or a
+     * silent scooter would leave the connection in `ScooterHandshaking` forever. The
+     * power-button wait keeps its own 20 s watchdog.
+     */
+    private fun armStepWatchdog(expected: ScooterHandshakeStateMachine.State) {
+        watchdogJob?.cancel()
+        watchdogJob = scope.launch {
+            delay(STEP_TIMEOUT_MILLIS)
+            if (handshake.state == expected && _state.value == ConnectionState.ScooterHandshaking) {
+                handshake.reset()
+                publishHandshake()
+                fail(ConnectionState.Failed.Reason.HANDSHAKE_TIMEOUT)
+            }
+        }
+    }
+
     private fun publishHandshake() {
         _handshakeState.value = when (handshake.state) {
             ScooterHandshakeStateMachine.State.Unbonded -> ScooterHandshakeState.UNBONDED
@@ -250,4 +269,6 @@ class ScooterConnectionImpl(
             try { transport.disconnect() } catch (_: Exception) { /* failure already reported */ }
         }
     }
+
+    private companion object { const val STEP_TIMEOUT_MILLIS = 10_000L }
 }

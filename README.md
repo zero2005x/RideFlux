@@ -4,9 +4,9 @@
 
 # RideFlux
 
-**A live dashboard for electric unicycles & PLEV scooters — with an optional AR-glasses HUD.**
+**A live dashboard for electric unicycles — with an optional AR-glasses HUD.**
 
-Speed · Battery · Temperature · PWM alerts · Trip recording · Rokid HUD · PLEV Scooters
+Speed · Battery · Temperature · PWM alerts · Trip recording · Rokid HUD
 
 [**English**](README.md) &nbsp;·&nbsp; [繁體中文](README.zh-TW.md) &nbsp;·&nbsp; [Website](https://zero2005x.github.io/RideFlux/) &nbsp;·&nbsp; [Privacy](PRIVACY.md) &nbsp;·&nbsp; [Docs](docs/README.md) &nbsp;·&nbsp; [Story](https://zero2005x.github.io/RideFlux/story/) &nbsp;·&nbsp; [PLEV White Paper](docs/PLEV_ARCHITECTURE_WHITE_PAPER.md)
 
@@ -37,15 +37,15 @@ Speed · Battery · Temperature · PWM alerts · Trip recording · Rokid HUD · 
 
 ## What it does
 
-RideFlux connects to your electric unicycle (EUC) and electric scooter (PLEV) over Bluetooth Low Energy and shows what the vehicle is doing, live, on your phone — and, if you have them, on AR glasses.
+RideFlux connects to your electric unicycle (EUC) over Bluetooth Low Energy and shows what the wheel is doing, live, on your phone — and, if you have them, on AR glasses. Electric-scooter support is still in development (see [Supported vehicles](#supported-vehicles)).
 
 | | |
 |---|---|
 | ⚡ **Live dashboard** | Speed gauge, battery %, voltage, current, power and temperatures, plus BMS details, live charts, parameter and event pages. Automatically adapts layout for scooters and EUCs. |
-| 🛡️ **Safety alerts & interlock** | Overspeed, over-temperature, low battery and high PWM load. Motion interlock strictly locks destructive commands while moving. Invalid speed sentinels (0xFF00) are safely suppressed. |
+| 🛡️ **Safety alerts & interlock** | Overspeed, over-temperature, low battery and high PWM load. Motion interlock locks risky commands until the vehicle has reported three fresh zero-speed readings. |
 | 🗺️ **Trip recording** | Starts by itself when the vehicle starts moving. Every ride keeps its route plus speed, voltage and current. Export a trip as **CSV** or **GPX**, or back up all trips and settings to a ZIP. |
 | 🥽 **AR glasses HUD** | An optional heads-up display on Rokid AR glasses, so you can keep your eyes up. A Bluetooth ring can show or hide it. [More ↓](#ar-glasses-hud) |
-| 🎛️ **Vehicle controls** | Headlight, horn, speed limit, 3-step Ninebot pairing with 20s confirmation, and stationary lock controls. |
+| 🎛️ **Vehicle controls** | Headlight, horn, speed limit, calibration and remote power-off on unicycles — where the wheel supports them. Calibration, speed limit and power-off are refused unless the wheel has reported three fresh zero-speed readings. |
 | 🔒 **Private by design** | No internet permission, no ads, no analytics, no accounts. Everything stays on your phone unless you export it. |
 | 🌍 **18 languages** | Follows the device language by default, with a separate language choice on phone and glasses. Includes right-to-left Arabic and Urdu. |
 
@@ -82,10 +82,10 @@ How the bridge works, byte by byte: [docs/BRIDGE_PROTOCOL.md](docs/BRIDGE_PROTOC
 ### Electric Scooters (PLEV) & Smart BMS
 | Category | Brand / Lineage | Status |
 |---|---|---|
-| **Scooter** | **Ninebot Retail** (KickScooter ES1/2/4, Max G30, F20/30/40) | 🧪 Full 5A A5 implementation (3-step pairing, 20s confirmation watchdog, B0 telemetry) |
-| **Scooter** | **Xiaomi M365** (M365, Pro, Pro2, 1S, Lite, Mi 3) | 🧪 Full 55 AA implementation (B0 mirror telemetry, B5 speed decode, 0xFF00 sentinel guard) |
-| **Smart BMS** | **JBD / Xiaoxiang & Ant BMS** | 🧪 Packet decoders with mV cell voltage monitoring |
-| **Controller** | **VESC** | 🧪 COMM_GET_VALUES (0x2F) telemetry polling |
+| **Scooter** | **Ninebot Retail** (KickScooter ES2 is the reference model) | 🚧 In development — frame codec, pairing state machine and B0 telemetry are written from reverse-engineering notes. Never connected to a real scooter. Pairing and lock stay blocked in the app until a per-model stationary-speed source is verified |
+| **Scooter** | **Xiaomi M365** | 🚧 In development — B0 register decoder only. The app does not connect to it yet |
+| **Smart BMS** | **JBD / Xiaoxiang & Ant BMS** | 🧪 Packet decoders (read-only) |
+| **Controller** | **VESC** | 🧪 Telemetry decoder (read-only) |
 
 - ✅ **Verified on hardware** means the developer connected a real wheel of that model and checked the app against it.
 - 🧪 **Experimental** means the decoder is implemented from open-source references and recorded test frames, but has **not** been tried on a real vehicle. It may misread values on yours. Compare it with your vehicle's own display before you rely on it for safety.

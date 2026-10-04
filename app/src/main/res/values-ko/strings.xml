@@ -226,6 +226,7 @@
     <string name="notification_recording_text">휠 텔레메트리를 기기에 저장하고 있습니다</string>
 
     <string name="scanner_group_recognised">인식됨</string>
+    <string name="scanner_group_scooters">스쿠터</string>
     <string name="scanner_group_unrecognised">인식되지 않음(탭하여 시도)</string>
     <string name="scanner_signal_weak">신호 약함 — 더 가까이 가세요</string>
     <string name="settings_pairing_code_title">이 휴대폰의 페어링 코드</string>

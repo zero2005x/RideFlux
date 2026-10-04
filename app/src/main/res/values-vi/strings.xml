@@ -226,6 +226,7 @@
     <string name="notification_recording_text">Dữ liệu xe đang được lưu trên máy</string>
 
     <string name="scanner_group_recognised">Đã nhận dạng</string>
+    <string name="scanner_group_scooters">Xe scooter</string>
     <string name="scanner_group_unrecognised">Chưa nhận dạng (chạm để thử)</string>
     <string name="scanner_signal_weak">Tín hiệu yếu — hãy lại gần hơn</string>
     <string name="settings_pairing_code_title">Mã ghép nối của điện thoại này</string>

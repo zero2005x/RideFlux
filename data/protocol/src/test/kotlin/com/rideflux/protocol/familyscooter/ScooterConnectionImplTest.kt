@@ -111,6 +111,39 @@ class ScooterConnectionImplTest {
         connection.close()
     }
 
+    @Test fun `silent scooter after the first request fails after ten seconds`() = runTest {
+        val ble = FakeTransport()
+        val gate = MotionInterlock()
+        val machine = ScooterHandshakeStateMachine(gate) { testScheduler.currentTime }
+        val connection = ScooterConnectionImpl(ble, ScooterDevice("AA", "ES2"), backgroundScope,
+            machine, gate, { testScheduler.currentTime }, verifiedSpeed = { 0f })
+        connection.start(); runCurrent()
+        advanceTimeBy(9_999); runCurrent()
+        assertEquals(ConnectionState.ScooterHandshaking, connection.state.value)
+        advanceTimeBy(2); runCurrent()
+        assertEquals(ConnectionState.Failed.Reason.HANDSHAKE_TIMEOUT,
+            (connection.state.value as ConnectionState.Failed).reason)
+        assertEquals(ScooterHandshakeState.UNBONDED, connection.handshakeState.value)
+        connection.close()
+    }
+
+    @Test fun `missing pairing acceptance fails after ten seconds`() = runTest {
+        val ble = FakeTransport()
+        val gate = MotionInterlock()
+        val machine = ScooterHandshakeStateMachine(gate) { testScheduler.currentTime }
+        val connection = ScooterConnectionImpl(ble, ScooterDevice("AA", "ES2"), backgroundScope,
+            machine, gate, { testScheduler.currentTime }, verifiedSpeed = { 0f })
+        connection.start(); runCurrent()
+        repeat(3) { ble.emit(reply(0x01)); runCurrent() }
+        ble.emit(reply(0x5b, payload = byteArrayOf(1))); runCurrent()
+        ble.emit(reply(0x5c, argument = 1)); runCurrent()
+        assertEquals(ScooterHandshakeState.AWAITING_PAIRING_ACCEPTANCE, connection.handshakeState.value)
+        advanceTimeBy(10_001); runCurrent()
+        assertEquals(ConnectionState.Failed.Reason.HANDSHAKE_TIMEOUT,
+            (connection.state.value as ConnectionState.Failed).reason)
+        connection.close()
+    }
+
     @Test fun `unknown B0 sentinel revokes prior stationary lock permit`() = runTest {
         val ble = FakeTransport()
         val gate = MotionInterlock()

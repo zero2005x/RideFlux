@@ -412,8 +412,10 @@ class WheelConnectionImpl(
 
     override suspend fun dispatch(command: WheelCommand): CommandOutcome {
         val tier = when (command) {
-            is WheelCommand.PowerOff, is WheelCommand.Raw -> DangerTier.FORBIDDEN
-            is WheelCommand.Calibrate, is WheelCommand.SetMaxSpeedKmh,
+            is WheelCommand.Raw -> DangerTier.FORBIDDEN
+            // Remote power-off stays available, but only after three fresh stationary frames;
+            // the UI adds its own confirmation dialog.
+            is WheelCommand.PowerOff, is WheelCommand.Calibrate, is WheelCommand.SetMaxSpeedKmh,
             is WheelCommand.SetTiltbackKmh, is WheelCommand.SetPedalSensitivity,
             is WheelCommand.SetPedalHorizontal, is WheelCommand.SetRideMode,
             is WheelCommand.UnlockWithPin -> DangerTier.CRITICAL

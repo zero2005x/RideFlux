@@ -226,6 +226,7 @@
     <string name="notification_recording_text">车辆遥测数据正保存到本机</string>
 
     <string name="scanner_group_recognised">已识别</string>
+    <string name="scanner_group_scooters">滑板车</string>
     <string name="scanner_group_unrecognised">未识别（点按尝试）</string>
     <string name="scanner_signal_weak">信号弱 — 请靠近一些</string>
     <string name="settings_pairing_code_title">本机配对码</string>

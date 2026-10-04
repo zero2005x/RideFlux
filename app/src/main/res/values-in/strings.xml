@@ -228,6 +228,7 @@
     <string name="notification_recording_text">Telemetri roda sedang disimpan di perangkat</string>
 
     <string name="scanner_group_recognised">Dikenali</string>
+    <string name="scanner_group_scooters">Skuter</string>
     <string name="scanner_group_unrecognised">Tidak dikenali (ketuk untuk mencoba)</string>
     <string name="scanner_signal_weak">Sinyal lemah — dekatkan lagi</string>
     <string name="settings_pairing_code_title">Kode penyandingan ponsel ini</string>

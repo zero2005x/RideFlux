@@ -226,6 +226,7 @@
     <string name="notification_recording_text">A telemetria está a ser guardada localmente</string>
 
     <string name="scanner_group_recognised">Reconhecidos</string>
+    <string name="scanner_group_scooters">Patinetes</string>
     <string name="scanner_group_unrecognised">Não reconhecidos (toque para tentar)</string>
     <string name="scanner_signal_weak">Sinal fraco — aproxime-se</string>
     <string name="settings_pairing_code_title">Código de emparelhamento deste telefone</string>

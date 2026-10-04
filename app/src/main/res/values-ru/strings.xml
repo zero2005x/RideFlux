@@ -226,6 +226,7 @@
     <string name="notification_recording_text">Телеметрия сохраняется локально</string>
 
     <string name="scanner_group_recognised">Распознанные</string>
+    <string name="scanner_group_scooters">Самокаты</string>
     <string name="scanner_group_unrecognised">Нераспознанные (нажмите, чтобы попробовать)</string>
     <string name="scanner_signal_weak">Слабый сигнал — подойдите ближе</string>
     <string name="settings_pairing_code_title">Код сопряжения этого телефона</string>

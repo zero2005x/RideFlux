@@ -227,6 +227,7 @@
     <string name="notification_recording_text">يتم حفظ بيانات القياس محليًا</string>
 
     <string name="scanner_group_recognised">تم التعرف عليها</string>
+    <string name="scanner_group_scooters">سكوترات</string>
     <string name="scanner_group_unrecognised">غير معروفة (اضغط للمحاولة)</string>
     <string name="scanner_signal_weak">إشارة ضعيفة — اقترب أكثر</string>
     <string name="settings_pairing_code_title">رمز إقران هذا الهاتف</string>

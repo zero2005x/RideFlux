@@ -226,6 +226,7 @@
     <string name="notification_recording_text">Wheel-telemetrie wordt lokaal opgeslagen</string>
 
     <string name="scanner_group_recognised">Herkend</string>
+    <string name="scanner_group_scooters">Steps</string>
     <string name="scanner_group_unrecognised">Niet herkend (tik om te proberen)</string>
     <string name="scanner_signal_weak">Zwak signaal — ga dichterbij</string>
     <string name="settings_pairing_code_title">Koppelcode van deze telefoon</string>

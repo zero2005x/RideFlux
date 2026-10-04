@@ -38,7 +38,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class WheelConnectionImplTest {
     @Test
-    fun `direct dispatch requires three stationary frames and rejects raw and power off`() = runTest {
+    fun `direct dispatch requires three stationary frames for power off and always rejects raw`() = runTest {
         val transport = FakeBleTransport()
         val codec = FakeWheelCodec().apply {
             onDecode = { bytes ->
@@ -68,6 +68,13 @@ class WheelConnectionImplTest {
         assertTrue(conn.dispatch(WheelCommand.PowerOff) is CommandOutcome.InvalidArgument)
         assertTrue(conn.dispatch(WheelCommand.Raw(byteArrayOf(0x00))) is CommandOutcome.InvalidArgument)
         assertEquals(1, transport.writes.size)
+        repeat(3) {
+            transport.emit(byteArrayOf(0))
+            runCurrent()
+        }
+        assertEquals(CommandOutcome.Success, conn.dispatch(WheelCommand.PowerOff))
+        assertTrue(conn.dispatch(WheelCommand.Raw(byteArrayOf(0x00))) is CommandOutcome.InvalidArgument)
+        assertEquals(2, transport.writes.size)
     }
 
     @Test
@@ -585,7 +592,7 @@ class WheelConnectionImplTest {
     }
 
     @Test
-    fun `dispatch permits stationary controls but forbids power off`() = runTest {
+    fun `dispatch permits stationary controls including power off`() = runTest {
         val transport = FakeBleTransport()
         val codec = FakeWheelCodec()
         codec.onDecode = {
@@ -600,7 +607,7 @@ class WheelConnectionImplTest {
         assertEquals(0f, conn.speedKmh.value)
 
         val powerOutcome = conn.powerOff()
-        assertTrue("powerOff was $powerOutcome", powerOutcome is CommandOutcome.InvalidArgument)
+        assertTrue("powerOff was $powerOutcome", powerOutcome is CommandOutcome.Success)
 
         val calibrateOutcome = conn.calibrate()
         assertTrue("calibrate was $calibrateOutcome", calibrateOutcome is CommandOutcome.Success)
