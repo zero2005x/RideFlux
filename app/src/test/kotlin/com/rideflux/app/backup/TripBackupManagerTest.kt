@@ -34,6 +34,17 @@ import java.util.zip.ZipOutputStream
 class TripBackupManagerTest {
 
     @Test
+    fun defaultSettingsRepositoryProfileUpdateKeepsOtherGlasses() = runBlocking {
+        val repository = InMemorySettingsRepository()
+        val first = HudLayoutProfile(leftInset = 7)
+        repository.setHudProfile("first", first)
+        repository.setHudProfile("second", HudLayoutProfile(fontPercent = 999))
+
+        assertEquals(first, repository.current().hudProfiles["first"])
+        assertEquals(150, repository.current().hudProfiles["second"]?.fontPercent)
+    }
+
+    @Test
     fun exportAndImport_roundtripRestoresTripsSamplesAndSettings() = runBlocking {
         val tripRepo = InMemoryTripRepository()
         val settingsRepo = InMemorySettingsRepository()

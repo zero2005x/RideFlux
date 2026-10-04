@@ -48,6 +48,30 @@ import com.rideflux.domain.settings.HudLayoutProfile
 @Config(sdk = [36])
 class BridgeClientGattTest {
     @Test
+    fun rejectedHudProfileReadIsRetriedWithoutWaitingForAResponse() = runTest {
+        val fixture = Fixture()
+        val profileCharacteristic = fixture.addHudProfile()
+        every { fixture.gatt.readCharacteristic(profileCharacteristic) } returns false
+        val received = mutableListOf<HudLayoutProfile>()
+        val client = BridgeClient(
+            fixture.context,
+            scanThrottle = BleScanThrottle(now = { 0L }),
+            onHudProfile = received::add,
+        )
+        val job = backgroundScope.launch { client.frames().collect() }
+        runCurrent()
+        connectAndDiscover(fixture)
+        fixture.gattCallback.onDescriptorWrite(fixture.gatt, fixture.cccd, BluetoothGatt.GATT_SUCCESS)
+        runCurrent()
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        verify(exactly = 2) { fixture.gatt.readCharacteristic(profileCharacteristic) }
+        assertTrue(received.isEmpty())
+        job.cancelAndJoin()
+    }
+
+    @Test
     fun subscribedClientPollsAndDecodesHudProfileWithoutForwardingInvalidData() = runTest {
         val fixture = Fixture()
         val profileCharacteristic = fixture.addHudProfile()
@@ -62,6 +86,9 @@ class BridgeClientGattTest {
         runCurrent()
         connectAndDiscover(fixture)
         fixture.gattCallback.onDescriptorWrite(fixture.gatt, fixture.cccd, BluetoothGatt.GATT_SUCCESS)
+        runCurrent()
+        verify(exactly = 1) { fixture.gatt.readCharacteristic(profileCharacteristic) }
+        advanceTimeBy(1_000)
         runCurrent()
         verify(exactly = 1) { fixture.gatt.readCharacteristic(profileCharacteristic) }
 

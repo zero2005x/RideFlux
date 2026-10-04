@@ -26,6 +26,10 @@ internal object RokidCxrBridgeClient {
     fun setProfileListener(listener: (HudLayoutProfile) -> Unit) {
         profileListener = listener
     }
+
+    internal fun acceptProfilePayload(value: ByteArray?) {
+        value?.let(HudProfileCodec::decode)?.let { profileListener(it) }
+    }
     private val receivedFrames = MutableSharedFlow<BridgeFrame>(
         // CXR publishes at 20 Hz, so replaying an old frame after a HUD
         // collector restart is worse than waiting at most 50 ms for the
@@ -99,7 +103,7 @@ internal object RokidCxrBridgeClient {
                 receivedFrames.tryEmit(frame)
             }
             val profileResult = candidate.subscribe(BridgeProtocol.CXR_HUD_PROFILE_CHANNEL) { _, _, value ->
-                value?.let(HudProfileCodec::decode)?.let { profileListener(it) }
+                acceptProfilePayload(value)
             }
             if (profileResult != 0) Log.w(TAG, "CXR HUD profile subscribe returned $profileResult")
             if (result != 0) {
