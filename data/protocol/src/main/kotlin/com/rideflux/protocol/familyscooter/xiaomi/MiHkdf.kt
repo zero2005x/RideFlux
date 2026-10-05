@@ -20,7 +20,11 @@ object MiHkdf {
             var position = 0
             var counter = 1
             while (position < length) {
-                val input = previous + info + byteArrayOf(counter.toByte())
+                val input = ByteArray(previous.size + info.size + 1).apply {
+                    previous.copyInto(this)
+                    info.copyInto(this, previous.size)
+                    this[lastIndex] = counter.toByte()
+                }
                 val next = try { hmac(prk, input) } finally { input.fill(0) }
                 previous.fill(0)
                 previous = next
@@ -30,6 +34,9 @@ object MiHkdf {
                 counter++
             }
             return output
+        } catch (error: Exception) {
+            output.fill(0)
+            throw error
         } finally {
             prk.fill(0)
             previous.fill(0)

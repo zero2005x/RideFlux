@@ -35,7 +35,13 @@ object MiKeys {
         }
         val salt = appRandom + scooterRandom
         val reverseSalt = scooterRandom + appRandom
-        val output = MiHkdf.derive(token, salt, "mible-login-info".toByteArray(Charsets.US_ASCII), 64)
+        return try {
+            val output = MiHkdf.derive(token, salt, "mible-login-info".toByteArray(Charsets.US_ASCII), 64)
+            try { loginKeys(output, salt, reverseSalt) } finally { output.fill(0) }
+        } finally { salt.fill(0); reverseSalt.fill(0) }
+    }
+
+    private fun loginKeys(output: ByteArray, salt: ByteArray, reverseSalt: ByteArray): MiLoginKeys {
         val dev = output.copyOfRange(0, 16)
         val app = output.copyOfRange(16, 32)
         val devIv = output.copyOfRange(32, 36)
@@ -48,6 +54,6 @@ object MiKeys {
             listOf(dev, app, devIv, appIv).forEach { it.fill(0) }
             loginInfo?.fill(0)
             throw error
-        } finally { salt.fill(0); reverseSalt.fill(0); output.fill(0) }
+        }
     }
 }

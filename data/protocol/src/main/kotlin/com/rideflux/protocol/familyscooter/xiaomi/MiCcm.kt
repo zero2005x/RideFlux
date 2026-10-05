@@ -49,6 +49,9 @@ object MiCcm {
         require(key.size == 16 && nonce.size == 12 && size < 0x1000000) { "Invalid CCM parameters" }
     }
 
+    // RFC 3610 needs AES on individual 16-byte blocks. CBC-MAC and CTR above compose CCM;
+    // this primitive never encrypts a message directly in ECB mode.
+    @Suppress("kotlin:S5542")
     private fun cipher(key: ByteArray) = Cipher.getInstance("AES/ECB/NoPadding").apply {
         init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"))
     }

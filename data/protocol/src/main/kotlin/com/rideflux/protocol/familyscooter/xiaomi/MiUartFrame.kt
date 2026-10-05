@@ -30,7 +30,10 @@ class MiUartFrame(
         if (options.counterMode == MiCounterMode.INCREMENTING) nextCounter++
         val random = randomBytes()
         if (random.size != 4) { random.fill(0); fail(MiFrameError.MALFORMED) }
-        val plaintext = message.copyOfRange(1, message.size) + random
+        val plaintext = ByteArray(message.size - 1 + random.size).apply {
+            message.copyInto(this, 0, 1)
+            random.copyInto(this, message.size - 1)
+        }
         random.fill(0)
         val nonce = nonce(appIv, counter)
         val encrypted = try { MiCcm.encrypt(appKey, nonce, plaintext) }
@@ -53,7 +56,12 @@ class MiUartFrame(
         val plaintext = try { MiCcm.decrypt(devKey, nonce, frame.copyOfRange(5, frame.size - 2)) }
         catch (_: MiCcm.AuthenticationException) { fail(MiFrameError.AUTHENTICATION) }
         finally { nonce.fill(0) }
-        return try { byteArrayOf(frame[2]) + plaintext.copyOfRange(0, plaintext.size - 4) }
+        return try {
+            ByteArray(plaintext.size - 3).apply {
+                this[0] = frame[2]
+                plaintext.copyInto(this, 1, 0, plaintext.size - 4)
+            }
+        }
         finally { plaintext.fill(0) }
     }
 

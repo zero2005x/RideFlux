@@ -36,11 +36,11 @@ checks; no radio or vehicle was used.
 
 | File | Added lines |
 | --- | ---: |
-| `data/protocol/.../xiaomi/MiCcm.kt` | 120 |
+| `data/protocol/.../xiaomi/MiCcm.kt` | 123 |
 | `data/protocol/.../xiaomi/MiEcdh.kt` | 59 |
-| `data/protocol/.../xiaomi/MiHkdf.kt` | 38 |
-| `data/protocol/.../xiaomi/MiKeys.kt` | 53 |
-| `data/protocol/.../xiaomi/MiUartFrame.kt` | 78 |
+| `data/protocol/.../xiaomi/MiHkdf.kt` | 45 |
+| `data/protocol/.../xiaomi/MiKeys.kt` | 59 |
+| `data/protocol/.../xiaomi/MiUartFrame.kt` | 86 |
 | `data/protocol/src/test/.../xiaomi/MiCryptoTest.kt` | 195 |
 | `tools/mi_crypto_vectors.py` | 45 |
 | `tools/newcov.py` | 142 |
@@ -85,3 +85,24 @@ implemented on subsequent stacked branches. Commit/PR identifiers are recorded
 by the lead after this verification checkpoint. The five hardware questions and
 the upstream licensing question above remain unanswered. All new protocol
 behavior remains L2 and has not been tried on a real scooter.
+
+### Follow-up review
+
+PR [36](https://github.com/zero2005x/RideFlux/pull/36) originally passed remote
+build/tests and reported 93.2% new coverage, but failed rule `kotlin:S5542` on
+the AES block primitive. A function-local suppression documents that RFC 3610
+CCM composes CBC-MAC and CTR from single-block AES; it does not encrypt messages
+in ECB mode. No broad exclusion or quality gate setting changed.
+
+Review also removed unwiped intermediate arrays from HKDF and UART plaintext
+construction and protected login derivation and partial HKDF output cleanup
+when a provider throws. Fixed vectors and wire constants are unchanged.
+
+Final follow-up validation: the fresh mirror encountered the documented
+`BridgeServiceActionsTest` flake. That class passed alone in 45 seconds, then
+the complete `lintDebug assembleDebug jacocoTestReport` command passed in
+1m 5s (430 tasks, 9 executed). Coverage against `bffe287` is 228 / 238 lines
+(95.8%), 115 / 132 conditions, combined 92.7%; against `origin/main`,
+785 / 815 lines (96.3%), 375 / 434 conditions, combined 92.9%.
+The final XML contains 855 tests with zero failures, errors or skips.
+No tests were weakened or skipped. Remote re-analysis follows the pushed fix.
