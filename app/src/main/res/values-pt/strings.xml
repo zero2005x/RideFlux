@@ -351,15 +351,20 @@
     <string name="mi_registration_dialog_title">Registro de veículo necessário</string>
     <string name="mi_registration_dialog_warning_stationary">O veículo deve estar completamente parado e apoiado no descanso.</string>
     <string name="mi_registration_dialog_instructions">Após confirmar, aguarde o aviso (até 30 segundos) e pressione o botão liga/desliga uma vez no guidão.</string>
-    <string name="mi_registration_dialog_disclaimer_speed">As estimativas de velocidade não são verificadas e não comprovam que o veículo está parado. Não prossiga durante a condução.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">A velocidade do veículo não pode ser verificada antes da autenticação. As estimativas não provam que esteja parado. Não prossiga durante a condução.</string>
     <string name="mi_registration_dialog_confirm">Continuar</string>
     <string name="mi_registration_dialog_cancel">Cancelar</string>
     <string name="bond_manual_button">Adicionar chave manualmente</string>
     <string name="bond_manual_title">Adicionar chave de emparelhamento</string>
     <string name="bond_manual_mac">Endereço Bluetooth (MAC)</string>
-    <string name="bond_manual_token">Token (24 caracteres hexadecimais)</string>
+    <string name="bond_manual_token">Token hexadecimal</string>
     <string name="bond_manual_label">Etiqueta (opcional)</string>
-    <string name="bond_manual_error">Endereço Bluetooth ou token hexadecimal de 24 caracteres inválido.</string>
+    <string name="bond_manual_error">Endereço Bluetooth ou token hexadecimal inválido.</string>
     <string name="bond_manual_added">Chave de emparelhamento adicionada para %1$s.</string>
     <string name="action_add">Adicionar</string>
+    <string name="bond_overwrite_title">Substituir chave de emparelhamento?</string>
+    <string name="bond_overwrite_message">Já existe uma chave de emparelhamento para %1$s neste telefone. Deseja substituí-la?</string>
+    <string name="action_replace">Substituir</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">O registo pode invalidar tokens noutras aplicações (como o Mi Home).</string>
+    <string name="mi_registration_dialog_recommend_import">Se já possui uma chave, recomenda-se importá-la em Definições → Cópia de segurança em vez de registar novamente.</string>
 </resources>

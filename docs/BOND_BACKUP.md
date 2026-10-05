@@ -16,7 +16,7 @@ A scooter's pairing key is a secret the phone remembers between sessions. It con
 | `ninebot_crypto` | Ninebot legacy-crypto app random | 16 |
 
 - **The Rokid bridge token is never part of a backup.** It pairs the phone with the glasses, is 8 bytes, and has its own store. A backup can only hold `BondEntry` values, so there is no field to put anything else in.
-- RideFlux does not yet connect to scooters that use these keys, so the app has nothing to export until that login code exists. Import and export are ready for it, and for the apps that already hold such keys.
+- RideFlux supports Xiaomi Mi authentication and stored pairing keys. Riders can import keys from backup files or enter them manually, as well as selectively export stored keys.
 
 ### Container
 
@@ -92,7 +92,7 @@ Settings → Backup → **Pairing keys backup**.
 | `ninebot_crypto` | Ninebot 舊式加密的 app random | 16 |
 
 - **Rokid 橋接 token 絕不會放進備份。** 它用於手機與眼鏡配對、長度 8 位元組、有自己的儲存。備份只能容納 `BondEntry`，根本沒有欄位可以放其他東西。
-- RideFlux 目前還不能連上使用這些金鑰的滑板車，所以在登入程式完成前，App 裡沒有東西可匯出。匯入匯出已先準備好，也可供已持有這類金鑰的其他 App 使用。
+- RideFlux 已支援 Xiaomi Mi 認證與已儲存的配對金鑰。騎士可從備份檔匯入或手動輸入金鑰，亦可選擇性匯出已儲存的金鑰。
 
 ### 容器格式
 

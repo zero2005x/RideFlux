@@ -352,15 +352,20 @@
     <string name="mi_registration_dialog_title">تسجيل المركبة مطلوب</string>
     <string name="mi_registration_dialog_warning_stationary">يجب أن تكون المركبة متوقفة تمامًا ومثبتة على المسند.</string>
     <string name="mi_registration_dialog_instructions">بعد التأكيد، انتظر المطالبة (حتى 30 ثانية) واضغط على زر التشغيل مرة واحدة في المقود.</string>
-    <string name="mi_registration_dialog_disclaimer_speed">تقديرات السرعة غير مؤكدة ولا تثبت توقف المركبة. لا تتابع أثناء القيادة.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">لا يمكن التحقق من سرعة المركبة قبل المصادقة. تقديرات السرعة غير مؤكدة ولا تثبت توقف المركبة. لا تتابع أثناء القيادة.</string>
     <string name="mi_registration_dialog_confirm">متابعة</string>
     <string name="mi_registration_dialog_cancel">إلغاء</string>
     <string name="bond_manual_button">إضافة مفتاح يدويًا</string>
     <string name="bond_manual_title">إضافة مفتاح الإقران</string>
     <string name="bond_manual_mac">عنوان البلوتوث (MAC)</string>
-    <string name="bond_manual_token">الرمز (24 حرفًا ست عشريًا)</string>
+    <string name="bond_manual_token">رمز مميز بالنظام الست عشري</string>
     <string name="bond_manual_label">التسمية (اختياري)</string>
-    <string name="bond_manual_error">عنوان بلوتوث غير صالح أو رمز ست عشري مكون من 24 حرفًا.</string>
+    <string name="bond_manual_error">عنوان بلوتوث أو رمز ست عشري غير صالح.</string>
     <string name="bond_manual_added">تمت إضافة مفتاح الإقران لـ %1$s.</string>
     <string name="action_add">إضافة</string>
+    <string name="bond_overwrite_title">استبدال مفتاح الاقتران؟</string>
+    <string name="bond_overwrite_message">مفتاح الاقتران لـ %1$s موجود بالفعل على هذا الهاتف. هل ترغب في استبداله؟</string>
+    <string name="action_replace">استبدال</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">قد يؤدي التسجيل إلى إبطال الرموز في التطبيقات الأخرى (مثل Mi Home).</string>
+    <string name="mi_registration_dialog_recommend_import">إذا كان لديك مفتاح اقتران بالفعل، فمن المستحسن استيراده من الإعدادات ← النسخ الاحتياطي بدلاً من إعادة التسجيل.</string>
 </resources>

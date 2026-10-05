@@ -71,6 +71,14 @@ class MainActivityManifestTest {
     }
 
     @Test
+    fun declaresLaunchModeSingleTop() {
+        val context = RuntimeEnvironment.getApplication()
+        val info = context.packageManager
+            .getActivityInfo(ComponentName(context, MainActivity::class.java), 0)
+        assertEquals(ActivityInfo.LAUNCH_SINGLE_TOP, info.launchMode)
+    }
+
+    @Test
     fun registersIntentFiltersForRfbondFiles() {
         val context = RuntimeEnvironment.getApplication()
         val pm = context.packageManager
@@ -81,8 +89,18 @@ class MainActivityManifestTest {
         }
         val viewMatches = pm.queryIntentActivities(viewContentIntent, PackageManager.MATCH_DEFAULT_ONLY)
         assertTrue(
-            "MainActivity must resolve ACTION_VIEW for .rfbond files",
+            "MainActivity must resolve ACTION_VIEW for content:// .rfbond files",
             viewMatches.any { it.activityInfo.name == MainActivity::class.java.name },
+        )
+
+        // ACTION_VIEW with file scheme must NOT match
+        val viewFileIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(Uri.parse("file:///storage/backup.rfbond"), "application/octet-stream")
+        }
+        val fileMatches = pm.queryIntentActivities(viewFileIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        assertFalse(
+            "MainActivity must NOT resolve file:// scheme",
+            fileMatches.any { it.activityInfo.name == MainActivity::class.java.name },
         )
 
         // ACTION_SEND
@@ -98,10 +116,15 @@ class MainActivityManifestTest {
 
     @Test
     fun extractBondUriExtractsCorrectUris() {
-        // VIEW
+        // VIEW with content scheme
         val viewUri = Uri.parse("content://media/backup.rfbond")
         val viewIntent = Intent(Intent.ACTION_VIEW).apply { data = viewUri }
         assertEquals(viewUri, MainActivity.extractBondUri(viewIntent))
+
+        // VIEW with file scheme is rejected
+        val fileUri = Uri.parse("file:///media/backup.rfbond")
+        val fileIntent = Intent(Intent.ACTION_VIEW).apply { data = fileUri }
+        assertNull(MainActivity.extractBondUri(fileIntent))
 
         // SEND with EXTRA_STREAM
         val sendUri = Uri.parse("content://media/shared.rfbond")
