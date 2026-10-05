@@ -72,10 +72,8 @@ class MiAuthSession(
             withMailbox { mailbox ->
                 mailbox.write(MiAuthChar.UPNP, byteArrayOf(0x24, 0, 0, 0))
                 mailbox.send(0x0B, appRandom)
-                scooterRandom = mailbox.receive()
-                if (scooterRandom.size != 16) throw MiProtocolException(MiProtocolReason.INVALID_RANDOM)
-                proof = mailbox.receive()
-                if (proof.size != 32) throw MiProtocolException(MiProtocolReason.INVALID_PROOF)
+                scooterRandom = receiveSized(mailbox, 16, MiProtocolReason.INVALID_RANDOM)
+                proof = receiveSized(mailbox, 32, MiProtocolReason.INVALID_PROOF)
                 val loginKeys = MiKeys.login(tokenCopy, appRandom, scooterRandom)
                 keys = loginKeys
                 if (!MessageDigest.isEqual(loginKeys.scooterProof, proof)) return@withMailbox MiLoginResult.ProofMismatch
@@ -147,6 +145,15 @@ class MiAuthSession(
     }
 
     private class UserButtonTimeout : Exception("Power-button confirmation timed out")
+
+    private suspend fun receiveSized(mailbox: MiAuthMailbox, size: Int, reason: MiProtocolReason): ByteArray {
+        val bytes = mailbox.receive()
+        if (bytes.size != size) {
+            bytes.fill(0)
+            throw MiProtocolException(reason)
+        }
+        return bytes
+    }
 
     private fun deriveSecret(pair: KeyPair, remoteKey: ByteArray): ByteArray = try {
         MiEcdh.sharedSecret(pair.private, remoteKey)
