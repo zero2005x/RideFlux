@@ -130,7 +130,7 @@ self-consistency only and have not been tried on a real scooter.
 | --- | ---: |
 | `domain/.../transport/MiAuthTransport.kt` | 25 / 0 |
 | `data/protocol/.../xiaomi/MiAuthMailbox.kt` | 119 / 0 |
-| `data/protocol/.../xiaomi/MiAuthSession.kt` | 172 / 0 |
+| `data/protocol/.../xiaomi/MiAuthSession.kt` | 179 / 0 |
 | `data/protocol/.../xiaomi/MiParcel.kt` | 71 / 0 |
 | `data/protocol/src/test/.../xiaomi/MiAuthSessionTest.kt` | 362 / 0 |
 | `data/protocol/src/test/.../xiaomi/MiParcelTest.kt` | 52 / 0 |
@@ -154,18 +154,20 @@ published history, then reconciles the unpublished Phase B base.
 The refreshed isolated WSL mirror passed the full Java 21 command used in
 Phase A: `lintDebug assembleDebug jacocoTestReport --no-daemon
 --no-configuration-cache --console=plain --continue`. The initial Phase B
-snapshot passed in 6m 35s; after including the narrow CCM annotation, the final
-required run passed in 3m 44s (430 tasks, 53 executed). Final XML: **886 tests,
+snapshot passed in 6m 35s; the annotation snapshot passed in 3m 44s. After
+extracting login payload-size checks into `receiveSized` to keep the function
+within the complexity limit, the final required run passed in 2m 39s
+(430 tasks, 61 executed). Final XML: **886 tests,
 zero failures, errors or skips**. Protocol tests total 330, adding 31 over
 Phase A; other module totals remain as above. Both phone and HUD
 `LocalizationCoverageTest` suites pass. No flaky bridge-service failure occurred
-in either Phase B full run. No new dependencies or coverage exclusions were
+in any of the Phase B full runs. No new dependencies or coverage exclusions were
 added, and no APK was installed.
 
 | New-code comparison | Covered executable lines | Covered conditions | Lines + conditions |
 | --- | ---: | ---: | ---: |
-| `origin/main` (bond-backup plus Phases A/B) | 1015 / 1050 (96.7%) | 490 / 553 | 93.9% |
-| `2486c68` (Phase B plus crypto follow-up) | 248 / 256 (96.9%) | 115 / 119 | 96.8% |
+| `origin/main` (bond-backup plus Phases A/B) | 1019 / 1054 (96.7%) | 488 / 551 | 93.9% |
+| `2486c68` (Phase B plus crypto follow-up) | 252 / 260 (96.9%) | 113 / 117 | 96.8% |
 
 Measured using final aggregate JaCoCo XML and `tools/newcov.py`, with new files
 included in `git diff -U0`. Missing-source checks pass. These are local
