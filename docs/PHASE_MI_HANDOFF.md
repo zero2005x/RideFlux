@@ -249,7 +249,42 @@ Test suite reports **933 tests passed, 0 failed, 0 errors, 0 skipped** across al
 | New conditions | 21 / 26 (80.8%) |
 | Sonar-style coverage (lines + conditions) | **92.2%** (Gate: >= 80.0%) |
 
-### Next phases
+## Phase D+keys: selective bond export, manual key entry, and .rfbond file handling — 2026-10-05
 
-- Phase D+keys (PR 5): Key export/import selection, manual hex entry, and `.rfbond` intent filters.
+Implemented selective export allowing riders to toggle individual bond entries for export, manual hex entry for importing paired 12-byte Xiaomi BLE tokens directly by MAC address (with validation, normalization of colon/dash delimiters, and secret zeroing in memory), and registered intent-filters for incoming `.rfbond` files (`ACTION_VIEW` and `ACTION_SEND`) passing the parsed URI to `PendingBondImport` and navigating directly into the bond import flow. Added localized strings for manual key entry and actions across all 18 string resource files.
+
+All implementation is Evidence Level L2 (tested via simulated sessions and Robolectric unit tests, not tried on physical scooter hardware).
+
+### Files and line counts relative to Phase D
+
+| File | Added / modified lines |
+| --- | ---: |
+| `app/src/main/AndroidManifest.xml` | 22 / 0 |
+| `app/.../MainActivity.kt` | 35 / 3 |
+| `app/.../ui/bond/BondBackupScreen.kt` | 112 / 2 |
+| `app/.../ui/bond/BondBackupViewModel.kt` | 114 / 5 |
+| `app/src/main/res/values/strings.xml` | 8 / 0 |
+| `app/src/main/res/values-*/strings.xml` (17 locales) | 136 / 0 |
+| `app/src/test/.../MainActivityManifestTest.kt` | 88 / 0 |
+| `app/src/test/.../ui/bond/BondBackupViewModelTest.kt` | 120 / 0 |
+| `app/src/test/.../ui/dashboard/DashboardViewModelBehaviourTest.kt` | 1 / 0 |
+
+### Quality gates and coverage
+
+Full test suite and verification gates executed in isolated WSL environment with OpenJDK 21 and Android SDK:
+`./gradlew lintDebug assembleDebug jacocoTestReport --no-daemon --no-configuration-cache --console=plain --continue` passes with zero errors.
+Both phone and HUD APKs assemble cleanly.
+Test suite reports **942 tests passed, 0 failed, 0 errors, 0 skipped** across all modules.
+`LocalizationCoverageTest` passes across all 18 string resource files.
+
+| Metric | Measured |
+| --- | ---: |
+| New executable lines | 89 / 91 (97.8%) |
+| New conditions | 33 / 35 (94.3%) |
+| Sonar-style coverage (lines + conditions) | **96.8%** (Gate: >= 80.0%) |
+
+### Checkpoint and PR
+
+Phase D+keys checkpoint on `codex/mi-bond-keys`, based on `codex/mi-registration-ui`.
+
 

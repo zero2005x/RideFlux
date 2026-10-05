@@ -354,4 +354,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">Geschwindigkeitsschätzungen sind unbestätigt und belegen keinen Stillstand des Fahrzeugs. Nicht während der Fahrt fortfahren.</string>
     <string name="mi_registration_dialog_confirm">Fortfahren</string>
     <string name="mi_registration_dialog_cancel">Abbrechen</string>
+    <string name="bond_manual_button">Schlüssel manuell hinzufügen</string>
+    <string name="bond_manual_title">Kopplungsschlüssel hinzufügen</string>
+    <string name="bond_manual_mac">Bluetooth-Adresse (MAC)</string>
+    <string name="bond_manual_token">Token (24 Hex-Zeichen)</string>
+    <string name="bond_manual_label">Bezeichnung (optional)</string>
+    <string name="bond_manual_error">Ungültige Bluetooth-Adresse oder 24-stelliger Hex-Token.</string>
+    <string name="bond_manual_added">Kopplungsschlüssel für %1$s hinzugefügt.</string>
+    <string name="action_add">Hinzufügen</string>
 </resources>

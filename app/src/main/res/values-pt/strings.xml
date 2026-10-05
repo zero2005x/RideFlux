@@ -354,4 +354,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">As estimativas de velocidade não são verificadas e não comprovam que o veículo está parado. Não prossiga durante a condução.</string>
     <string name="mi_registration_dialog_confirm">Continuar</string>
     <string name="mi_registration_dialog_cancel">Cancelar</string>
+    <string name="bond_manual_button">Adicionar chave manualmente</string>
+    <string name="bond_manual_title">Adicionar chave de emparelhamento</string>
+    <string name="bond_manual_mac">Endereço Bluetooth (MAC)</string>
+    <string name="bond_manual_token">Token (24 caracteres hexadecimais)</string>
+    <string name="bond_manual_label">Etiqueta (opcional)</string>
+    <string name="bond_manual_error">Endereço Bluetooth ou token hexadecimal de 24 caracteres inválido.</string>
+    <string name="bond_manual_added">Chave de emparelhamento adicionada para %1$s.</string>
+    <string name="action_add">Adicionar</string>
 </resources>

@@ -354,4 +354,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">गति अनुमान असत्यापित हैं और यह साबित नहीं करते कि वाहन रुका हुआ है। सवारी करते समय आगे न बढ़ें।</string>
     <string name="mi_registration_dialog_confirm">आगे बढ़ें</string>
     <string name="mi_registration_dialog_cancel">रद्द करें</string>
+    <string name="bond_manual_button">मैन्युअल रूप से कुंजी जोड़ें</string>
+    <string name="bond_manual_title">पेयरिंग कुंजी जोड़ें</string>
+    <string name="bond_manual_mac">ब्लूटूथ पता (MAC)</string>
+    <string name="bond_manual_token">टोकन (24 हेक्स वर्ण)</string>
+    <string name="bond_manual_label">लेबल (वैकल्पिक)</string>
+    <string name="bond_manual_error">अमान्य ब्लूटूथ पता या 24-वर्ण हेक्स टोकन।</string>
+    <string name="bond_manual_added">%1$s के लिए पेयरिंग कुंजी जोड़ी गई।</string>
+    <string name="action_add">जोड़ें</string>
 </resources>

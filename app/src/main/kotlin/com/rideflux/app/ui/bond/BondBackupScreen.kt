@@ -56,9 +56,23 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.rideflux.app.R
+import com.rideflux.app.navigation.Routes
 import com.rideflux.domain.bond.BondEnvelope
 import com.rideflux.domain.bond.BondFamily
+
+@Composable
+fun BondImportNavigator(navController: NavController) {
+    val pendingUri by PendingBondImport.pendingUri.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingUri) {
+        if (pendingUri != null) {
+            navController.navigate(Routes.BOND_BACKUP) {
+                launchSingleTop = true
+            }
+        }
+    }
+}
 
 @Composable
 fun BondBackupRoute(
@@ -75,6 +89,15 @@ fun BondBackupRoute(
     val openDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> viewModel.onImportDocumentPicked(uri?.toString()) }
+
+    val pendingUri by PendingBondImport.pendingUri.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingUri) {
+        val uri = pendingUri
+        if (uri != null) {
+            PendingBondImport.pendingUri.value = null
+            viewModel.onImportDocumentPicked(uri)
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -100,10 +123,13 @@ fun BondBackupRoute(
         onNavigateUp = onNavigateUp,
         onExport = viewModel::requestExport,
         onImport = { openDocument.launch(arrayOf("*/*")) },
+        onOpenManualEntry = viewModel::openManualEntry,
+        onToggleExportSelection = viewModel::toggleExportSelection,
         onSubmitExport = { pass, confirm ->
             viewModel.submitExportPassphrase(pass, confirm, SystemClock.elapsedRealtime())
         },
         onSubmitImport = viewModel::submitImportPassphrase,
+        onSubmitManualKey = viewModel::submitManualKey,
         onConfirmImport = viewModel::confirmImport,
         onDismiss = viewModel::dismissDialog,
     )
@@ -113,6 +139,7 @@ private fun noticeText(context: Context, notice: BondNotice): String = when (not
     is BondNotice.ExportDone -> context.getString(R.string.bond_export_done, notice.count)
     is BondNotice.ImportDone ->
         context.getString(R.string.bond_import_done, notice.imported, notice.overwritten, notice.kept)
+    is BondNotice.ManualKeyAdded -> context.getString(R.string.bond_manual_added, notice.maskedMac)
     BondNotice.InvalidFile -> context.getString(R.string.bond_invalid_file)
     BondNotice.IoFailed -> context.getString(R.string.bond_io_failed)
     BondNotice.ReauthUnavailable -> context.getString(R.string.bond_reauth_unavailable)
@@ -144,8 +171,11 @@ fun BondBackupScreen(
     onNavigateUp: () -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
+    onOpenManualEntry: () -> Unit,
+    onToggleExportSelection: (String) -> Unit,
     onSubmitExport: (CharArray, CharArray) -> Unit,
     onSubmitImport: (CharArray) -> Unit,
+    onSubmitManualKey: (String, String, String) -> Unit,
     onConfirmImport: (Set<Int>, Set<Int>) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -174,18 +204,28 @@ fun BondBackupScreen(
                 state.rows.isEmpty() -> Text(stringResource(R.string.bond_empty))
                 else -> state.rows.forEach { row ->
                     ListItem(
+                        leadingContent = {
+                            Checkbox(
+                                checked = row.mac in state.selectedExportMacs,
+                                onCheckedChange = { onToggleExportSelection(row.mac) },
+                                enabled = !state.busy,
+                            )
+                        },
                         headlineContent = { Text(row.label.ifBlank { row.maskedMac }) },
                         supportingContent = { Text("${familyName(row.family)} · ${row.maskedMac}") },
                     )
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onExport, enabled = state.rows.isNotEmpty() && !state.busy) {
+                Button(onClick = onExport, enabled = state.selectedExportMacs.isNotEmpty() && !state.busy) {
                     Text(stringResource(R.string.bond_export))
                 }
                 OutlinedButton(onClick = onImport, enabled = !state.busy) {
                     Text(stringResource(R.string.bond_import))
                 }
+            }
+            OutlinedButton(onClick = onOpenManualEntry, enabled = !state.busy) {
+                Text(stringResource(R.string.bond_manual_button))
             }
         }
     }
@@ -206,6 +246,11 @@ fun BondBackupScreen(
             onDismiss = onDismiss,
         )
         is BondDialog.ImportPreview -> ImportPreviewDialog(dialog, onConfirmImport, onDismiss)
+        BondDialog.ManualEntry -> ManualEntryDialog(
+            error = state.manualEntryError,
+            onSubmit = onSubmitManualKey,
+            onDismiss = onDismiss,
+        )
     }
 }
 
@@ -324,3 +369,68 @@ private fun familyName(family: BondFamily): String = stringResource(
         BondFamily.NINEBOT_CRYPTO -> R.string.bond_family_ninebot_crypto
     },
 )
+
+@Composable
+private fun ManualEntryDialog(
+    error: BondManualEntryError?,
+    onSubmit: (String, String, String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var mac by remember { mutableStateOf("") }
+    var tokenHex by remember { mutableStateOf("") }
+    var label by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.bond_manual_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = mac,
+                    onValueChange = { mac = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.bond_manual_mac)) },
+                    placeholder = { Text("AA:BB:CC:DD:EE:FF") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = tokenHex,
+                    onValueChange = { tokenHex = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.bond_manual_token)) },
+                    placeholder = { Text("00112233445566778899aabb") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = label,
+                    onValueChange = { label = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.bond_manual_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (error != null) {
+                    Text(
+                        stringResource(R.string.bond_manual_error),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = mac.isNotBlank() && tokenHex.isNotBlank(),
+                onClick = { onSubmit(mac, tokenHex, label) },
+            ) {
+                Text(stringResource(R.string.action_add))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
+}
+

@@ -354,4 +354,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">速度估計未經檢驗，不能證明車輛已停止。騎乘時請勿繼續。</string>
     <string name="mi_registration_dialog_confirm">繼續</string>
     <string name="mi_registration_dialog_cancel">取消</string>
+    <string name="bond_manual_button">手動新增金鑰</string>
+    <string name="bond_manual_title">新增配對金鑰</string>
+    <string name="bond_manual_mac">藍牙位址 (MAC)</string>
+    <string name="bond_manual_token">Token (24 位十六進位字元)</string>
+    <string name="bond_manual_label">標籤 (選填)</string>
+    <string name="bond_manual_error">無效的藍牙位址或 24 位十六進位 Token。</string>
+    <string name="bond_manual_added">已新增 %1$s 的配對金鑰。</string>
+    <string name="action_add">新增</string>
 </resources>

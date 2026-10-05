@@ -354,4 +354,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">속도 추정치는 검증되지 않았으며 기기가 정지했음을 증명하지 않습니다. 주행 중에는 계속하지 마세요.</string>
     <string name="mi_registration_dialog_confirm">계속</string>
     <string name="mi_registration_dialog_cancel">취소</string>
+    <string name="bond_manual_button">키 수동 추가</string>
+    <string name="bond_manual_title">페어링 키 추가</string>
+    <string name="bond_manual_mac">블루투스 주소 (MAC)</string>
+    <string name="bond_manual_token">토큰 (16진수 24자)</string>
+    <string name="bond_manual_label">라벨 (선택 사항)</string>
+    <string name="bond_manual_error">유효하지 않은 블루투스 주소 또는 24자 16진수 토큰입니다.</string>
+    <string name="bond_manual_added">%1$s의 페어링 키가 추가되었습니다.</string>
+    <string name="action_add">추가</string>
 </resources>

@@ -354,4 +354,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">Le stime di velocità non sono verificate e non dimostrano che il veicolo sia fermo. Non procedere durante la marcia.</string>
     <string name="mi_registration_dialog_confirm">Continua</string>
     <string name="mi_registration_dialog_cancel">Annulla</string>
+    <string name="bond_manual_button">Aggiungi chiave manualmente</string>
+    <string name="bond_manual_title">Aggiungi chiave di associazione</string>
+    <string name="bond_manual_mac">Indirizzo Bluetooth (MAC)</string>
+    <string name="bond_manual_token">Token (24 caratteri esadecimali)</string>
+    <string name="bond_manual_label">Etichetta (opzionale)</string>
+    <string name="bond_manual_error">Indirizzo Bluetooth o token esadecimale a 24 caratteri non valido.</string>
+    <string name="bond_manual_added">Chiave di associazione aggiunta per %1$s.</string>
+    <string name="action_add">Aggiungi</string>
 </resources>
