@@ -346,4 +346,12 @@
     <string name="bond_invalid_file">Đây không phải tệp sao lưu RideFlux hợp lệ.</string>
     <string name="bond_io_failed">Không thể đọc hoặc lưu tệp.</string>
     <string name="bond_load_failed">Không thể đọc các khóa ghép nối đã lưu trên điện thoại này.</string>
+    <string name="scooter_pairing_banner_prompt">Nhấn nút nguồn trên tay lái để ghép đôi</string>
+    <string name="mi_registration_authenticating">Đang xác thực với xe…</string>
+    <string name="mi_registration_dialog_title">Yêu cầu đăng ký xe</string>
+    <string name="mi_registration_dialog_warning_stationary">Xe phải đứng yên hoàn toàn và được dựng chân chống.</string>
+    <string name="mi_registration_dialog_instructions">Sau khi xác nhận, hãy đợi lời nhắc (tối đa 30 giây) và nhấn nút nguồn một lần trên tay lái.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Ước tính tốc độ chưa được kiểm chứng và không chứng minh xe đã dừng. Không tiếp tục khi đang lái xe.</string>
+    <string name="mi_registration_dialog_confirm">Tiếp tục</string>
+    <string name="mi_registration_dialog_cancel">Hủy</string>
 </resources>

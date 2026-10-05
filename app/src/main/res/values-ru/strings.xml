@@ -346,4 +346,12 @@
     <string name="bond_invalid_file">Это не допустимый файл резервной копии RideFlux.</string>
     <string name="bond_io_failed">Не удалось прочитать или сохранить файл.</string>
     <string name="bond_load_failed">Сохранённые ключи сопряжения не удаётся прочитать на этом телефоне.</string>
+    <string name="scooter_pairing_banner_prompt">Нажмите кнопку питания на руле для сопряжения</string>
+    <string name="mi_registration_authenticating">Аутентификация с транспортным средством…</string>
+    <string name="mi_registration_dialog_title">Требуется регистрация устройства</string>
+    <string name="mi_registration_dialog_warning_stationary">Транспортное средство должно быть полностью неподвижно и стоять на подножке.</string>
+    <string name="mi_registration_dialog_instructions">После подтверждения дождитесь подсказки (до 30 секунд) и нажмите один раз кнопку питания на руле.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Оценки скорости не проверены и не гарантируют остановку транспортного средства. Не продолжайте во время движения.</string>
+    <string name="mi_registration_dialog_confirm">Продолжить</string>
+    <string name="mi_registration_dialog_cancel">Отмена</string>
 </resources>

@@ -346,4 +346,12 @@
     <string name="bond_invalid_file">Questo non è un file di backup RideFlux valido.</string>
     <string name="bond_io_failed">Impossibile leggere o salvare il file.</string>
     <string name="bond_load_failed">Le chiavi di abbinamento salvate non possono essere lette su questo telefono.</string>
+    <string name="scooter_pairing_banner_prompt">Premi il pulsante di accensione sul manubrio per associare</string>
+    <string name="mi_registration_authenticating">Autenticazione con il veicolo in corso…</string>
+    <string name="mi_registration_dialog_title">Registrazione veicolo richiesta</string>
+    <string name="mi_registration_dialog_warning_stationary">Il veicolo deve essere completamente fermo e sul cavalletto.</string>
+    <string name="mi_registration_dialog_instructions">Dopo la conferma, attendi la richiesta (fino a 30 secondi) e premi una volta il pulsante di accensione sul manubrio.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Le stime di velocità non sono verificate e non dimostrano che il veicolo sia fermo. Non procedere durante la marcia.</string>
+    <string name="mi_registration_dialog_confirm">Continua</string>
+    <string name="mi_registration_dialog_cancel">Annulla</string>
 </resources>

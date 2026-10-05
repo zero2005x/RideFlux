@@ -346,4 +346,12 @@
     <string name="bond_invalid_file">Dit is geen geldig RideFlux-back-upbestand.</string>
     <string name="bond_io_failed">Het bestand kon niet worden gelezen of opgeslagen.</string>
     <string name="bond_load_failed">De opgeslagen koppelingssleutels kunnen op deze telefoon niet worden gelezen.</string>
+    <string name="scooter_pairing_banner_prompt">Druk op de aan/uit-knop op het stuur om te koppelen</string>
+    <string name="mi_registration_authenticating">Verifiëren met voertuig…</string>
+    <string name="mi_registration_dialog_title">Voertuigregistratie vereist</string>
+    <string name="mi_registration_dialog_warning_stationary">Het voertuig moet volledig stilstaan en op de standaard staan.</string>
+    <string name="mi_registration_dialog_instructions">Wacht na bevestiging op de instructie (tot 30 seconden) en druk eenmaal op de aan/uit-knop op het stuur.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Schattingen van de snelheid zijn niet geverifieerd en bewijzen niet dat het voertuig stilstaat. Ga niet verder tijdens het rijden.</string>
+    <string name="mi_registration_dialog_confirm">Doorgaan</string>
+    <string name="mi_registration_dialog_cancel">Annuleren</string>
 </resources>

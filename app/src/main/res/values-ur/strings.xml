@@ -347,4 +347,12 @@
     <string name="bond_invalid_file">یہ درست RideFlux بیک اپ فائل نہیں ہے۔</string>
     <string name="bond_io_failed">فائل پڑھی یا محفوظ نہیں کی جا سکی۔</string>
     <string name="bond_load_failed">محفوظ شدہ پیئرنگ کیز اس فون پر نہیں پڑھی جا سکتیں۔</string>
+    <string name="scooter_pairing_banner_prompt">جوڑنے کے لیے ہینڈل بار پر پاور بٹن دبائیں</string>
+    <string name="mi_registration_authenticating">گاڑی کے ساتھ تصدیق ہو رہی ہے…</string>
+    <string name="mi_registration_dialog_title">گاڑی کی رجسٹریشن درکار ہے</string>
+    <string name="mi_registration_dialog_warning_stationary">گاڑی کا مکمل طور پر ساکن ہونا اور کک اسٹینڈ پر کھڑا ہونا ضروری ہے۔</string>
+    <string name="mi_registration_dialog_instructions">تصدیق کے بعد، اشارے (30 سیکنڈ تک) کا انتظار کریں اور ہینڈل بار پر پاور بٹن ایک بار دبائیں۔</string>
+    <string name="mi_registration_dialog_disclaimer_speed">رفتار کے تخمینے غیر تصدیق شدہ ہیں اور یہ ثابت نہیں کرتے کہ گاڑی رکی ہوئی ہے۔ سواری کے دوران آگے نہ بڑھیں۔</string>
+    <string name="mi_registration_dialog_confirm">آگے بڑھیں</string>
+    <string name="mi_registration_dialog_cancel">منسوخ کریں</string>
 </resources>
