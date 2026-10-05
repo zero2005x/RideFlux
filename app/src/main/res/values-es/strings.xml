@@ -346,4 +346,12 @@
     <string name="bond_invalid_file">Este no es un archivo de copia de RideFlux válido.</string>
     <string name="bond_io_failed">No se pudo leer o guardar el archivo.</string>
     <string name="bond_load_failed">Las claves de emparejamiento guardadas no se pueden leer en este teléfono.</string>
+    <string name="scooter_pairing_banner_prompt">Presiona el botón de encendido del manillar para emparejar</string>
+    <string name="mi_registration_authenticating">Autenticando con el vehículo…</string>
+    <string name="mi_registration_dialog_title">Registro de vehículo requerido</string>
+    <string name="mi_registration_dialog_warning_stationary">El vehículo debe estar completamente inmóvil y sobre el caballete.</string>
+    <string name="mi_registration_dialog_instructions">Tras confirmar, espera la indicación (hasta 30 segundos) y presiona una vez el botón de encendido en el manillar.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Las estimaciones de velocidad no están verificadas y no demuestran que el vehículo esté detenido. No continúes mientras conduces.</string>
+    <string name="mi_registration_dialog_confirm">Continuar</string>
+    <string name="mi_registration_dialog_cancel">Cancelar</string>
 </resources>

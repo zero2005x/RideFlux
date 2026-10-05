@@ -2,6 +2,7 @@ package com.rideflux.app.ui.dashboard
 
 import com.rideflux.domain.command.CommandOutcome
 import com.rideflux.domain.connection.ConnectionState
+import com.rideflux.domain.connection.MiRegistrationState
 import com.rideflux.domain.connection.ScooterConnection
 import com.rideflux.domain.connection.ScooterHandshakeState
 import com.rideflux.domain.device.PlevCategory
@@ -47,5 +48,25 @@ class DashboardViewModelPlevTest {
         assertEquals(ScooterHandshakeState.WAITING_FOR_USER_CONFIRMATION, waiting.handshakeState)
         assertNull(scooterDashboardState(scooter, ConnectionState.Ready, null,
             ScooterHandshakeState.READY_FOR_TELEMETRY, 10).handshakeRemainingSeconds)
+    }
+
+    @Test fun `mi registration state exposes thirty second countdown while waiting for button`() {
+        val consentRequired = scooterDashboardState(scooter, ConnectionState.ScooterHandshaking,
+            null, ScooterHandshakeState.UNBONDED, null,
+            miRegistration = MiRegistrationState.CONSENT_REQUIRED)
+        assertEquals(MiRegistrationState.CONSENT_REQUIRED, consentRequired.miRegistrationState)
+        assertNull(consentRequired.handshakeRemainingSeconds)
+
+        val waiting = scooterDashboardState(scooter, ConnectionState.ScooterHandshaking,
+            null, ScooterHandshakeState.UNBONDED, 30,
+            miRegistration = MiRegistrationState.WAITING_FOR_POWER_BUTTON)
+        assertEquals(30, waiting.handshakeRemainingSeconds)
+        assertEquals(MiRegistrationState.WAITING_FOR_POWER_BUTTON, waiting.miRegistrationState)
+
+        val authenticating = scooterDashboardState(scooter, ConnectionState.ScooterHandshaking,
+            null, ScooterHandshakeState.UNBONDED, null,
+            miRegistration = MiRegistrationState.AUTHENTICATING)
+        assertEquals(MiRegistrationState.AUTHENTICATING, authenticating.miRegistrationState)
+        assertNull(authenticating.handshakeRemainingSeconds)
     }
 }

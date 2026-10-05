@@ -346,4 +346,12 @@
     <string name="bond_invalid_file">यह मान्य RideFlux बैकअप फ़ाइल नहीं है।</string>
     <string name="bond_io_failed">फ़ाइल पढ़ी या सहेजी नहीं जा सकी।</string>
     <string name="bond_load_failed">सहेजी गई पेयरिंग कुंजियाँ इस फ़ोन पर पढ़ी नहीं जा सकतीं।</string>
+    <string name="scooter_pairing_banner_prompt">जोड़ने के लिए हैंडलबार पर पावर बटन दबाएं</string>
+    <string name="mi_registration_authenticating">वाहन से प्रमाणीकरण किया जा रहा है…</string>
+    <string name="mi_registration_dialog_title">वाहन पंजीकरण आवश्यक</string>
+    <string name="mi_registration_dialog_warning_stationary">वाहन पूरी तरह से स्थिर होना चाहिए और किकस्टैंड पर खड़ा होना चाहिए।</string>
+    <string name="mi_registration_dialog_instructions">पुष्टि करने के बाद, संकेत (30 सेकंड तक) की प्रतीक्षा करें और हैंडलबार पर पावर बटन एक बार दबाएं।</string>
+    <string name="mi_registration_dialog_disclaimer_speed">गति अनुमान असत्यापित हैं और यह साबित नहीं करते कि वाहन रुका हुआ है। सवारी करते समय आगे न बढ़ें।</string>
+    <string name="mi_registration_dialog_confirm">आगे बढ़ें</string>
+    <string name="mi_registration_dialog_cancel">रद्द करें</string>
 </resources>

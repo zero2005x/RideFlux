@@ -346,4 +346,12 @@
     <string name="bond_invalid_file">这不是有效的 RideFlux 备份文件。</string>
     <string name="bond_io_failed">无法读取或保存文件。</string>
     <string name="bond_load_failed">这部手机无法读取已保存的配对密钥。</string>
+    <string name="scooter_pairing_banner_prompt">请按下车把电源键完成配对</string>
+    <string name="mi_registration_authenticating">正在与车辆进行验证…</string>
+    <string name="mi_registration_dialog_title">需要车辆注册</string>
+    <string name="mi_registration_dialog_warning_stationary">车辆必须完全静止并停在脚撑上。</string>
+    <string name="mi_registration_dialog_instructions">确认后，请等待提示（最多 30 秒），然后按一下车把上的电源键。</string>
+    <string name="mi_registration_dialog_disclaimer_speed">速度估计未经检验，不能证明车辆已停止。骑行时请勿继续。</string>
+    <string name="mi_registration_dialog_confirm">继续</string>
+    <string name="mi_registration_dialog_cancel">取消</string>
 </resources>
