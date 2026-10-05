@@ -124,7 +124,7 @@ Transport, timeout, malformed parcel, proof mismatch, button timeout and
 cancellation paths preserve secret cleanup. Simulator tests establish software
 self-consistency only and have not been tried on a real scooter.
 
-### Files and line counts relative to Phase A `2486c68`
+### Files and line counts relative to Phase A follow-up `d2aee82`
 
 | File | Added / removed lines |
 | --- | ---: |
@@ -134,20 +134,13 @@ self-consistency only and have not been tried on a real scooter.
 | `data/protocol/.../xiaomi/MiParcel.kt` | 71 / 0 |
 | `data/protocol/src/test/.../xiaomi/MiAuthSessionTest.kt` | 362 / 0 |
 | `data/protocol/src/test/.../xiaomi/MiParcelTest.kt` | 52 / 0 |
-| `data/protocol/.../xiaomi/MiCcm.kt` | 3 / 0 |
-| `data/protocol/.../xiaomi/MiHkdf.kt` | 8 / 1 |
-| `data/protocol/.../xiaomi/MiKeys.kt` | 8 / 2 |
-| `data/protocol/.../xiaomi/MiUartFrame.kt` | 10 / 2 |
 | `docs/MI_AUTH.md` | 6 / 2 |
 
-The four existing crypto files contain bounded follow-up fixes: eliminate
-unwiped temporary concatenation arrays, cover derivation failures with cleanup,
-and narrowly suppress `kotlin:S5542` on the AES single-block primitive. PR 36's
-remote Sonar check reported that specific ECB-mode issue. RFC 3610 CCM requires
-the AES block primitive; CBC-MAC and CTR are implemented around it. The local
-suppression/comment records this reason and does not suppress unrelated code.
-The lead carries these fixes into the Phase A follow-up without rewriting
-published history, then reconciles the unpublished Phase B base.
+Crypto cleanup and the narrowly documented `kotlin:S5542` suppression were
+delivered in PR 36's follow-up `d2aee82`. The unpublished Phase B branch was
+rebased onto that checkpoint; only documentation needed conflict resolution.
+A comparison confirms that protocol/domain runtime sources match the final
+tested snapshot exactly. Published history was not rewritten.
 
 ### Quality gates and coverage
 
@@ -168,10 +161,12 @@ added, and no APK was installed.
 | --- | ---: | ---: | ---: |
 | `origin/main` (bond-backup plus Phases A/B) | 1019 / 1054 (96.7%) | 488 / 551 | 93.9% |
 | `2486c68` (Phase B plus crypto follow-up) | 252 / 260 (96.9%) | 113 / 117 | 96.8% |
+| `d2aee82` (final Phase B only) | 234 / 239 (97.9%) | 113 / 117 | 97.5% |
 
 Measured using final aggregate JaCoCo XML and `tools/newcov.py`, with new files
 included in `git diff -U0`. Missing-source checks pass. These are local
 Sonar-style results; a remote Phase B SonarCloud issue gate is not established.
 Phase C Android integration, Phase D UI/storage and extended key import/export
 remain pending. Commit and PR identifiers are added by the lead at checkpoint.
-The hardware and licensing questions above remain open.
+The hardware and licensing questions above remain open. Phase B source
+checkpoints are `6d080fa` and `950db14` on `codex/mi-auth-protocol`.
