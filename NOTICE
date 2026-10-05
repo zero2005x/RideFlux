@@ -73,3 +73,19 @@ The other libraries RideFlux builds on (AndroidX, Kotlin, Jetpack Compose and
 so on) are fetched by Gradle and are used under their publishers' own licenses.
 They are listed in gradle/libs.versions.toml and
 gradle/verification-metadata.xml.
+
+
+4. Xiaomi Mi protocol research
+-----------------------------
+
+   Research: CamiAlfa's M365-BLE-PROTOCOL
+   Source:   https://github.com/CamiAlfa/M365-BLE-PROTOCOL
+   Reference behavior: the owner's M365-Rokid-HUD Android app and
+                       ninebot-ble Rust examples (read-only inspection)
+
+RideFlux's Xiaomi Mi implementation is independently written Kotlin using
+documented behavior, JCA primitives and independent fixed-input Python test
+vectors. No Rust source was copied. The inspected Rust README claims MIT and
+credits the research above, but its manifest refers to a LICENSE.md that is
+missing from the inspected directory. That licensing question remains open;
+this notice does not claim a license for missing third-party material.
