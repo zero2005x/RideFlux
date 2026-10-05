@@ -354,4 +354,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">Оценки скорости не проверены и не гарантируют остановку транспортного средства. Не продолжайте во время движения.</string>
     <string name="mi_registration_dialog_confirm">Продолжить</string>
     <string name="mi_registration_dialog_cancel">Отмена</string>
+    <string name="bond_manual_button">Добавить ключ вручную</string>
+    <string name="bond_manual_title">Добавить ключ сопряжения</string>
+    <string name="bond_manual_mac">Bluetooth-адрес (MAC)</string>
+    <string name="bond_manual_token">Токен (24 шестнадцатеричных символа)</string>
+    <string name="bond_manual_label">Метка (необязательно)</string>
+    <string name="bond_manual_error">Недействительный Bluetooth-адрес или 24-значный шестнадцатеричный токен.</string>
+    <string name="bond_manual_added">Добавлен ключ сопряжения для %1$s.</string>
+    <string name="action_add">Добавить</string>
 </resources>

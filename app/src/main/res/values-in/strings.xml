@@ -356,4 +356,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">Perkiraan kecepatan belum diverifikasi dan tidak membuktikan kendaraan telah berhenti. Jangan melanjutkan saat berkendara.</string>
     <string name="mi_registration_dialog_confirm">Lanjutkan</string>
     <string name="mi_registration_dialog_cancel">Batal</string>
+    <string name="bond_manual_button">Tambahkan kunci secara manual</string>
+    <string name="bond_manual_title">Tambahkan kunci pemasangan</string>
+    <string name="bond_manual_mac">Alamat Bluetooth (MAC)</string>
+    <string name="bond_manual_token">Token (24 karakter heksadesimal)</string>
+    <string name="bond_manual_label">Label (opsional)</string>
+    <string name="bond_manual_error">Alamat Bluetooth atau token heksadesimal 24 karakter tidak valid.</string>
+    <string name="bond_manual_added">Kunci pemasangan ditambahkan untuk %1$s.</string>
+    <string name="action_add">Tambah</string>
 </resources>

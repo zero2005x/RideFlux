@@ -354,4 +354,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">Schattingen van de snelheid zijn niet geverifieerd en bewijzen niet dat het voertuig stilstaat. Ga niet verder tijdens het rijden.</string>
     <string name="mi_registration_dialog_confirm">Doorgaan</string>
     <string name="mi_registration_dialog_cancel">Annuleren</string>
+    <string name="bond_manual_button">Sleutel handmatig toevoegen</string>
+    <string name="bond_manual_title">Koppelsleutel toevoegen</string>
+    <string name="bond_manual_mac">Bluetooth-adres (MAC)</string>
+    <string name="bond_manual_token">Token (24 hexadecimale tekens)</string>
+    <string name="bond_manual_label">Label (optioneel)</string>
+    <string name="bond_manual_error">Ongeldig Bluetooth-adres of 24 tekens tellende hex-token.</string>
+    <string name="bond_manual_added">Koppelsleutel toegevoegd voor %1$s.</string>
+    <string name="action_add">Toevoegen</string>
 </resources>

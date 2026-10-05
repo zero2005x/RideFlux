@@ -290,4 +290,124 @@ class BondBackupViewModelTest {
         method.invoke(other)
         other.onExportDocumentCreated("content://x/late")
     }
+
+    @Test fun `selective export exports only chosen entries`() = runTest(dispatcher) {
+        val store = MemoryStore().apply {
+            put(entry("AA:BB:CC:DD:EE:01"))
+            put(entry("AA:BB:CC:DD:EE:02"))
+            put(entry("AA:BB:CC:DD:EE:03"))
+        }
+        val io = FakeIo()
+        val vm = viewModel(store, io)
+        val events = collectEvents(vm, backgroundScope)
+
+        assertEquals(3, vm.state.value.selectedExportMacs.size)
+        vm.toggleExportSelection("AA:BB:CC:DD:EE:02")
+        assertEquals(setOf("AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:03"), vm.state.value.selectedExportMacs)
+        vm.toggleExportSelection("AA:BB:CC:DD:EE:02")
+        assertEquals(setOf("AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:03", "AA:BB:CC:DD:EE:02"), vm.state.value.selectedExportMacs)
+        vm.toggleExportSelection("AA:BB:CC:DD:EE:02")
+        assertEquals(setOf("AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:03"), vm.state.value.selectedExportMacs)
+
+        vm.onReauthResult(true, 0)
+        vm.submitExportPassphrase(chars(), chars(), 10)
+        vm.onExportDocumentCreated("content://x/selective")
+
+        assertEquals(listOf(BondNotice.ExportDone(2)), notices(events))
+        val opened = BondEnvelope.open(io.written!!, chars()) as BondEnvelope.OpenResult.Opened
+        assertEquals(listOf("AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:03"), opened.payload.entries.map { it.mac })
+    }
+
+    @Test fun `empty export selection prevents export`() = runTest(dispatcher) {
+        val store = MemoryStore().apply { put(entry("AA:BB:CC:DD:EE:01")) }
+        val vm = viewModel(store)
+        val events = collectEvents(vm, backgroundScope)
+
+        vm.selectAllExport(false)
+        assertTrue(vm.state.value.selectedExportMacs.isEmpty())
+        vm.requestExport()
+        assertTrue(events.isEmpty())
+
+        vm.selectAllExport(true)
+        assertEquals(setOf("AA:BB:CC:DD:EE:01"), vm.state.value.selectedExportMacs)
+        vm.requestExport()
+        assertEquals(listOf<BondEvent>(BondEvent.NeedReauth), events)
+    }
+
+    @Test fun `manual key entry adds key with various mac formats and clears secret`() = runTest(dispatcher) {
+        val store = MemoryStore()
+        val vm = viewModel(store)
+        val events = collectEvents(vm, backgroundScope)
+
+        vm.openManualEntry()
+        assertEquals(BondDialog.ManualEntry, vm.state.value.dialog)
+
+        // Lowercase MAC with colons and token with spaces
+        vm.submitManualKey("aa:bb:cc:dd:ee:01", "00 01 02 03 04 05 06 07 08 09 0a 0b", "scooter 1")
+        assertEquals(BondDialog.None, vm.state.value.dialog)
+        assertEquals(BondNotice.ManualKeyAdded("••:••:••:••:EE:01"), notices(events).last())
+        assertEquals(1, store.items.size)
+        assertEquals("AA:BB:CC:DD:EE:01", store.items.keys.single())
+        assertArrayEquals(ByteArray(12) { it.toByte() }, store.items.getValue("AA:BB:CC:DD:EE:01").credential())
+        assertEquals("scooter 1", store.items.getValue("AA:BB:CC:DD:EE:01").label)
+
+        // 12-char hex MAC without colons and token with colons
+        vm.openManualEntry()
+        vm.submitManualKey("aabbccddee02", "00:11:22:33:44:55:66:77:88:99:aa:bb", "scooter 2")
+        assertEquals(2, store.items.size)
+        assertTrue("AA:BB:CC:DD:EE:02" in store.items)
+
+        // MAC with dashes
+        vm.openManualEntry()
+        vm.submitManualKey("AA-BB-CC-DD-EE-03", "00112233445566778899aabb", "scooter 3")
+        assertEquals(3, store.items.size)
+        assertTrue("AA:BB:CC:DD:EE:03" in store.items)
+    }
+
+    @Test fun `manual key entry rejects invalid mac token or label`() = runTest(dispatcher) {
+        val store = MemoryStore()
+        val vm = viewModel(store)
+
+        // Invalid MAC
+        vm.openManualEntry()
+        vm.submitManualKey("not-a-mac", "000102030405060708090a0b")
+        assertEquals(BondManualEntryError.INVALID, vm.state.value.manualEntryError)
+        assertEquals(BondDialog.ManualEntry, vm.state.value.dialog)
+
+        // Invalid token length (too short)
+        vm.submitManualKey("AA:BB:CC:DD:EE:01", "00010203")
+        assertEquals(BondManualEntryError.INVALID, vm.state.value.manualEntryError)
+
+        // Invalid token characters: high nibble and low nibble
+        vm.submitManualKey("AA:BB:CC:DD:EE:01", "z00102030405060708090a0b")
+        assertEquals(BondManualEntryError.INVALID, vm.state.value.manualEntryError)
+
+        vm.submitManualKey("AA:BB:CC:DD:EE:01", "0z0102030405060708090a0b")
+        assertEquals(BondManualEntryError.INVALID, vm.state.value.manualEntryError)
+
+        // Invalid label (control character)
+        vm.submitManualKey("AA:BB:CC:DD:EE:01", "000102030405060708090a0b", "label\nwith\nnewline")
+        assertEquals(BondManualEntryError.INVALID, vm.state.value.manualEntryError)
+
+        // Invalid label (too long)
+        vm.submitManualKey("AA:BB:CC:DD:EE:01", "000102030405060708090a0b", "x".repeat(65))
+        assertEquals(BondManualEntryError.INVALID, vm.state.value.manualEntryError)
+
+        assertTrue(store.items.isEmpty())
+        vm.dismissDialog()
+        assertEquals(BondDialog.None, vm.state.value.dialog)
+        assertNull(vm.state.value.manualEntryError)
+    }
+
+    @Test fun `manual key entry reports store failure and wipes entry`() = runTest(dispatcher) {
+        val store = MemoryStore(failPut = true)
+        val vm = viewModel(store)
+        val events = collectEvents(vm, backgroundScope)
+
+        vm.openManualEntry()
+        vm.submitManualKey("AA:BB:CC:DD:EE:01", "000102030405060708090a0b")
+        assertEquals(BondDialog.None, vm.state.value.dialog)
+        assertEquals(BondNotice.IoFailed, notices(events).single())
+        assertTrue(store.items.isEmpty())
+    }
 }

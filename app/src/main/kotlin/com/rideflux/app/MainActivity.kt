@@ -7,6 +7,9 @@ package com.rideflux.app
 
 import android.os.Bundle
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,6 +29,8 @@ import androidx.navigation.compose.rememberNavController
 import com.rideflux.app.bridge.BridgeService
 import com.rideflux.app.bridge.BridgeState
 import com.rideflux.app.navigation.RideFluxNavHost
+import com.rideflux.app.ui.bond.BondImportNavigator
+import com.rideflux.app.ui.bond.PendingBondImport
 import com.rideflux.app.ui.permission.BlePermissionGate
 import com.rideflux.app.ui.theme.RideFluxTheme
 import com.rideflux.app.ui.settings.RingKeyLearner
@@ -48,8 +53,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleBondIntent(intent)
         setContent {
             val navController = rememberNavController()
+            BondImportNavigator(navController)
             RideFluxTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -152,7 +159,31 @@ class MainActivity : ComponentActivity() {
         return super.dispatchKeyEvent(event)
     }
 
-    private companion object {
-        val DEFAULT_RING_KEYS = setOf(KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN)
+    public override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleBondIntent(intent)
+    }
+
+    companion object {
+        private val DEFAULT_RING_KEYS = setOf(KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN)
+
+        fun handleBondIntent(intent: Intent?): Boolean {
+            val uri = extractBondUri(intent) ?: return false
+            PendingBondImport.pendingUri.value = uri.toString()
+            return true
+        }
+
+        fun extractBondUri(intent: Intent?): Uri? {
+            if (intent == null) return null
+            return when (intent.action) {
+                Intent.ACTION_VIEW -> intent.data
+                Intent.ACTION_SEND -> {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) ?: intent.clipData?.getItemAt(0)?.uri
+                }
+                else -> null
+            }
+        }
     }
 }

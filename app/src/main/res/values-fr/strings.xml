@@ -354,4 +354,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">Les estimations de vitesse ne sont pas vérifiées et ne prouvent pas l\'arrêt du véhicule. Ne continuez pas en roulant.</string>
     <string name="mi_registration_dialog_confirm">Continuer</string>
     <string name="mi_registration_dialog_cancel">Annuler</string>
+    <string name="bond_manual_button">Ajouter la clé manuellement</string>
+    <string name="bond_manual_title">Ajouter une clé de jumelage</string>
+    <string name="bond_manual_mac">Adresse Bluetooth (MAC)</string>
+    <string name="bond_manual_token">Jeton (24 caractères hexadécimaux)</string>
+    <string name="bond_manual_label">Libellé (facultatif)</string>
+    <string name="bond_manual_error">Adresse Bluetooth ou jeton hexadécimal à 24 caractères non valide.</string>
+    <string name="bond_manual_added">Clé de jumelage ajoutée pour %1$s.</string>
+    <string name="action_add">Ajouter</string>
 </resources>

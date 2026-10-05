@@ -355,4 +355,12 @@
     <string name="mi_registration_dialog_disclaimer_speed">رفتار کے تخمینے غیر تصدیق شدہ ہیں اور یہ ثابت نہیں کرتے کہ گاڑی رکی ہوئی ہے۔ سواری کے دوران آگے نہ بڑھیں۔</string>
     <string name="mi_registration_dialog_confirm">آگے بڑھیں</string>
     <string name="mi_registration_dialog_cancel">منسوخ کریں</string>
+    <string name="bond_manual_button">دستی طور پر کلید شامل کریں</string>
+    <string name="bond_manual_title">جوڑا بنانے کی کلید شامل کریں</string>
+    <string name="bond_manual_mac">بلوٹوتھ ایڈریس (MAC)</string>
+    <string name="bond_manual_token">ٹوکن (24 ہیکس حروف)</string>
+    <string name="bond_manual_label">لیبل (اختیاری)</string>
+    <string name="bond_manual_error">غلط بلوٹوتھ ایڈریس یا 24 حروف پر مشتمل ہیکس ٹوکن۔</string>
+    <string name="bond_manual_added">%1$s کے لیے جوڑا بنانے کی کلید شامل کر دی گئی۔</string>
+    <string name="action_add">شامل کریں</string>
 </resources>
