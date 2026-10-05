@@ -9,7 +9,7 @@ All Xiaomi Mi behavior in this work is implemented from reverse-engineering note
 - The reference app is the owner's local `M365-Rokid-HUD` working tree; it has unrelated local edits and is read-only for this work.
 - The scooter login proof is HMAC-SHA256 using the device key over `scooterRandom || appRandom`. Android's reference caller ignores the proof; the Rust login example verifies it.
 - Android's reference UART caller sends counter zero. The Rust session increments its counter and begins at one. RideFlux follows the requested session policy: increment from zero, stop before wrap, and leave `LEGACY_ZERO` disabled by default. Hardware acceptance is unknown.
-- The DID registration header advertises two fragments. Reject a DID ciphertext that does not occupy exactly two 18-byte fragments rather than guessing another header.
+- The DID registration header advertises two fragments. Reject a DID ciphertext that does not occupy exactly two fragments of at most 18 bytes each (19–36 bytes total) rather than guessing another header.
 - Existing `ScooterConnectionImpl` uses Ninebot framing. A separate Xiaomi connection will poll through `M365Codec`; wrapping encryption cannot make Ninebot polling compatible with M365.
 - Rust's manifest names a missing `LICENSE.md`, while its README claims MIT and credits CamiAlfa's M365-BLE-PROTOCOL research. No Rust source is copied. The licensing question remains open for the owner.
 
@@ -79,6 +79,11 @@ SonarCloud analysis or confirmation of its issue gate.
 
 ### Resumption and open items
 
+Phase A checkpoint: commit `2486c68` on `codex/mi-crypto`,
+PR [36](https://github.com/zero2005x/RideFlux/pull/36), based on
+`feat/bond-backup`. The exact authorized local `bffe287` was published as that
+base branch without rewriting history. No PR has been merged or set to auto-merge.
+
 Phase B authentication/parcel transport, Phase C Android connection integration,
 Phase D registration UI and the extended import/export paths remain to be
 implemented on subsequent stacked branches. Commit/PR identifiers are recorded
@@ -106,3 +111,65 @@ the complete `lintDebug assembleDebug jacocoTestReport` command passed in
 785 / 815 lines (96.3%), 375 / 434 conditions, combined 92.9%.
 The final XML contains 855 tests with zero failures, errors or skips.
 No tests were weakened or skipped. Remote re-analysis follows the pushed fix.
+
+## Phase B: auth parcels and simulated sessions — 2026-10-05
+
+Added the source-compatible `MiAuthTransport` extension, owned/redacted auth
+notifications, sequential bounded auth mailbox, 18-byte MiParcel framing and
+`MiAuthSession`. Login verifies the scooter proof in constant time before
+sending the app proof. Registration requires an explicit stationary/button
+confirmation argument, uses the documented fixed headers, derives a 12-byte
+token and destroys its ephemeral private key where the JCA provider permits.
+Transport, timeout, malformed parcel, proof mismatch, button timeout and
+cancellation paths preserve secret cleanup. Simulator tests establish software
+self-consistency only and have not been tried on a real scooter.
+
+### Files and line counts relative to Phase A `2486c68`
+
+| File | Added / removed lines |
+| --- | ---: |
+| `domain/.../transport/MiAuthTransport.kt` | 25 / 0 |
+| `data/protocol/.../xiaomi/MiAuthMailbox.kt` | 119 / 0 |
+| `data/protocol/.../xiaomi/MiAuthSession.kt` | 172 / 0 |
+| `data/protocol/.../xiaomi/MiParcel.kt` | 71 / 0 |
+| `data/protocol/src/test/.../xiaomi/MiAuthSessionTest.kt` | 362 / 0 |
+| `data/protocol/src/test/.../xiaomi/MiParcelTest.kt` | 52 / 0 |
+| `data/protocol/.../xiaomi/MiCcm.kt` | 3 / 0 |
+| `data/protocol/.../xiaomi/MiHkdf.kt` | 8 / 1 |
+| `data/protocol/.../xiaomi/MiKeys.kt` | 8 / 2 |
+| `data/protocol/.../xiaomi/MiUartFrame.kt` | 10 / 2 |
+| `docs/MI_AUTH.md` | 6 / 2 |
+
+The four existing crypto files contain bounded follow-up fixes: eliminate
+unwiped temporary concatenation arrays, cover derivation failures with cleanup,
+and narrowly suppress `kotlin:S5542` on the AES single-block primitive. PR 36's
+remote Sonar check reported that specific ECB-mode issue. RFC 3610 CCM requires
+the AES block primitive; CBC-MAC and CTR are implemented around it. The local
+suppression/comment records this reason and does not suppress unrelated code.
+The lead carries these fixes into the Phase A follow-up without rewriting
+published history, then reconciles the unpublished Phase B base.
+
+### Quality gates and coverage
+
+The refreshed isolated WSL mirror passed the full Java 21 command used in
+Phase A: `lintDebug assembleDebug jacocoTestReport --no-daemon
+--no-configuration-cache --console=plain --continue`. The initial Phase B
+snapshot passed in 6m 35s; after including the narrow CCM annotation, the final
+required run passed in 3m 44s (430 tasks, 53 executed). Final XML: **886 tests,
+zero failures, errors or skips**. Protocol tests total 330, adding 31 over
+Phase A; other module totals remain as above. Both phone and HUD
+`LocalizationCoverageTest` suites pass. No flaky bridge-service failure occurred
+in either Phase B full run. No new dependencies or coverage exclusions were
+added, and no APK was installed.
+
+| New-code comparison | Covered executable lines | Covered conditions | Lines + conditions |
+| --- | ---: | ---: | ---: |
+| `origin/main` (bond-backup plus Phases A/B) | 1015 / 1050 (96.7%) | 490 / 553 | 93.9% |
+| `2486c68` (Phase B plus crypto follow-up) | 248 / 256 (96.9%) | 115 / 119 | 96.8% |
+
+Measured using final aggregate JaCoCo XML and `tools/newcov.py`, with new files
+included in `git diff -U0`. Missing-source checks pass. These are local
+Sonar-style results; a remote Phase B SonarCloud issue gate is not established.
+Phase C Android integration, Phase D UI/storage and extended key import/export
+remain pending. Commit and PR identifiers are added by the lead at checkpoint.
+The hardware and licensing questions above remain open.
