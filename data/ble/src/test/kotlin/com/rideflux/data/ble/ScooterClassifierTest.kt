@@ -23,4 +23,14 @@ class ScooterClassifierTest {
         assertNull(ScooterClassifier.classify("Heart Rate Monitor", emptySet()))
         assertNull(ScooterClassifier.classify(null, emptySet()))
     }
+
+    @Test
+    fun identifiesXiaomiMiCandidates() {
+        assertTrue(ScooterClassifier.isXiaomiMiCandidate("MIScooter3456"))
+        assertTrue(ScooterClassifier.isXiaomiMiCandidate("Xiaomi Pro 2"))
+        assertTrue(ScooterClassifier.isXiaomiMiCandidate("M365-1234"))
+        assertTrue(ScooterClassifier.isXiaomiMiCandidate("Ninebot/Xiaomi Scooter"))
+        assertFalse(ScooterClassifier.isXiaomiMiCandidate("Ninebot ES2"))
+        assertFalse(ScooterClassifier.isXiaomiMiCandidate("KickScooter Max"))
+    }
 }
