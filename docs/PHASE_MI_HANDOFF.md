@@ -285,6 +285,6 @@ Test suite reports **942 tests passed, 0 failed, 0 errors, 0 skipped** across al
 
 ### Checkpoint and PR
 
-Phase D+keys checkpoint on `codex/mi-bond-keys`, based on `codex/mi-registration-ui`.
+Phase D+keys checkpoint: PR [40](https://github.com/zero2005x/RideFlux/pull/40) on `codex/mi-bond-keys`, based on `codex/mi-registration-ui`.
 
 
