@@ -170,3 +170,52 @@ Phase C Android integration, Phase D UI/storage and extended key import/export
 remain pending. Commit and PR identifiers are added by the lead at checkpoint.
 The hardware and licensing questions above remain open. Phase B source
 checkpoints are `6d080fa` and `950db14` on `codex/mi-auth-protocol`.
+The published checkpoint is `582f380`,
+PR [37](https://github.com/zero2005x/RideFlux/pull/37), based on `codex/mi-crypto`.
+
+## Phase C: Android BLE transport, encrypted UART framing, and repository integration — 2026-10-05
+
+Implemented the Android platform BLE transport (`AndroidMiBleTransport`) with strict GATT profile resolution (`XiaomiGattProfile`: FE95 UPNP/AVDTP and Nordic UART RX/TX with sequential descriptor enablement), `EncryptedUartTransport` decorator framing plain M365 reads and decrypting 55 AB responses, `MiScooterConnection` implementing `ScooterConnection` (stored token lookup from `BondStore`, registration consent flow with power button prompt, periodic B0 register polling, and telemetry decoding), and `ScooterRepositoryImpl` routing for Xiaomi candidate devices.
+
+All implementation is Evidence Level L2 (implemented from reverse-engineering notes and simulated in Robolectric/unit tests, not tried on physical scooter hardware). Lock/unlock/power writes remain unsupported for this profile.
+
+### Files and line counts relative to Phase B `582f380`
+
+| File | Added / modified lines |
+| --- | ---: |
+| `data/ble/.../AndroidMiBleTransport.kt` | 179 / 0 |
+| `data/ble/.../XiaomiGattProfile.kt` | 42 / 0 |
+| `data/protocol/.../xiaomi/EncryptedUartTransport.kt` | 60 / 0 |
+| `data/protocol/.../xiaomi/MiScooterConnection.kt` | 198 / 0 |
+| `data/ble/.../ScooterRepositoryImpl.kt` | 57 / 23 |
+| `data/ble/.../ScooterClassifier.kt` | 7 / 0 |
+| `data/ble/.../GattUuids.kt` | 6 / 2 |
+| `data/ble/.../AndroidBleTransport.kt` | 1 / 0 |
+| `domain/.../connection/ScooterConnection.kt` | 9 / 0 |
+| `app/.../di/BleModule.kt` | 4 / 2 |
+| `data/ble/src/test/.../AndroidMiBleTransportTest.kt` | 300 / 0 |
+| `data/ble/src/test/.../XiaomiGattProfileTest.kt` | 148 / 0 |
+| `data/ble/src/test/.../ScooterRepositoryEdgeTest.kt` | 55 / 0 |
+| `data/ble/src/test/.../AndroidBleTransportTest.kt` | 10 / 0 |
+| `data/ble/src/test/.../ScooterClassifierTest.kt` | 10 / 0 |
+| `data/protocol/src/test/.../xiaomi/EncryptedUartTransportTest.kt` | 220 / 0 |
+| `data/protocol/src/test/.../xiaomi/MiScooterConnectionTest.kt` | 315 / 0 |
+| `docs/PROTOCOLS.md` | 10 / 2 |
+
+### Quality gates and coverage
+
+Full test suite and verification gates executed in isolated WSL environment with OpenJDK 21 and Android SDK:
+`lintDebug`, `assembleDebug`, and `jacocoTestReport` all pass with zero errors.
+Test suite reports **902 tests passed, 0 failed, 0 errors, 0 skipped** across all modules.
+
+| Metric | Measured |
+| --- | ---: |
+| New executable lines | 364 / 402 (90.5%) |
+| New conditions | 219 / 310 (70.6%) |
+| Sonar-style coverage (lines + conditions) | **81.9%** (Gate: >= 80.0%) |
+
+### Next phases
+
+- Phase D (PR 4): UI registration dialog (stationary warning, power button prompt, unverified speed disclaimer) and token persistence in `:app`.
+- Phase D+keys (PR 5): Key export/import selection, manual hex entry, and `.rfbond` intent filters.
+

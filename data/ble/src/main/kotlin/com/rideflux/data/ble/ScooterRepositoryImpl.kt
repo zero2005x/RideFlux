@@ -8,6 +8,7 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.util.Log
+import com.rideflux.domain.bond.BondStore
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.ScooterConnection
 import com.rideflux.domain.device.ScooterDevice
@@ -15,6 +16,7 @@ import com.rideflux.domain.repository.ScooterRepository
 import com.rideflux.domain.safety.MotionInterlock
 import com.rideflux.protocol.familyscooter.connection.ScooterConnectionImpl
 import com.rideflux.protocol.familyscooter.ninebot.ScooterHandshakeStateMachine
+import com.rideflux.protocol.familyscooter.xiaomi.MiScooterConnection
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -41,13 +43,15 @@ class ScooterRepositoryImpl private constructor(
     private val context: Context?,
     private val rootScope: CoroutineScope,
     private val connectionFactory: ((String, String, CoroutineScope) -> ScooterConnection)?,
+    private val bondStore: BondStore? = null,
 ) : ScooterRepository {
-    constructor(context: Context, rootScope: CoroutineScope) : this(context, rootScope, null)
+    constructor(context: Context, rootScope: CoroutineScope, bondStore: BondStore? = null) :
+        this(context, rootScope, null, bondStore)
 
     internal constructor(
         rootScope: CoroutineScope,
         connectionFactory: (String, String, CoroutineScope) -> ScooterConnection,
-    ) : this(null, rootScope, connectionFactory)
+    ) : this(null, rootScope, connectionFactory, null)
 
     private val adapter: BluetoothAdapter? by lazy {
         (context?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
@@ -166,27 +170,36 @@ class ScooterRepositoryImpl private constructor(
     private fun createPlatformConnection(
         address: String, model: String, entryScope: CoroutineScope,
     ): ScooterConnection {
-        // The available connection state machine emits Ninebot 5A A5 frames. Xiaomi M365
-        // uses a different framing/pairing profile and must not receive those commands.
-        if (!ScooterClassifier.isNinebotRetailCandidate(model) ||
-            model == "Ninebot/Xiaomi Scooter") {
-            throw UnsupportedOperationException("No verified connection profile for $model")
+        if (ScooterClassifier.isNinebotRetailCandidate(model) && model != "Ninebot/Xiaomi Scooter") {
+            val device = try { requireNotNull(adapter).getRemoteDevice(address) }
+            catch (failure: Exception) { throw IOException("Invalid scooter address $address", failure) }
+            val transport = AndroidBleTransport(
+                context = requireNotNull(context), device = device, topology = GattTopology.NORDIC_UART)
+            val interlock = MotionInterlock()
+            return ScooterConnectionImpl(
+                transport = transport,
+                device = ScooterDevice(address, model),
+                scope = entryScope,
+                handshake = ScooterHandshakeStateMachine(interlock, System::currentTimeMillis),
+                interlock = interlock,
+                // An M365 capture does not establish the ES2 speed scale. Pairing controls and
+                // lock writes therefore remain closed until a model-specific profile is verified.
+                lockProfileVerified = false,
+            )
         }
-        val device = try { requireNotNull(adapter).getRemoteDevice(address) }
-        catch (failure: Exception) { throw IOException("Invalid scooter address $address", failure) }
-        val transport = AndroidBleTransport(
-            context = requireNotNull(context), device = device, topology = GattTopology.NORDIC_UART)
-        val interlock = MotionInterlock()
-        return ScooterConnectionImpl(
-            transport = transport,
-            device = ScooterDevice(address, model),
-            scope = entryScope,
-            handshake = ScooterHandshakeStateMachine(interlock, System::currentTimeMillis),
-            interlock = interlock,
-            // An M365 capture does not establish the ES2 speed scale. Pairing controls and
-            // lock writes therefore remain closed until a model-specific profile is verified.
-            lockProfileVerified = false,
-        )
+        if (ScooterClassifier.isXiaomiMiCandidate(model)) {
+            val store = bondStore ?: throw UnsupportedOperationException("BondStore required for Xiaomi profile")
+            val device = try { requireNotNull(adapter).getRemoteDevice(address) }
+            catch (failure: Exception) { throw IOException("Invalid scooter address $address", failure) }
+            val transport = AndroidMiBleTransport(context = requireNotNull(context), device = device)
+            return MiScooterConnection(
+                transport = transport,
+                device = ScooterDevice(address, model),
+                scope = entryScope,
+                store = store,
+            )
+        }
+        throw UnsupportedOperationException("No verified connection profile for $model")
     }
 
     private suspend fun tearDown(address: String, entry: Entry): Unit = withContext(NonCancellable) {

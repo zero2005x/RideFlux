@@ -179,4 +179,59 @@ class ScooterRepositoryEdgeTest {
         connection.close()
         assertTrue(repository.activeConnections().first().isEmpty())
     }
+
+    @Test fun `connect routes Xiaomi candidate to Mi profile when BondStore is provided`() = runTest {
+        val env = Env()
+        val mockStore = mockk<com.rideflux.domain.bond.BondStore>(relaxed = true)
+        val repository = ScooterRepositoryImpl(env.context, backgroundScope, mockStore)
+        backgroundScope.launch { repository.scan().collect { } }
+        runCurrent()
+        env.callback.onScanResult(0, env.result("MI", "MIScooter3456"))
+        runCurrent()
+        val mockDevice = mockk<BluetoothDevice>(relaxed = true)
+        every { env.adapter.getRemoteDevice("MI") } returns mockDevice
+        val connection = repository.connect("MI")
+        assertNotNull(connection)
+        connection.close()
+    }
+
+    @Test fun `connect routes Ninebot retail candidate to Ninebot profile`() = runTest {
+        val env = Env()
+        val repository = ScooterRepositoryImpl(env.context, backgroundScope)
+        backgroundScope.launch { repository.scan().collect { } }
+        runCurrent()
+        env.callback.onScanResult(0, env.result("ES", "ES2-1"))
+        runCurrent()
+        val mockDevice = mockk<BluetoothDevice>(relaxed = true)
+        every { env.adapter.getRemoteDevice("ES") } returns mockDevice
+        val connection = repository.connect("ES")
+        assertNotNull(connection)
+        connection.close()
+    }
+
+    @Test fun `connect Xiaomi candidate without BondStore throws UnsupportedOperationException`() = runTest {
+        val env = Env()
+        val repository = ScooterRepositoryImpl(env.context, backgroundScope, bondStore = null)
+        backgroundScope.launch { repository.scan().collect { } }
+        runCurrent()
+        env.callback.onScanResult(0, env.result("MI", "MIScooter3456"))
+        runCurrent()
+        assertThrows(UnsupportedOperationException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.connect("MI") }
+        }
+    }
+
+    @Test fun `connect Xiaomi candidate with invalid address throws IOException`() = runTest {
+        val env = Env()
+        val mockStore = mockk<com.rideflux.domain.bond.BondStore>(relaxed = true)
+        val repository = ScooterRepositoryImpl(env.context, backgroundScope, mockStore)
+        backgroundScope.launch { repository.scan().collect { } }
+        runCurrent()
+        env.callback.onScanResult(0, env.result("MI", "MIScooter3456"))
+        runCurrent()
+        every { env.adapter.getRemoteDevice("MI") } throws IllegalArgumentException("bad address")
+        assertThrows(IOException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.connect("MI") }
+        }
+    }
 }

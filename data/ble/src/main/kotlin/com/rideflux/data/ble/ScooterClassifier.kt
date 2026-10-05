@@ -30,4 +30,11 @@ internal object ScooterClassifier {
             model.startsWith("KickScooter", ignoreCase = true) ||
             Regex("^(?:ES[124]|G30|F[2-4]0)(?:\\b|[-_]).*", RegexOption.IGNORE_CASE)
                 .matches(model)
+
+    /** Candidates that route to the Xiaomi Mi FE95 authenticated session path. */
+    fun isXiaomiMiCandidate(model: String): Boolean =
+        model.startsWith("MIScooter", ignoreCase = true) ||
+            model.contains("Xiaomi", ignoreCase = true) ||
+            model.contains("M365", ignoreCase = true) ||
+            model == "Ninebot/Xiaomi Scooter"
 }
