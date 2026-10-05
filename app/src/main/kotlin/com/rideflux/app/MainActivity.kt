@@ -56,7 +56,6 @@ class MainActivity : ComponentActivity() {
         handleBondIntent(intent)
         setContent {
             val navController = rememberNavController()
-            BondImportNavigator(navController)
             RideFluxTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -102,6 +101,7 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             modifier = Modifier.fillMaxSize(),
                         )
+                        BondImportNavigator(navController)
                     }
                 }
             }
@@ -176,7 +176,7 @@ class MainActivity : ComponentActivity() {
 
         fun extractBondUri(intent: Intent?): Uri? {
             if (intent == null) return null
-            return when (intent.action) {
+            val uri = when (intent.action) {
                 Intent.ACTION_VIEW -> intent.data
                 Intent.ACTION_SEND -> {
                     @Suppress("DEPRECATION")
@@ -184,6 +184,7 @@ class MainActivity : ComponentActivity() {
                 }
                 else -> null
             }
+            return uri?.takeIf { it.scheme == "content" }
         }
     }
 }

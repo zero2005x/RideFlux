@@ -351,15 +351,20 @@
     <string name="mi_registration_dialog_title">Registrazione veicolo richiesta</string>
     <string name="mi_registration_dialog_warning_stationary">Il veicolo deve essere completamente fermo e sul cavalletto.</string>
     <string name="mi_registration_dialog_instructions">Dopo la conferma, attendi la richiesta (fino a 30 secondi) e premi una volta il pulsante di accensione sul manubrio.</string>
-    <string name="mi_registration_dialog_disclaimer_speed">Le stime di velocità non sono verificate e non dimostrano che il veicolo sia fermo. Non procedere durante la marcia.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">La velocità del veicolo non può essere verificata prima dell\'autenticazione. Le stime non provano l\'arresto. Non procedere durante la guida.</string>
     <string name="mi_registration_dialog_confirm">Continua</string>
     <string name="mi_registration_dialog_cancel">Annulla</string>
     <string name="bond_manual_button">Aggiungi chiave manualmente</string>
     <string name="bond_manual_title">Aggiungi chiave di associazione</string>
     <string name="bond_manual_mac">Indirizzo Bluetooth (MAC)</string>
-    <string name="bond_manual_token">Token (24 caratteri esadecimali)</string>
+    <string name="bond_manual_token">Token esadecimale</string>
     <string name="bond_manual_label">Etichetta (opzionale)</string>
-    <string name="bond_manual_error">Indirizzo Bluetooth o token esadecimale a 24 caratteri non valido.</string>
+    <string name="bond_manual_error">Indirizzo Bluetooth o token esadecimale non valido.</string>
     <string name="bond_manual_added">Chiave di associazione aggiunta per %1$s.</string>
     <string name="action_add">Aggiungi</string>
+    <string name="bond_overwrite_title">Sostituire la chiave di associazione?</string>
+    <string name="bond_overwrite_message">Una chiave di associazione per %1$s esiste già su questo telefono. Vuoi sostituirla?</string>
+    <string name="action_replace">Sostituisci</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">La registrazione potrebbe invalidare i token in altre app (come Mi Home).</string>
+    <string name="mi_registration_dialog_recommend_import">Se possiedi già una chiave, è consigliabile importarla da Impostazioni → Backup anziché registrarsi nuovamente.</string>
 </resources>

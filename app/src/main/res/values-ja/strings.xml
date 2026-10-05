@@ -351,15 +351,20 @@
     <string name="mi_registration_dialog_title">車両の登録が必要です</string>
     <string name="mi_registration_dialog_warning_stationary">車両は完全に停止し、キックスタンドを立てた状態でなければなりません。</string>
     <string name="mi_registration_dialog_instructions">確認後、プロンプト（最大30秒）を待ち、ハンドルの電源ボタンを1回押してください。</string>
-    <string name="mi_registration_dialog_disclaimer_speed">速度の推定値は未検証であり、車両が停止していることを保証するものではありません。走行中は続行しないでください。</string>
+    <string name="mi_registration_dialog_disclaimer_speed">認証前に車速を確認することはできません。速度の推定値は未検証であり、停止を証明するものではありません。乗車中は続行しないでください。</string>
     <string name="mi_registration_dialog_confirm">続行</string>
     <string name="mi_registration_dialog_cancel">キャンセル</string>
     <string name="bond_manual_button">キーを手動で追加</string>
     <string name="bond_manual_title">ペアリングキーを追加</string>
     <string name="bond_manual_mac">Bluetoothアドレス (MAC)</string>
-    <string name="bond_manual_token">トークン (16進数24文字)</string>
+    <string name="bond_manual_token">トークンの16進数</string>
     <string name="bond_manual_label">ラベル (省略可能)</string>
-    <string name="bond_manual_error">無効なBluetoothアドレスまたは24文字の16進数トークンです。</string>
+    <string name="bond_manual_error">Bluetooth アドレスまたはトークンの16進数が無効です。</string>
     <string name="bond_manual_added">%1$s のペアリングキーを追加しました。</string>
     <string name="action_add">追加</string>
+    <string name="bond_overwrite_title">ペアリングキーを置き換えますか？</string>
+    <string name="bond_overwrite_message">%1$s のペアリングキーは既にこの端末に存在します。置き換えますか？</string>
+    <string name="action_replace">置換</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">登録を行うと、他のアプリ（Mi Home など）のトークンが無効になる場合があります。</string>
+    <string name="mi_registration_dialog_recommend_import">既にペアリングキーをお持ちの場合は、再登録よりも「設定 → バックアップ」からインポートすることをお勧めします。</string>
 </resources>

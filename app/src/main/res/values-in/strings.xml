@@ -353,15 +353,20 @@
     <string name="mi_registration_dialog_title">Pendaftaran Kendaraan Diperlukan</string>
     <string name="mi_registration_dialog_warning_stationary">Kendaraan harus benar-benar diam dan bertumpu pada standar samping.</string>
     <string name="mi_registration_dialog_instructions">Setelah mengonfirmasi, tunggu perintah (hingga 30 detik) lalu tekan tombol daya sekali di setang.</string>
-    <string name="mi_registration_dialog_disclaimer_speed">Perkiraan kecepatan belum diverifikasi dan tidak membuktikan kendaraan telah berhenti. Jangan melanjutkan saat berkendara.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Kecepatan kendaraan tidak dapat diverifikasi sebelum autentikasi. Perkiraan kecepatan belum diverifikasi dan tidak membuktikan kendaraan berhenti. Jangan lanjutkan saat berkendara.</string>
     <string name="mi_registration_dialog_confirm">Lanjutkan</string>
     <string name="mi_registration_dialog_cancel">Batal</string>
     <string name="bond_manual_button">Tambahkan kunci secara manual</string>
     <string name="bond_manual_title">Tambahkan kunci pemasangan</string>
     <string name="bond_manual_mac">Alamat Bluetooth (MAC)</string>
-    <string name="bond_manual_token">Token (24 karakter heksadesimal)</string>
+    <string name="bond_manual_token">Heksadesimal token</string>
     <string name="bond_manual_label">Label (opsional)</string>
-    <string name="bond_manual_error">Alamat Bluetooth atau token heksadesimal 24 karakter tidak valid.</string>
+    <string name="bond_manual_error">Alamat Bluetooth atau heksadesimal token tidak valid.</string>
     <string name="bond_manual_added">Kunci pemasangan ditambahkan untuk %1$s.</string>
     <string name="action_add">Tambah</string>
+    <string name="bond_overwrite_title">Ganti kunci pemasangan?</string>
+    <string name="bond_overwrite_message">Kunci pemasangan untuk %1$s sudah ada di ponsel ini. Apakah Anda ingin menggantinya?</string>
+    <string name="action_replace">Ganti</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">Mendaftar dapat membatalkan token di aplikasi lain (seperti Mi Home).</string>
+    <string name="mi_registration_dialog_recommend_import">Jika Anda sudah memiliki kunci, disarankan untuk mengimpornya di Pengaturan → Cadangan daripada mendaftar ulang.</string>
 </resources>

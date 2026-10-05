@@ -351,15 +351,20 @@
     <string name="mi_registration_dialog_title">Yêu cầu đăng ký xe</string>
     <string name="mi_registration_dialog_warning_stationary">Xe phải đứng yên hoàn toàn và được dựng chân chống.</string>
     <string name="mi_registration_dialog_instructions">Sau khi xác nhận, hãy đợi lời nhắc (tối đa 30 giây) và nhấn nút nguồn một lần trên tay lái.</string>
-    <string name="mi_registration_dialog_disclaimer_speed">Ước tính tốc độ chưa được kiểm chứng và không chứng minh xe đã dừng. Không tiếp tục khi đang lái xe.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Tốc độ xe không thể được xác minh trước khi xác thực. Ước tính tốc độ chưa được kiểm chứng và không chứng minh xe đã dừng. Không tiếp tục khi đang lái xe.</string>
     <string name="mi_registration_dialog_confirm">Tiếp tục</string>
     <string name="mi_registration_dialog_cancel">Hủy</string>
     <string name="bond_manual_button">Thêm khóa thủ công</string>
     <string name="bond_manual_title">Thêm khóa ghép đôi</string>
     <string name="bond_manual_mac">Địa chỉ Bluetooth (MAC)</string>
-    <string name="bond_manual_token">Mã token (24 ký tự thập lục phân)</string>
+    <string name="bond_manual_token">Mã hex của token</string>
     <string name="bond_manual_label">Nhãn (không bắt buộc)</string>
-    <string name="bond_manual_error">Địa chỉ Bluetooth hoặc mã token thập lục phân 24 ký tự không hợp lệ.</string>
+    <string name="bond_manual_error">Địa chỉ Bluetooth hoặc mã hex của token không hợp lệ.</string>
     <string name="bond_manual_added">Đã thêm khóa ghép đôi cho %1$s.</string>
     <string name="action_add">Thêm</string>
+    <string name="bond_overwrite_title">Thay thế khóa ghép nối?</string>
+    <string name="bond_overwrite_message">Khóa ghép nối cho %1$s đã tồn tại trên điện thoại này. Bạn có muốn thay thế không?</string>
+    <string name="action_replace">Thay thế</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">Đăng ký có thể làm mất hiệu lực mã token trong các ứng dụng khác (như Mi Home).</string>
+    <string name="mi_registration_dialog_recommend_import">Nếu bạn đã có khóa ghép nối, nên nhập khóa trong Cài đặt → Sao lưu thay vì đăng ký lại.</string>
 </resources>

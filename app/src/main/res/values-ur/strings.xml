@@ -352,15 +352,20 @@
     <string name="mi_registration_dialog_title">گاڑی کی رجسٹریشن درکار ہے</string>
     <string name="mi_registration_dialog_warning_stationary">گاڑی کا مکمل طور پر ساکن ہونا اور کک اسٹینڈ پر کھڑا ہونا ضروری ہے۔</string>
     <string name="mi_registration_dialog_instructions">تصدیق کے بعد، اشارے (30 سیکنڈ تک) کا انتظار کریں اور ہینڈل بار پر پاور بٹن ایک بار دبائیں۔</string>
-    <string name="mi_registration_dialog_disclaimer_speed">رفتار کے تخمینے غیر تصدیق شدہ ہیں اور یہ ثابت نہیں کرتے کہ گاڑی رکی ہوئی ہے۔ سواری کے دوران آگے نہ بڑھیں۔</string>
+    <string name="mi_registration_dialog_disclaimer_speed">تصدیق سے پہلے گاڑی کی رفتار کی تصدیق نہیں کی جا سکتی۔ رفتار کے تخمینے غیر تصدیق شدہ ہیں اور یہ ثابت نہیں کرتے کہ گاڑی رکی ہوئی ہے۔ سواری کے دوران آگے نہ بڑھیں۔</string>
     <string name="mi_registration_dialog_confirm">آگے بڑھیں</string>
     <string name="mi_registration_dialog_cancel">منسوخ کریں</string>
     <string name="bond_manual_button">دستی طور پر کلید شامل کریں</string>
     <string name="bond_manual_title">جوڑا بنانے کی کلید شامل کریں</string>
     <string name="bond_manual_mac">بلوٹوتھ ایڈریس (MAC)</string>
-    <string name="bond_manual_token">ٹوکن (24 ہیکس حروف)</string>
+    <string name="bond_manual_token">ٹوکن ہیکس</string>
     <string name="bond_manual_label">لیبل (اختیاری)</string>
-    <string name="bond_manual_error">غلط بلوٹوتھ ایڈریس یا 24 حروف پر مشتمل ہیکس ٹوکن۔</string>
+    <string name="bond_manual_error">غلط بلوٹوتھ پتہ یا ٹوکن ہیکس۔</string>
     <string name="bond_manual_added">%1$s کے لیے جوڑا بنانے کی کلید شامل کر دی گئی۔</string>
     <string name="action_add">شامل کریں</string>
+    <string name="bond_overwrite_title">جوڑا بنانے کی کلید تبدیل کریں؟</string>
+    <string name="bond_overwrite_message">%1$s کے لیے جوڑا بنانے کی کلید اس فون پر پہلے سے موجود ہے۔ کیا آپ اسے تبدیل کرنا چاہتے ہیں؟</string>
+    <string name="action_replace">تبدیل کریں</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">رجسٹریشن دیگر ایپس (جیسے Mi Home) میں ٹوکنز کو کالعدم کر سکتی ہے۔</string>
+    <string name="mi_registration_dialog_recommend_import">اگر آپ کے پاس پہلے سے جوڑا بنانے کی کلید ہے، تو دوبارہ رجسٹر کرنے کے بجائے ترتیبات ← بیک اپ میں اسے درآمد کرنے کی سفارش کی جاتی ہے۔</string>
 </resources>
