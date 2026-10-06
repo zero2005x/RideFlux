@@ -20,6 +20,7 @@ object BondPayloadCodec {
     const val SCHEMA = "rideflux-bond/v1"
     const val MAX_ENTRIES = 64
     private const val MAX_DEPTH = 6
+    private const val ERROR_BAD_ESCAPE = "Bad escape"
 
     /** Serialise [entries]. The result holds secrets: the caller must zero it. */
     fun write(entries: List<BondEntry>, createdAt: String): ByteArray {
@@ -199,7 +200,7 @@ object BondPayloadCodec {
             while (i < raw.length) {
                 val c = raw[i++]
                 if (c != '\\') { sb.append(c); continue }
-                when (val e = raw.getOrNull(i++) ?: fail("Bad escape")) {
+                when (val e = raw.getOrNull(i++) ?: fail(ERROR_BAD_ESCAPE)) {
                     '"', '\\', '/' -> sb.append(e)
                     'b' -> sb.append('\b')
                     'f' -> sb.append('\u000c')
@@ -208,10 +209,10 @@ object BondPayloadCodec {
                     't' -> sb.append('\t')
                     'u' -> {
                         val code = raw.substring(i, minOf(i + 4, raw.length)).toIntOrNull(16)
-                        if (code == null || i + 4 > raw.length) fail("Bad escape")
+                        if (code == null || i + 4 > raw.length) fail(ERROR_BAD_ESCAPE)
                         sb.append(code.toChar()); i += 4
                     }
-                    else -> fail("Bad escape")
+                    else -> fail(ERROR_BAD_ESCAPE)
                 }
             }
             return sb.toString()

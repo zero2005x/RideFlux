@@ -26,6 +26,10 @@ class AndroidKeystoreBondCipher(private val alias: String = DEFAULT_ALIAS) : Bon
         return cipher.doFinal(blob, IV_BYTES, blob.size - IV_BYTES)
     }
 
+    // Biometric/device re-authentication is enforced at the application layer via DeviceReauth
+    // before exporting backups. Non-authenticated KeyStore access is required for non-interactive
+    // local persistence and background startup.
+    @Suppress("kotlin:S6288")
     private fun key(): SecretKey {
         val store = KeyStore.getInstance(PROVIDER).apply { load(null) }
         (store.getKey(alias, null) as? SecretKey)?.let { return it }
