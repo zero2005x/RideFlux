@@ -351,7 +351,20 @@
     <string name="mi_registration_dialog_title">Fahrzeugregistrierung erforderlich</string>
     <string name="mi_registration_dialog_warning_stationary">Das Fahrzeug muss vollständig stillstehen und auf dem Seitenständer stehen.</string>
     <string name="mi_registration_dialog_instructions">Warten Sie nach der Bestätigung auf die Aufforderung (bis zu 30 Sekunden) und drücken Sie einmal die Netztaste am Lenker.</string>
-    <string name="mi_registration_dialog_disclaimer_speed">Geschwindigkeitsschätzungen sind unbestätigt und belegen keinen Stillstand des Fahrzeugs. Nicht während der Fahrt fortfahren.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Die Fahrzeuggeschwindigkeit kann vor der Authentifizierung nicht überprüft werden. Geschwindigkeitsschätzungen sind unbestätigt und beweisen keinen Stillstand. Nicht während der Fahrt fortfahren.</string>
     <string name="mi_registration_dialog_confirm">Fortfahren</string>
     <string name="mi_registration_dialog_cancel">Abbrechen</string>
+    <string name="bond_manual_button">Schlüssel manuell hinzufügen</string>
+    <string name="bond_manual_title">Kopplungsschlüssel hinzufügen</string>
+    <string name="bond_manual_mac">Bluetooth-Adresse (MAC)</string>
+    <string name="bond_manual_token">Token-Hexadezimalwert</string>
+    <string name="bond_manual_label">Bezeichnung (optional)</string>
+    <string name="bond_manual_error">Ungültige Bluetooth-Adresse oder Token-Hexadezimalwert.</string>
+    <string name="bond_manual_added">Kopplungsschlüssel für %1$s hinzugefügt.</string>
+    <string name="action_add">Hinzufügen</string>
+    <string name="bond_overwrite_title">Kopplungsschlüssel ersetzen?</string>
+    <string name="bond_overwrite_message">Ein Kopplungsschlüssel für %1$s ist bereits vorhanden. Möchten Sie ihn ersetzen?</string>
+    <string name="action_replace">Ersetzen</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">Die Registrierung kann Token in anderen Apps (z. B. Mi Home) ungültig machen.</string>
+    <string name="mi_registration_dialog_recommend_import">Wenn Sie bereits einen Schlüssel besitzen, wird der Import unter Einstellungen → Sicherung empfohlen.</string>
 </resources>

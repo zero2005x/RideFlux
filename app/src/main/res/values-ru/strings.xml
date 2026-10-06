@@ -351,7 +351,20 @@
     <string name="mi_registration_dialog_title">Требуется регистрация устройства</string>
     <string name="mi_registration_dialog_warning_stationary">Транспортное средство должно быть полностью неподвижно и стоять на подножке.</string>
     <string name="mi_registration_dialog_instructions">После подтверждения дождитесь подсказки (до 30 секунд) и нажмите один раз кнопку питания на руле.</string>
-    <string name="mi_registration_dialog_disclaimer_speed">Оценки скорости не проверены и не гарантируют остановку транспортного средства. Не продолжайте во время движения.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Скорость транспортного средства не может быть проверена до аутентификации. Оценки не доказывают остановку. Не продолжайте во время движения.</string>
     <string name="mi_registration_dialog_confirm">Продолжить</string>
     <string name="mi_registration_dialog_cancel">Отмена</string>
+    <string name="bond_manual_button">Добавить ключ вручную</string>
+    <string name="bond_manual_title">Добавить ключ сопряжения</string>
+    <string name="bond_manual_mac">Bluetooth-адрес (MAC)</string>
+    <string name="bond_manual_token">Шестнадцатеричный токен</string>
+    <string name="bond_manual_label">Метка (необязательно)</string>
+    <string name="bond_manual_error">Недействительный адрес Bluetooth или шестнадцатеричный токен.</string>
+    <string name="bond_manual_added">Добавлен ключ сопряжения для %1$s.</string>
+    <string name="action_add">Добавить</string>
+    <string name="bond_overwrite_title">Заменить ключ сопряжения?</string>
+    <string name="bond_overwrite_message">Ключ сопряжения для %1$s уже существует на этом телефоне. Заменить его?</string>
+    <string name="action_replace">Заменить</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">Регистрация может сделать недействительными токены в других приложениях (например, Mi Home).</string>
+    <string name="mi_registration_dialog_recommend_import">Если у вас уже есть ключ, рекомендуется импортировать его в Настройки → Резервная копия вместо повторной регистрации.</string>
 </resources>

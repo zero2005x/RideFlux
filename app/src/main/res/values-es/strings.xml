@@ -351,7 +351,20 @@
     <string name="mi_registration_dialog_title">Registro de vehículo requerido</string>
     <string name="mi_registration_dialog_warning_stationary">El vehículo debe estar completamente inmóvil y sobre el caballete.</string>
     <string name="mi_registration_dialog_instructions">Tras confirmar, espera la indicación (hasta 30 segundos) y presiona una vez el botón de encendido en el manillar.</string>
-    <string name="mi_registration_dialog_disclaimer_speed">Las estimaciones de velocidad no están verificadas y no demuestran que el vehículo esté detenido. No continúes mientras conduces.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">La velocidad del vehículo no se puede verificar antes de la autenticación. Las estimaciones no prueban que esté detenido. No continúe mientras conduce.</string>
     <string name="mi_registration_dialog_confirm">Continuar</string>
     <string name="mi_registration_dialog_cancel">Cancelar</string>
+    <string name="bond_manual_button">Añadir clave manualmente</string>
+    <string name="bond_manual_title">Añadir clave de emparejamiento</string>
+    <string name="bond_manual_mac">Dirección Bluetooth (MAC)</string>
+    <string name="bond_manual_token">Token hexadecimal</string>
+    <string name="bond_manual_label">Etiqueta (opcional)</string>
+    <string name="bond_manual_error">Dirección Bluetooth o token hexadecimal no válido.</string>
+    <string name="bond_manual_added">Clave de emparejamiento añadida para %1$s.</string>
+    <string name="action_add">Añadir</string>
+    <string name="bond_overwrite_title">¿Reemplazar la clave de emparejamiento?</string>
+    <string name="bond_overwrite_message">Ya existe una clave de emparejamiento para %1$s en este teléfono. ¿Desea reemplazarla?</string>
+    <string name="action_replace">Reemplazar</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">El registro puede invalidar los tokens de otras aplicaciones (como Mi Home).</string>
+    <string name="mi_registration_dialog_recommend_import">Si ya dispone de una clave, se recomienda importarla en Ajustes → Copia de seguridad en lugar de registrarla de nuevo.</string>
 </resources>

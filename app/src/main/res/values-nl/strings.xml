@@ -351,7 +351,20 @@
     <string name="mi_registration_dialog_title">Voertuigregistratie vereist</string>
     <string name="mi_registration_dialog_warning_stationary">Het voertuig moet volledig stilstaan en op de standaard staan.</string>
     <string name="mi_registration_dialog_instructions">Wacht na bevestiging op de instructie (tot 30 seconden) en druk eenmaal op de aan/uit-knop op het stuur.</string>
-    <string name="mi_registration_dialog_disclaimer_speed">Schattingen van de snelheid zijn niet geverifieerd en bewijzen niet dat het voertuig stilstaat. Ga niet verder tijdens het rijden.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">De voertuigsnelheid kan vóór de authenticatie niet worden geverifieerd. Schattingen bewijzen niet dat het voertuig stilstaat. Ga niet verder tijdens het rijden.</string>
     <string name="mi_registration_dialog_confirm">Doorgaan</string>
     <string name="mi_registration_dialog_cancel">Annuleren</string>
+    <string name="bond_manual_button">Sleutel handmatig toevoegen</string>
+    <string name="bond_manual_title">Koppelsleutel toevoegen</string>
+    <string name="bond_manual_mac">Bluetooth-adres (MAC)</string>
+    <string name="bond_manual_token">Token hexadecimaal</string>
+    <string name="bond_manual_label">Label (optioneel)</string>
+    <string name="bond_manual_error">Ongeldig Bluetooth-adres of token hexadecimaal.</string>
+    <string name="bond_manual_added">Koppelsleutel toegevoegd voor %1$s.</string>
+    <string name="action_add">Toevoegen</string>
+    <string name="bond_overwrite_title">Koppelingssleutel vervangen?</string>
+    <string name="bond_overwrite_message">Er bestaat al een koppelingssleutel voor %1$s op deze telefoon. Wilt u deze vervangen?</string>
+    <string name="action_replace">Vervangen</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">Registratie kan tokens in andere apps (zoals Mi Home) ongeldig maken.</string>
+    <string name="mi_registration_dialog_recommend_import">Als u al een sleutel hebt, wordt aangeraden deze te importeren via Instellingen → Back-up in plaats van opnieuw te registreren.</string>
 </resources>

@@ -249,7 +249,28 @@ Test suite reports **933 tests passed, 0 failed, 0 errors, 0 skipped** across al
 | New conditions | 21 / 26 (80.8%) |
 | Sonar-style coverage (lines + conditions) | **92.2%** (Gate: >= 80.0%) |
 
-### Next phases
+## Phase D+keys: selective bond export, manual key entry, and .rfbond file handling — 2026-10-05
 
-- Phase D+keys (PR 5): Key export/import selection, manual hex entry, and `.rfbond` intent filters.
+Implemented selective export allowing riders to toggle individual bond entries for export, manual hex entry for importing paired 12-byte Xiaomi BLE tokens and 16-byte Ninebot keys directly by MAC address (with validation, normalization of colon/dash delimiters, optional 0x prefix, PasswordVisualTransformation masking, overwrite confirmation prompt, clearable `tokenBuffer: CharArray` in Compose with `DisposableEffect` wipe, and atomic overwrite state transitions to eliminate race conditions), vehicle model display in export list and import preview, and registered content-only intent-filters for incoming `.rfbond` files (`ACTION_VIEW` and `ACTION_SEND`) with pre-checked RFBOND magic header before passphrase prompt, passing the parsed URI to `PendingBondImport` and navigating safely within the `BlePermissionGate`.
 
+Also updated `MainActivity` launchMode to `singleTop`, added comprehensive registration disclaimers (unverified speed prior to auth, external token invalidation risk, and prior-key import recommendation), and updated all 18 localization files and project documentation.
+
+All implementation is Evidence Level L2 (tested via simulated sessions and Robolectric unit tests, not tried on physical scooter hardware).
+
+### Quality gates and coverage
+
+Full test suite and verification gates executed in isolated WSL environment with OpenJDK 21 and Android SDK:
+`./gradlew lintDebug assembleDebug jacocoTestReport --no-daemon --no-configuration-cache --console=plain --continue` passes with zero errors.
+Both phone and HUD APKs assemble cleanly.
+Test suite reports **947 tests passed, 0 failed, 0 errors, 0 skipped** across all modules.
+`LocalizationCoverageTest` passes across all 18 string resource files.
+
+| Metric | Measured |
+| --- | ---: |
+| New executable lines | 222 / 242 (91.7%) |
+| New conditions | 80 / 91 (87.9%) |
+| Sonar-style coverage (lines + conditions) | **90.7%** (Gate: >= 80.0%) |
+
+### Checkpoint and PR
+
+Phase D+keys checkpoint: PR [40](https://github.com/zero2005x/RideFlux/pull/40) on `codex/mi-bond-keys`, based on `codex/mi-registration-ui`.

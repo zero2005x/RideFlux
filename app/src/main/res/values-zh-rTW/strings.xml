@@ -351,7 +351,20 @@
     <string name="mi_registration_dialog_title">需要車輛註冊</string>
     <string name="mi_registration_dialog_warning_stationary">車輛必須完全靜止並停在腳撐上。</string>
     <string name="mi_registration_dialog_instructions">確認後，請等待提示（最多 30 秒），然後按一下車把上的電源鍵。</string>
-    <string name="mi_registration_dialog_disclaimer_speed">速度估計未經檢驗，不能證明車輛已停止。騎乘時請勿繼續。</string>
+    <string name="mi_registration_dialog_disclaimer_speed">認證前無法驗證車速。速度估計未經檢驗，不能證明車輛已停止。騎乘時請勿繼續。</string>
     <string name="mi_registration_dialog_confirm">繼續</string>
     <string name="mi_registration_dialog_cancel">取消</string>
+    <string name="bond_manual_button">手動新增金鑰</string>
+    <string name="bond_manual_title">新增配對金鑰</string>
+    <string name="bond_manual_mac">藍牙位址 (MAC)</string>
+    <string name="bond_manual_token">金鑰十六進位碼</string>
+    <string name="bond_manual_label">標籤 (選填)</string>
+    <string name="bond_manual_error">無效的藍牙位址或金鑰十六進位碼。</string>
+    <string name="bond_manual_added">已新增 %1$s 的配對金鑰。</string>
+    <string name="action_add">新增</string>
+    <string name="bond_overwrite_title">取代配對金鑰？</string>
+    <string name="bond_overwrite_message">此手機已存在 %1$s 的配對金鑰。您要取代它嗎？</string>
+    <string name="action_replace">取代</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">註冊新金鑰可能會使其他 App（如米家）中的權杖失效。</string>
+    <string name="mi_registration_dialog_recommend_import">若您已持有配對金鑰，建議至「設定 → 備份」優先匯入，而非重新註冊。</string>
 </resources>

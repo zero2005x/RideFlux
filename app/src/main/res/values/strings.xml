@@ -391,7 +391,20 @@
     <string name="mi_registration_dialog_title">Vehicle Registration Required</string>
     <string name="mi_registration_dialog_warning_stationary">The vehicle must be completely stationary and parked on its kickstand.</string>
     <string name="mi_registration_dialog_instructions">After confirming, wait for the prompt (up to 30 seconds) and press the power button once on the handlebar.</string>
-    <string name="mi_registration_dialog_disclaimer_speed">Speed estimates are unverified and do not prove the vehicle is stopped. Do not proceed while riding.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Vehicle speed cannot be verified before authentication. Speed estimates are unverified and do not prove the vehicle is stopped. Do not proceed while riding.</string>
     <string name="mi_registration_dialog_confirm">Proceed</string>
     <string name="mi_registration_dialog_cancel">Cancel</string>
+    <string name="bond_manual_button">Add key manually</string>
+    <string name="bond_manual_title">Add pairing key</string>
+    <string name="bond_manual_mac">Bluetooth address (MAC)</string>
+    <string name="bond_manual_token">Token hex</string>
+    <string name="bond_manual_label">Label (optional)</string>
+    <string name="bond_manual_error">Invalid Bluetooth address or token hex.</string>
+    <string name="bond_manual_added">Pairing key added for %1$s.</string>
+    <string name="action_add">Add</string>
+    <string name="bond_overwrite_title">Replace pairing key?</string>
+    <string name="bond_overwrite_message">A pairing key for %1$s already exists on this phone. Do you want to replace it?</string>
+    <string name="action_replace">Replace</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">Registering may invalidate tokens in other apps (such as Mi Home).</string>
+    <string name="mi_registration_dialog_recommend_import">If you already have a pairing key, importing it in Settings → Backup is recommended.</string>
 </resources>

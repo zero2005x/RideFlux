@@ -351,7 +351,20 @@
     <string name="mi_registration_dialog_title">वाहन पंजीकरण आवश्यक</string>
     <string name="mi_registration_dialog_warning_stationary">वाहन पूरी तरह से स्थिर होना चाहिए और किकस्टैंड पर खड़ा होना चाहिए।</string>
     <string name="mi_registration_dialog_instructions">पुष्टि करने के बाद, संकेत (30 सेकंड तक) की प्रतीक्षा करें और हैंडलबार पर पावर बटन एक बार दबाएं।</string>
-    <string name="mi_registration_dialog_disclaimer_speed">गति अनुमान असत्यापित हैं और यह साबित नहीं करते कि वाहन रुका हुआ है। सवारी करते समय आगे न बढ़ें।</string>
+    <string name="mi_registration_dialog_disclaimer_speed">प्रमाणीकरण से पहले वाहन की गति सत्यापित नहीं की जा सकती। गति अनुमान असत्यापित हैं और यह साबित नहीं करते कि वाहन रुका हुआ है। सवारी करते समय आगे न बढ़ें।</string>
     <string name="mi_registration_dialog_confirm">आगे बढ़ें</string>
     <string name="mi_registration_dialog_cancel">रद्द करें</string>
+    <string name="bond_manual_button">मैन्युअल रूप से कुंजी जोड़ें</string>
+    <string name="bond_manual_title">पेयरिंग कुंजी जोड़ें</string>
+    <string name="bond_manual_mac">ब्लूटूथ पता (MAC)</string>
+    <string name="bond_manual_token">टोकन हेक्स</string>
+    <string name="bond_manual_label">लेबल (वैकल्पिक)</string>
+    <string name="bond_manual_error">अमान्य ब्लूटूथ पता या टोकन हेक्स।</string>
+    <string name="bond_manual_added">%1$s के लिए पेयरिंग कुंजी जोड़ी गई।</string>
+    <string name="action_add">जोड़ें</string>
+    <string name="bond_overwrite_title">पेयरिंग कुंजी बदलें?</string>
+    <string name="bond_overwrite_message">%1$s के लिए पेयरिंग कुंजी पहले से इस फ़ोन पर मौजूद है। क्या आप इसे बदलना चाहते हैं?</string>
+    <string name="action_replace">बदलें</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">पंजीकरण करने से अन्य ऐप्स (जैसे Mi Home) में टोकन अमान्य हो सकते हैं।</string>
+    <string name="mi_registration_dialog_recommend_import">यदि आपके पास पहले से पेयरिंग कुंजी है, तो पुनः पंजीकरण करने के बजाय सेटिंग्स → बैकअप में इसे आयात करने की अनुशंसा की जाती है।</string>
 </resources>

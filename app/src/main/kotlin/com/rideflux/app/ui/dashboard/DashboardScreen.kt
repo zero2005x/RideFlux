@@ -421,12 +421,22 @@ fun DashboardScreen(
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Text(stringResource(R.string.mi_registration_dialog_instructions))
                     Text(
                         stringResource(R.string.mi_registration_dialog_disclaimer_speed),
                         style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Text(
+                        stringResource(R.string.mi_registration_dialog_warning_token_invalidation),
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Text(
+                        stringResource(R.string.mi_registration_dialog_recommend_import),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(stringResource(R.string.mi_registration_dialog_instructions))
                 }
             },
             confirmButton = {

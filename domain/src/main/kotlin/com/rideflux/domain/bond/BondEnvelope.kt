@@ -51,6 +51,11 @@ object BondEnvelope {
         data class Malformed(val reason: String) : OpenResult
     }
 
+    /** Check if [file] matches the RFBOND magic and minimum container size. */
+    fun isBondFile(file: ByteArray): Boolean =
+        file.size >= HEADER_BYTES + TAG_BITS / 8 &&
+            file.copyOfRange(0, MAGIC.size).contentEquals(MAGIC)
+
     /** Why [passphrase] is unacceptable for a new backup, or null when it is fine. */
     fun passphraseProblem(passphrase: CharArray): PassphraseProblem? = when {
         passphrase.size < MIN_PASSPHRASE_LENGTH -> PassphraseProblem.TOO_SHORT

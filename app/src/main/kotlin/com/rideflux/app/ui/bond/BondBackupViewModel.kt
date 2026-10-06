@@ -7,6 +7,7 @@ package com.rideflux.app.ui.bond
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rideflux.domain.bond.BondBackup
+import com.rideflux.domain.bond.BondEntry
 import com.rideflux.domain.bond.BondEnvelope
 import com.rideflux.domain.bond.BondFamily
 import com.rideflux.domain.bond.BondStore
@@ -31,7 +32,13 @@ interface BondFileIo {
     suspend fun write(location: String, bytes: ByteArray): Boolean
 }
 
-data class BondRow(val maskedMac: String, val label: String, val family: BondFamily)
+data class BondRow(
+    val mac: String,
+    val maskedMac: String,
+    val label: String,
+    val family: BondFamily,
+    val model: String? = null,
+)
 
 data class BondImportRow(
     val index: Int,
@@ -39,6 +46,7 @@ data class BondImportRow(
     val label: String,
     val family: BondFamily,
     val conflict: Boolean,
+    val model: String? = null,
 )
 
 sealed interface BondDialog {
@@ -46,9 +54,13 @@ sealed interface BondDialog {
     data object ExportPassphrase : BondDialog
     data object ImportPassphrase : BondDialog
     data class ImportPreview(val rows: List<BondImportRow>, val skippedUnsupported: Int) : BondDialog
+    data object ManualEntry : BondDialog
+    data class ConfirmOverwriteManual(val entry: BondEntry) : BondDialog
 }
 
 enum class BondPassphraseError { WEAK, MISMATCH, WRONG_OR_CORRUPT }
+
+enum class BondManualEntryError { INVALID }
 
 sealed interface BondNotice {
     data class ExportDone(val count: Int) : BondNotice
@@ -57,15 +69,22 @@ sealed interface BondNotice {
     data object IoFailed : BondNotice
     data object ReauthUnavailable : BondNotice
     data object ReauthExpired : BondNotice
+    data class ManualKeyAdded(val maskedMac: String) : BondNotice
 }
 
 data class BondUiState(
     val rows: List<BondRow> = emptyList(),
+    val selectedExportMacs: Set<String> = emptySet(),
     val loadFailed: Boolean = false,
     val busy: Boolean = false,
     val dialog: BondDialog = BondDialog.None,
     val passphraseError: BondPassphraseError? = null,
+    val manualEntryError: BondManualEntryError? = null,
 )
+
+object PendingBondImport {
+    val pendingUri = MutableStateFlow<String?>(null)
+}
 
 sealed interface BondEvent {
     /** Ask the platform to confirm the user before the passphrase prompt is shown. */
@@ -107,17 +126,37 @@ class BondBackupViewModel internal constructor(
     fun refresh() {
         viewModelScope.launch {
             val entries = try { store.list() } catch (_: Exception) {
-                _state.update { it.copy(rows = emptyList(), loadFailed = true) }
+                _state.update { it.copy(rows = emptyList(), selectedExportMacs = emptySet(), loadFailed = true) }
                 return@launch
             }
-            val rows = entries.map { BondRow(it.maskedMac(), it.label, it.family) }
+            val rows = entries.map { BondRow(it.mac, it.maskedMac(), it.label, it.family, it.model) }
             entries.forEach { it.wipe() }
-            _state.update { it.copy(rows = rows, loadFailed = false) }
+            _state.update {
+                it.copy(
+                    rows = rows,
+                    selectedExportMacs = rows.map { r -> r.mac }.toSet(),
+                    loadFailed = false,
+                )
+            }
+        }
+    }
+
+    fun toggleExportSelection(mac: String) {
+        _state.update { current ->
+            val set = current.selectedExportMacs
+            val updated = if (mac in set) set - mac else set + mac
+            current.copy(selectedExportMacs = updated)
+        }
+    }
+
+    fun selectAllExport(select: Boolean) {
+        _state.update { current ->
+            current.copy(selectedExportMacs = if (select) current.rows.map { it.mac }.toSet() else emptySet())
         }
     }
 
     fun requestExport() {
-        if (_state.value.rows.isEmpty()) return
+        if (_state.value.selectedExportMacs.isEmpty()) return
         send(BondEvent.NeedReauth)
     }
 
@@ -144,10 +183,11 @@ class BondBackupViewModel internal constructor(
             return
         }
         wipe(confirm)
+        val macs = _state.value.selectedExportMacs
         viewModelScope.launch {
             _state.update { it.copy(busy = true) }
             val result = try {
-                withContext(work) { backup.export(passphrase) }
+                withContext(work) { backup.export(passphrase, macs) }
             } catch (_: Exception) {
                 null
             } finally {
@@ -186,13 +226,18 @@ class BondBackupViewModel internal constructor(
     }
 
     fun onImportDocumentPicked(location: String?) {
-        if (location == null) return
+        if (location == null || !location.startsWith("content://")) return
         viewModelScope.launch {
             _state.update { it.copy(busy = true) }
             val bytes = withContext(work) { io.read(location, BondEnvelope.MAX_FILE_BYTES) }
             _state.update { it.copy(busy = false) }
             if (bytes == null) {
                 send(BondEvent.ShowNotice(BondNotice.IoFailed))
+                return@launch
+            }
+            if (!BondEnvelope.isBondFile(bytes)) {
+                bytes.fill(0)
+                send(BondEvent.ShowNotice(BondNotice.InvalidFile))
                 return@launch
             }
             pendingFile = bytes
@@ -229,7 +274,14 @@ class BondBackupViewModel internal constructor(
         pendingFile = null
         pendingPreview = preview
         val rows = preview.items.mapIndexed { index, item ->
-            BondImportRow(index, item.entry.maskedMac(), item.entry.label, item.entry.family, item.conflict)
+            BondImportRow(
+                index = index,
+                maskedMac = item.entry.maskedMac(),
+                label = item.entry.label,
+                family = item.entry.family,
+                conflict = item.conflict,
+                model = item.entry.model,
+            )
         }
         _state.update { it.copy(dialog = BondDialog.ImportPreview(rows, preview.skippedUnsupported)) }
     }
@@ -263,15 +315,176 @@ class BondBackupViewModel internal constructor(
         }
     }
 
+    fun openManualEntry() {
+        _state.update { it.copy(dialog = BondDialog.ManualEntry, manualEntryError = null) }
+    }
+
+    fun submitManualKey(
+        rawMac: String,
+        tokenHex: CharArray,
+        label: String = "",
+        family: BondFamily = BondFamily.XIAOMI_MI,
+    ) {
+        try {
+            val trimmedMac = rawMac.trim()
+            val normalizedMac = try {
+                val formatted = when {
+                    trimmedMac.matches(Regex("^[0-9a-fA-F]{12}$")) -> trimmedMac.chunked(2).joinToString(":")
+                    trimmedMac.contains('-') -> trimmedMac.replace('-', ':')
+                    else -> trimmedMac
+                }
+                BondEntry.normalizeMac(formatted)
+            } catch (_: IllegalArgumentException) {
+                _state.update { it.copy(manualEntryError = BondManualEntryError.INVALID) }
+                return
+            }
+
+            val secret = parseHexSecret(tokenHex, family.credentialBytes)
+            if (secret == null) {
+                _state.update { it.copy(manualEntryError = BondManualEntryError.INVALID) }
+                return
+            }
+
+            val cleanLabel = label.trim()
+            val entry = try {
+                BondEntry(mac = normalizedMac, family = family, credential = secret, label = cleanLabel)
+            } catch (_: IllegalArgumentException) {
+                _state.update { it.copy(manualEntryError = BondManualEntryError.INVALID) }
+                return
+            } finally {
+                secret.fill(0)
+            }
+
+            viewModelScope.launch {
+                _state.update { it.copy(busy = true) }
+                val existing = try {
+                    withContext(work) {
+                        val list = store.list()
+                        try {
+                            list.any { it.mac == normalizedMac }
+                        } finally {
+                            list.forEach(BondEntry::wipe)
+                        }
+                    }
+                } catch (_: Exception) {
+                    entry.wipe()
+                    _state.update { it.copy(dialog = BondDialog.None, manualEntryError = null, busy = false) }
+                    send(BondEvent.ShowNotice(BondNotice.IoFailed))
+                    return@launch
+                }
+
+                if (existing) {
+                    _state.update { it.copy(dialog = BondDialog.ConfirmOverwriteManual(entry), busy = false) }
+                } else {
+                    saveManualEntry(entry)
+                }
+            }
+        } finally {
+            tokenHex.fill('0')
+        }
+    }
+
+    fun confirmOverwriteManual() {
+        var confirmedEntry: BondEntry? = null
+        _state.update { current ->
+            val dialog = current.dialog as? BondDialog.ConfirmOverwriteManual
+            if (dialog == null) {
+                current
+            } else {
+                confirmedEntry = dialog.entry
+                current.copy(dialog = BondDialog.None, busy = true)
+            }
+        }
+        val entry = confirmedEntry ?: return
+        viewModelScope.launch {
+            saveManualEntry(entry)
+        }
+    }
+
+    fun cancelOverwriteManual() {
+        var cancelledEntry: BondEntry? = null
+        _state.update { current ->
+            val dialog = current.dialog as? BondDialog.ConfirmOverwriteManual
+            if (dialog == null) {
+                current
+            } else {
+                cancelledEntry = dialog.entry
+                current.copy(dialog = BondDialog.None)
+            }
+        }
+        cancelledEntry?.wipe()
+    }
+
+    private suspend fun saveManualEntry(entry: BondEntry) {
+        _state.update { it.copy(busy = true) }
+        try {
+            withContext(work) { store.put(entry) }
+            _state.update { it.copy(dialog = BondDialog.None, manualEntryError = null, busy = false) }
+            send(BondEvent.ShowNotice(BondNotice.ManualKeyAdded(entry.maskedMac())))
+            refresh()
+        } catch (_: Exception) {
+            _state.update { it.copy(dialog = BondDialog.None, manualEntryError = null, busy = false) }
+            send(BondEvent.ShowNotice(BondNotice.IoFailed))
+        } finally {
+            entry.wipe()
+        }
+    }
+
+    private fun parseHexSecret(chars: CharArray, expectedBytes: Int): ByteArray? {
+        var start = 0
+        while (start < chars.size && chars[start].isWhitespace()) start++
+        if (start + 1 < chars.size && chars[start] == '0' && (chars[start + 1] == 'x' || chars[start + 1] == 'X')) {
+            start += 2
+        }
+
+        val secret = ByteArray(expectedBytes)
+        var byteIndex = 0
+        var highNibble = -1
+
+        for (i in start until chars.size) {
+            val c = chars[i]
+            if (c.isWhitespace() || c == ':') continue
+            val digit = Character.digit(c, 16)
+            if (digit < 0) {
+                secret.fill(0)
+                return null
+            }
+            if (highNibble < 0) {
+                highNibble = digit
+            } else {
+                if (byteIndex >= expectedBytes) {
+                    secret.fill(0)
+                    return null
+                }
+                secret[byteIndex++] = ((highNibble shl 4) or digit).toByte()
+                highNibble = -1
+            }
+        }
+
+        if (highNibble != -1 || byteIndex != expectedBytes) {
+            secret.fill(0)
+            return null
+        }
+        return secret
+    }
+
     fun dismissDialog() {
+        val currentDialog = _state.value.dialog
+        if (currentDialog is BondDialog.ConfirmOverwriteManual) {
+            currentDialog.entry.wipe()
+        }
         clearPending()
-        _state.update { it.copy(dialog = BondDialog.None, passphraseError = null) }
+        _state.update { it.copy(dialog = BondDialog.None, passphraseError = null, manualEntryError = null) }
     }
 
     override fun onCleared() {
         clearPending()
         pendingExport?.file?.fill(0)
         pendingExport = null
+        val currentDialog = _state.value.dialog
+        if (currentDialog is BondDialog.ConfirmOverwriteManual) {
+            currentDialog.entry.wipe()
+        }
         reauthAtMillis = null
     }
 
