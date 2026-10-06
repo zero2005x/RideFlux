@@ -83,7 +83,7 @@ class MainActivityManifestTest {
         val context = RuntimeEnvironment.getApplication()
         val pm = context.packageManager
 
-        // ACTION_VIEW with content scheme
+        // ACTION_VIEW with content scheme and octet-stream
         val viewContentIntent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(Uri.parse("content://com.example.provider/backup.rfbond"), "application/octet-stream")
         }
@@ -91,6 +91,26 @@ class MainActivityManifestTest {
         assertTrue(
             "MainActivity must resolve ACTION_VIEW for content:// .rfbond files",
             viewMatches.any { it.activityInfo.name == MainActivity::class.java.name },
+        )
+
+        // ACTION_VIEW without explicit MIME type on .rfbond path
+        val viewUntypedIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("content://com.example.provider/backup.rfbond")
+        }
+        val viewUntypedMatches = pm.queryIntentActivities(viewUntypedIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        assertTrue(
+            "MainActivity must resolve ACTION_VIEW for untyped .rfbond URIs",
+            viewUntypedMatches.any { it.activityInfo.name == MainActivity::class.java.name },
+        )
+
+        // ACTION_VIEW with photo must NOT match
+        val viewPhotoIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(Uri.parse("content://media/external/images/media/123"), "image/jpeg")
+        }
+        val photoMatches = pm.queryIntentActivities(viewPhotoIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        assertFalse(
+            "MainActivity must NOT resolve ACTION_VIEW for photo files",
+            photoMatches.any { it.activityInfo.name == MainActivity::class.java.name },
         )
 
         // ACTION_VIEW with file scheme must NOT match
@@ -103,7 +123,7 @@ class MainActivityManifestTest {
             fileMatches.any { it.activityInfo.name == MainActivity::class.java.name },
         )
 
-        // ACTION_SEND
+        // ACTION_SEND for application/octet-stream
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = "application/octet-stream"
         }
@@ -111,6 +131,16 @@ class MainActivityManifestTest {
         assertTrue(
             "MainActivity must resolve ACTION_SEND for application/octet-stream",
             sendMatches.any { it.activityInfo.name == MainActivity::class.java.name },
+        )
+
+        // ACTION_SEND for photos must NOT match
+        val sendPhotoIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "image/jpeg"
+        }
+        val sendPhotoMatches = pm.queryIntentActivities(sendPhotoIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        assertFalse(
+            "MainActivity must NOT resolve ACTION_SEND for image/jpeg",
+            sendPhotoMatches.any { it.activityInfo.name == MainActivity::class.java.name },
         )
     }
 

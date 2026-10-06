@@ -308,6 +308,98 @@ class MiScooterConnectionTest {
     }
 
     @Test
+    fun startWhenAlreadyClosedOrStartedThrows() {
+        runBlocking {
+            store.put(BondEntry(device.address, BondFamily.XIAOMI_MI, transport.expectedToken, "MyScooter", "M365"))
+            val connection = MiScooterConnection(transport, device, scope, store)
+            connection.start()
+            assertThrows(IllegalStateException::class.java) {
+                runBlocking { connection.start() }
+            }
+            connection.close()
+            assertThrows(IllegalStateException::class.java) {
+                runBlocking { connection.start() }
+            }
+        }
+    }
+
+    @Test
+    fun storedTokenIgnoresOtherBondFamily() {
+        runBlocking {
+            // Storing a key under NINEBOT_CRYPTO instead of XIAOMI_MI
+            store.put(BondEntry(device.address, BondFamily.NINEBOT_CRYPTO, ByteArray(16) { 1 }, "Ninebot", "G30"))
+            val connection = MiScooterConnection(transport, device, scope, store)
+            connection.start()
+            // Must require user consent because no XIAOMI_MI bond exists
+            assertEquals(MiRegistrationState.CONSENT_REQUIRED, connection.registrationState.value)
+            connection.close()
+        }
+    }
+
+    @Test
+    fun readRegisterValidatesBoundsAndClosedState() {
+        runBlocking {
+            store.put(BondEntry(device.address, BondFamily.XIAOMI_MI, transport.expectedToken, "MyScooter", "M365"))
+            val connection = MiScooterConnection(transport, device, scope, store, readTimeoutMillis = 50)
+            connection.start()
+
+            assertThrows(IllegalArgumentException::class.java) {
+                runBlocking { connection.readRegister(256, 32) }
+            }
+            assertThrows(IllegalArgumentException::class.java) {
+                runBlocking { connection.readRegister(0xB0, 254) }
+            }
+
+            // read unknown register times out and returns null
+            val timeoutReply = connection.readRegister(0x99, 10)
+            assertNull(timeoutReply)
+
+            connection.close()
+            // readRegister when closed returns null
+            assertNull(connection.readRegister(0xB0, 32))
+        }
+    }
+
+    @Test
+    fun registerAfterUserConfirmationWhenClosedReturnsFalse() {
+        runBlocking {
+            val connection = MiScooterConnection(transport, device, scope, store)
+            connection.close()
+            assertFalse(connection.registerAfterUserConfirmation(true))
+        }
+    }
+
+    @Test
+    fun loginFailureTransitionsToFailedState() {
+        runBlocking {
+            // Corrupt/wrong token
+            store.put(BondEntry(device.address, BondFamily.XIAOMI_MI, ByteArray(12) { 0xFF.toByte() }, "WrongToken", "M365"))
+            val connection = MiScooterConnection(transport, device, scope, store)
+            connection.start()
+            assertTrue(connection.state.value is ConnectionState.Failed)
+            connection.close()
+        }
+    }
+
+    @Test
+    fun registerFailureTransitionsToFailedState() {
+        runBlocking {
+            val brokenAuthTransport = object : MiAuthTransport by transport {
+                override suspend fun writeAuth(characteristic: MiAuthChar, bytes: ByteArray) {
+                    // Do nothing: auth times out and fails
+                }
+            }
+            val connection = MiScooterConnection(brokenAuthTransport, device, scope, store)
+            connection.start()
+            assertEquals(MiRegistrationState.CONSENT_REQUIRED, connection.registrationState.value)
+            val success = connection.registerAfterUserConfirmation(true)
+            assertFalse(success)
+            assertTrue(connection.state.value is ConnectionState.Failed)
+            connection.close()
+        }
+    }
+
+    @Test
     fun toStringRedactsSecrets() {
         val connection = MiScooterConnection(transport, device, scope, store)
         assertEquals("MiScooterConnection(<redacted>)", connection.toString())

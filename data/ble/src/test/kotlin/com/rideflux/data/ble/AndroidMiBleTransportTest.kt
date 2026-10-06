@@ -294,6 +294,240 @@ class AndroidMiBleTransportTest {
     }
 
     @Test
+    fun timeoutSettingsRequirePositiveValues() {
+        assertThrows(IllegalArgumentException::class.java) {
+            AndroidMiBleTransport(context, device, connectTimeoutMillis = 0, writeTimeoutMillis = 1000)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            AndroidMiBleTransport(context, device, connectTimeoutMillis = 1000, writeTimeoutMillis = 0)
+        }
+    }
+
+    @Test
+    fun writeRejectsWhenNotConnectedOrNotReady() {
+        // gatt is null
+        val err1 = assertThrows(IOException::class.java) {
+            runBlocking { transport.write(byteArrayOf(1, 2)) }
+        }
+        assertTrue(err1.message.orEmpty().contains("Xiaomi transport is not connected"))
+
+        // gatt present but not ready
+        val gatt = mockk<BluetoothGatt>(relaxed = true)
+        AndroidMiBleTransport::class.java.getDeclaredField("gatt").apply { isAccessible = true }.set(transport, gatt)
+        val err2 = assertThrows(IOException::class.java) {
+            runBlocking { transport.write(byteArrayOf(1, 2)) }
+        }
+        assertTrue(err2.message.orEmpty().contains("Xiaomi transport is not ready"))
+
+        // transport closed
+        AndroidMiBleTransport::class.java.getDeclaredField("closed").apply { isAccessible = true }.set(transport, true)
+        val err3 = assertThrows(IOException::class.java) {
+            runBlocking { transport.write(byteArrayOf(1, 2)) }
+        }
+        assertTrue(err3.message.orEmpty().contains("Xiaomi transport is not ready"))
+    }
+
+    @Test
+    fun writeTimesOutWhenCharacteristicWriteNeverCompletes() {
+        runBlocking {
+            val gatt = mockk<BluetoothGatt>(relaxed = true)
+            val upnp = BluetoothGattCharacteristic(GattUuids.CHAR_MI_UPNP, BluetoothGattCharacteristic.PROPERTY_NOTIFY or BluetoothGattCharacteristic.PROPERTY_WRITE, 0)
+            val avdtp = BluetoothGattCharacteristic(GattUuids.CHAR_MI_AVDTP, BluetoothGattCharacteristic.PROPERTY_NOTIFY or BluetoothGattCharacteristic.PROPERTY_WRITE, 0)
+            val uartWrite = BluetoothGattCharacteristic(GattUuids.CHAR_NUS_RX, BluetoothGattCharacteristic.PROPERTY_WRITE, 0)
+            val uartNotify = BluetoothGattCharacteristic(GattUuids.CHAR_NUS_TX, BluetoothGattCharacteristic.PROPERTY_NOTIFY, 0)
+            val profile = XiaomiGattProfile(upnp, avdtp, uartWrite, uartNotify)
+
+            val shortTimeoutTransport = AndroidMiBleTransport(context, device, connectTimeoutMillis = 1000, writeTimeoutMillis = 50)
+            AndroidMiBleTransport::class.java.getDeclaredField("profile").apply { isAccessible = true }.set(shortTimeoutTransport, profile)
+            AndroidMiBleTransport::class.java.getDeclaredField("gatt").apply { isAccessible = true }.set(shortTimeoutTransport, gatt)
+            AndroidMiBleTransport::class.java.getDeclaredField("ready").apply { isAccessible = true }.set(shortTimeoutTransport, true)
+
+            every { gatt.writeCharacteristic(any(), any(), any()) } returns android.bluetooth.BluetoothStatusCodes.SUCCESS
+            val err = assertThrows(IOException::class.java) {
+                runBlocking { shortTimeoutTransport.write(byteArrayOf(1, 2)) }
+            }
+            assertTrue(err.message.orEmpty().contains("Xiaomi write timed out"))
+        }
+    }
+
+    @Test
+    fun callbackIgnoresForeignGattOrClosed() {
+        val foreignGatt = mockk<BluetoothGatt>(relaxed = true)
+        val callback = gattCallback()
+
+        // None of these should throw or change state for foreign gatt
+        callback.onConnectionStateChange(foreignGatt, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_CONNECTED)
+        callback.onServicesDiscovered(foreignGatt, BluetoothGatt.GATT_SUCCESS)
+        callback.onDescriptorWrite(foreignGatt, mockk(relaxed = true), BluetoothGatt.GATT_SUCCESS)
+        callback.onCharacteristicWrite(foreignGatt, mockk(relaxed = true), BluetoothGatt.GATT_SUCCESS)
+        callback.onCharacteristicChanged(foreignGatt, mockk(relaxed = true), byteArrayOf(1))
+    }
+
+    @Test
+    fun connectionStateChangeBranchesHandled() {
+        runBlocking {
+            val gatt = mockk<BluetoothGatt>(relaxed = true)
+            every { device.connectGatt(context, false, any(), BluetoothDevice.TRANSPORT_LE) } returns gatt
+            val callback = gattCallback()
+
+            // 1. STATE_CONNECTED but discoverServices returns false
+            val tReject = AndroidMiBleTransport(context, device, 1000, 1000)
+            val cbReject = AndroidMiBleTransport::class.java.getDeclaredField("callback").apply { isAccessible = true }.get(tReject) as BluetoothGattCallback
+            every { gatt.discoverServices() } returns false
+            var rejectFailed = false
+            val rejectJob = launch(start = CoroutineStart.UNDISPATCHED) {
+                try {
+                    tReject.connect()
+                } catch (e: IOException) {
+                    rejectFailed = e.message.orEmpty().contains("Xiaomi connection failed")
+                }
+            }
+            cbReject.onConnectionStateChange(gatt, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_CONNECTED)
+            rejectJob.join()
+            assertTrue(rejectFailed)
+
+            // 2. STATE_CONNECTED but discoverServices throws
+            val tThrow = AndroidMiBleTransport(context, device, 1000, 1000)
+            val cbThrow = AndroidMiBleTransport::class.java.getDeclaredField("callback").apply { isAccessible = true }.get(tThrow) as BluetoothGattCallback
+            every { gatt.discoverServices() } throws RuntimeException("discovery crash")
+            var throwFailed = false
+            val throwJob = launch(start = CoroutineStart.UNDISPATCHED) {
+                try {
+                    tThrow.connect()
+                } catch (e: IOException) {
+                    throwFailed = e.message.orEmpty().contains("Xiaomi connection failed")
+                }
+            }
+            cbThrow.onConnectionStateChange(gatt, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_CONNECTED)
+            throwJob.join()
+            assertTrue(throwFailed)
+
+            // 3. STATE_DISCONNECTED with GATT_SUCCESS terminates
+            val tDisc = AndroidMiBleTransport(context, device, 1000, 1000)
+            val cbDisc = AndroidMiBleTransport::class.java.getDeclaredField("callback").apply { isAccessible = true }.get(tDisc) as BluetoothGattCallback
+            var discFailed = false
+            val discJob = launch(start = CoroutineStart.UNDISPATCHED) {
+                try {
+                    tDisc.connect()
+                } catch (_: IOException) {
+                    discFailed = true
+                }
+            }
+            cbDisc.onConnectionStateChange(gatt, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_DISCONNECTED)
+            discJob.join()
+            assertTrue(discFailed)
+        }
+    }
+
+    @Test
+    fun servicesDiscoveredFailsWhenGattProfileMissing() {
+        runBlocking {
+            val gatt = mockk<BluetoothGatt>(relaxed = true)
+            every { device.connectGatt(context, false, any(), BluetoothDevice.TRANSPORT_LE) } returns gatt
+            // No FE95 / NUS services
+            every { gatt.getService(any()) } returns null
+            every { gatt.discoverServices() } returns true
+
+            val callback = gattCallback()
+            val connectJob = launch(start = CoroutineStart.UNDISPATCHED) {
+                assertThrows(IOException::class.java) { runBlocking { transport.connect() } }
+            }
+            callback.onConnectionStateChange(gatt, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_CONNECTED)
+            callback.onServicesDiscovered(gatt, BluetoothGatt.GATT_SUCCESS)
+            connectJob.join()
+        }
+    }
+
+    @Test
+    fun descriptorWriteIgnoresUnmatchedDescriptor() {
+        val gatt = mockk<BluetoothGatt>(relaxed = true)
+        val expected = BluetoothGattDescriptor(GattUuids.DESCRIPTOR_CCC, 0)
+        val unexpected = BluetoothGattDescriptor(GattUuids.DESCRIPTOR_CCC, 0)
+
+        AndroidMiBleTransport::class.java.getDeclaredField("gatt").apply { isAccessible = true }.set(transport, gatt)
+        AndroidMiBleTransport::class.java.getDeclaredField("expectedDescriptor").apply { isAccessible = true }.set(transport, expected)
+
+        val callback = gattCallback()
+        // Unmatched descriptor must be safely ignored without advancing cccIndex or throwing
+        callback.onDescriptorWrite(gatt, unexpected, BluetoothGatt.GATT_SUCCESS)
+        val currentExpected = AndroidMiBleTransport::class.java.getDeclaredField("expectedDescriptor").apply { isAccessible = true }.get(transport)
+        assertEquals(expected, currentExpected)
+    }
+
+    @Test
+    fun characteristicWriteIgnoresUnmatchedOrNoPending() {
+        val gatt = mockk<BluetoothGatt>(relaxed = true)
+        AndroidMiBleTransport::class.java.getDeclaredField("gatt").apply { isAccessible = true }.set(transport, gatt)
+
+        val callback = gattCallback()
+        val c1 = BluetoothGattCharacteristic(GattUuids.CHAR_NUS_RX, 0, 0)
+        // With no pending write, must not throw
+        callback.onCharacteristicWrite(gatt, c1, BluetoothGatt.GATT_SUCCESS)
+    }
+
+    @Test
+    fun notificationRoutingAndBufferOverflow() = runBlocking {
+        val gatt = mockk<BluetoothGatt>(relaxed = true)
+        val upnp = BluetoothGattCharacteristic(GattUuids.CHAR_MI_UPNP, BluetoothGattCharacteristic.PROPERTY_NOTIFY or BluetoothGattCharacteristic.PROPERTY_WRITE, 0)
+        val avdtp = BluetoothGattCharacteristic(GattUuids.CHAR_MI_AVDTP, BluetoothGattCharacteristic.PROPERTY_NOTIFY or BluetoothGattCharacteristic.PROPERTY_WRITE, 0)
+        val uartWrite = BluetoothGattCharacteristic(GattUuids.CHAR_NUS_RX, BluetoothGattCharacteristic.PROPERTY_WRITE, 0)
+        val uartNotify = BluetoothGattCharacteristic(GattUuids.CHAR_NUS_TX, BluetoothGattCharacteristic.PROPERTY_NOTIFY, 0)
+        val profile = XiaomiGattProfile(upnp, avdtp, uartWrite, uartNotify)
+
+        AndroidMiBleTransport::class.java.getDeclaredField("profile").apply { isAccessible = true }.set(transport, profile)
+        AndroidMiBleTransport::class.java.getDeclaredField("gatt").apply { isAccessible = true }.set(transport, gatt)
+        AndroidMiBleTransport::class.java.getDeclaredField("ready").apply { isAccessible = true }.set(transport, true)
+
+        val callback = gattCallback()
+
+        // 1. Route AVDTP packet
+        val avdtpBytes = byteArrayOf(0x00, 0x00, 0x01, 0x01)
+        val authJob = launch {
+            val notification = transport.authNotifications.first()
+            assertEquals(MiAuthChar.AVDTP, notification.characteristic)
+            assertArrayEquals(avdtpBytes, notification.copyBytes())
+        }
+        callback.onCharacteristicChanged(gatt, avdtp, avdtpBytes)
+        authJob.join()
+
+        // 2. Unknown characteristic ignored
+        val unknown = BluetoothGattCharacteristic(java.util.UUID.randomUUID(), 0, 0)
+        callback.onCharacteristicChanged(gatt, unknown, byteArrayOf(99))
+
+        // 3. Overflow data packets channel (capacity 256)
+        val overflowData = byteArrayOf(0x55, 0xAA.toByte())
+        for (i in 0 until 256) {
+            callback.onCharacteristicChanged(gatt, uartNotify, overflowData)
+        }
+        // 257th packet overflows channel and terminates transport
+        callback.onCharacteristicChanged(gatt, uartNotify, overflowData)
+
+        // Transport is now terminated / closed
+        val closedField = AndroidMiBleTransport::class.java.getDeclaredField("closed").apply { isAccessible = true }.get(transport) as Boolean
+        assertTrue(closedField)
+    }
+
+    @Test
+    fun legacyCharacteristicChangedIgnoresNullValue() {
+        val gatt = mockk<BluetoothGatt>(relaxed = true)
+        val uartNotify = BluetoothGattCharacteristic(GattUuids.CHAR_NUS_TX, BluetoothGattCharacteristic.PROPERTY_NOTIFY, 0)
+        val upnp = BluetoothGattCharacteristic(GattUuids.CHAR_MI_UPNP, 0, 0)
+        val avdtp = BluetoothGattCharacteristic(GattUuids.CHAR_MI_AVDTP, 0, 0)
+        val uartWrite = BluetoothGattCharacteristic(GattUuids.CHAR_NUS_RX, 0, 0)
+        val profile = XiaomiGattProfile(upnp, avdtp, uartWrite, uartNotify)
+
+        AndroidMiBleTransport::class.java.getDeclaredField("profile").apply { isAccessible = true }.set(transport, profile)
+        AndroidMiBleTransport::class.java.getDeclaredField("gatt").apply { isAccessible = true }.set(transport, gatt)
+        AndroidMiBleTransport::class.java.getDeclaredField("ready").apply { isAccessible = true }.set(transport, true)
+
+        @Suppress("DEPRECATION")
+        uartNotify.value = null
+        val callback = gattCallback()
+        @Suppress("DEPRECATION")
+        callback.onCharacteristicChanged(gatt, uartNotify)
+    }
+
+    @Test
     fun toStringRedactsSecrets() {
         assertEquals("AndroidMiBleTransport(<redacted>)", transport.toString())
     }

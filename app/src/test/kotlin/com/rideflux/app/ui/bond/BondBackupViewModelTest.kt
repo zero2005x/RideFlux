@@ -354,7 +354,7 @@ class BondBackupViewModelTest {
         // Lowercase MAC with colons and token with spaces
         val token1 = testHexToken(12, separator = " ")
         vm.submitManualKey("aa:bb:cc:dd:ee:01", token1, "scooter 1")
-        assertTrue(token1.all { it == '0' })
+        assertTrue(token1.all { it == '\u0000' })
         assertEquals(BondDialog.None, vm.state.value.dialog)
         assertEquals(BondNotice.ManualKeyAdded("••:••:••:••:EE:01"), notices(events).last())
         assertEquals(1, store.items.size)
@@ -366,7 +366,7 @@ class BondBackupViewModelTest {
         vm.openManualEntry()
         val token2 = testHexToken(12, prefix = "0x", separator = ":")
         vm.submitManualKey("aabbccddee02", token2, "scooter 2")
-        assertTrue(token2.all { it == '0' })
+        assertTrue(token2.all { it == '\u0000' })
         assertEquals(2, store.items.size)
         assertTrue("AA:BB:CC:DD:EE:02" in store.items)
 
@@ -374,7 +374,7 @@ class BondBackupViewModelTest {
         vm.openManualEntry()
         val token3 = testHexToken(12, prefix = "0X")
         vm.submitManualKey("AA-BB-CC-DD-EE-03", token3, "scooter 3")
-        assertTrue(token3.all { it == '0' })
+        assertTrue(token3.all { it == '\u0000' })
         assertEquals(3, store.items.size)
         assertTrue("AA:BB:CC:DD:EE:03" in store.items)
 
@@ -382,7 +382,7 @@ class BondBackupViewModelTest {
         vm.openManualEntry()
         val token4 = testHexToken(16, prefix = "0x")
         vm.submitManualKey("AA:BB:CC:DD:EE:04", token4, "ninebot 1", BondFamily.NINEBOT_CRYPTO)
-        assertTrue(token4.all { it == '0' })
+        assertTrue(token4.all { it == '\u0000' })
         assertEquals(4, store.items.size)
         assertEquals(16, store.items.getValue("AA:BB:CC:DD:EE:04").credential().size)
     }

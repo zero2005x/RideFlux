@@ -1,6 +1,6 @@
 # Xiaomi Mi authentication handoff
 
-Base: local `bffe287` (`feat/bond-backup`), explicitly authorized by the owner because that branch is not on the remote and is not merged into `origin/main`. Development uses an independent managed worktree and stacked branches.
+Base: `bffe287` (`feat/bond-backup`), which has been pushed to the remote (`origin/feat/bond-backup`) but is not yet merged into `origin/main`. Development uses an independent managed worktree and stacked branches.
 
 All Xiaomi Mi behavior in this work is implemented from reverse-engineering notes and the owner's reference app, unit-tested, and not tried on a real scooter (L2). No vehicle experiments are performed. Lock/unlock/power writes remain disabled for this profile.
 
@@ -12,6 +12,7 @@ All Xiaomi Mi behavior in this work is implemented from reverse-engineering note
 - The DID registration header advertises two fragments. Reject a DID ciphertext that does not occupy exactly two fragments of at most 18 bytes each (19–36 bytes total) rather than guessing another header.
 - Existing `ScooterConnectionImpl` uses Ninebot framing. A separate Xiaomi connection will poll through `M365Codec`; wrapping encryption cannot make Ninebot polling compatible with M365.
 - Rust's manifest names a missing `LICENSE.md`, while its README claims MIT and credits CamiAlfa's M365-BLE-PROTOCOL research. No Rust source is copied. The licensing question remains open for the owner.
+- Manual key entry in Compose: Jetpack Compose text fields (`OutlinedTextField`, `BasicTextField`) operate exclusively on immutable `String` state. Entering text creates temporary immutable `String` instances on the managed heap that cannot be cleared immediately and must await JVM garbage collection. To minimize exposure, the in-memory `tokenBuffer: CharArray` and ViewModel `tokenHex: CharArray` are cleared with `\u0000` (NUL) upon submission, cancellation, or composition disposal as a best-effort mitigation.
 
 ## Owner hardware questions
 
