@@ -346,4 +346,25 @@
     <string name="bond_invalid_file">Ce n’est pas un fichier de sauvegarde RideFlux valide.</string>
     <string name="bond_io_failed">Impossible de lire ou d’enregistrer le fichier.</string>
     <string name="bond_load_failed">Les clés d’appairage enregistrées ne peuvent pas être lues sur ce téléphone.</string>
+    <string name="scooter_pairing_banner_prompt">Appuyez sur le bouton d\'alimentation du guidon pour associer</string>
+    <string name="mi_registration_authenticating">Authentification avec le véhicule…</string>
+    <string name="mi_registration_dialog_title">Enregistrement du véhicule requis</string>
+    <string name="mi_registration_dialog_warning_stationary">Le véhicule doit être totalement immobile et béquillé.</string>
+    <string name="mi_registration_dialog_instructions">Après confirmation, attendez l\'invite (jusqu\'à 30 secondes) et appuyez une fois sur le bouton d\'alimentation du guidon.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">La vitesse du véhicule ne peut pas être vérifiée avant l\'authentification. Les estimations ne prouvent pas l\'arrêt. Ne continuez pas en roulant.</string>
+    <string name="mi_registration_dialog_confirm">Continuer</string>
+    <string name="mi_registration_dialog_cancel">Annuler</string>
+    <string name="bond_manual_button">Ajouter la clé manuellement</string>
+    <string name="bond_manual_title">Ajouter une clé de jumelage</string>
+    <string name="bond_manual_mac">Adresse Bluetooth (MAC)</string>
+    <string name="bond_manual_token">Jeton hexadécimal</string>
+    <string name="bond_manual_label">Libellé (facultatif)</string>
+    <string name="bond_manual_error">Adresse Bluetooth ou jeton hexadécimal non valide.</string>
+    <string name="bond_manual_added">Clé de jumelage ajoutée pour %1$s.</string>
+    <string name="action_add">Ajouter</string>
+    <string name="bond_overwrite_title">Remplacer la clé d\'association ?</string>
+    <string name="bond_overwrite_message">Une clé d\'association pour %1$s existe déjà sur ce téléphone. Voulez-vous la remplacer ?</string>
+    <string name="action_replace">Remplacer</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">L\'enregistrement peut invalider les jetons dans d\'autres applications (comme Mi Home).</string>
+    <string name="mi_registration_dialog_recommend_import">Si vous possédez déjà une clé, il est recommandé de l\'importer dans Paramètres → Sauvegarde plutôt que de la réenregistrer.</string>
 </resources>

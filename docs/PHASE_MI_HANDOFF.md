@@ -1,6 +1,6 @@
 # Xiaomi Mi authentication handoff
 
-Base: local `bffe287` (`feat/bond-backup`), explicitly authorized by the owner because that branch is not on the remote and is not merged into `origin/main`. Development uses an independent managed worktree and stacked branches.
+Base: `bffe287` (`feat/bond-backup`), which has been pushed to the remote (`origin/feat/bond-backup`) but is not yet merged into `origin/main`. Development uses an independent managed worktree and stacked branches.
 
 All Xiaomi Mi behavior in this work is implemented from reverse-engineering notes and the owner's reference app, unit-tested, and not tried on a real scooter (L2). No vehicle experiments are performed. Lock/unlock/power writes remain disabled for this profile.
 
@@ -9,9 +9,10 @@ All Xiaomi Mi behavior in this work is implemented from reverse-engineering note
 - The reference app is the owner's local `M365-Rokid-HUD` working tree; it has unrelated local edits and is read-only for this work.
 - The scooter login proof is HMAC-SHA256 using the device key over `scooterRandom || appRandom`. Android's reference caller ignores the proof; the Rust login example verifies it.
 - Android's reference UART caller sends counter zero. The Rust session increments its counter and begins at one. RideFlux follows the requested session policy: increment from zero, stop before wrap, and leave `LEGACY_ZERO` disabled by default. Hardware acceptance is unknown.
-- The DID registration header advertises two fragments. Reject a DID ciphertext that does not occupy exactly two 18-byte fragments rather than guessing another header.
+- The DID registration header advertises two fragments. Reject a DID ciphertext that does not occupy exactly two fragments of at most 18 bytes each (19–36 bytes total) rather than guessing another header.
 - Existing `ScooterConnectionImpl` uses Ninebot framing. A separate Xiaomi connection will poll through `M365Codec`; wrapping encryption cannot make Ninebot polling compatible with M365.
 - Rust's manifest names a missing `LICENSE.md`, while its README claims MIT and credits CamiAlfa's M365-BLE-PROTOCOL research. No Rust source is copied. The licensing question remains open for the owner.
+- Manual key entry in Compose: Jetpack Compose text fields (`OutlinedTextField`, `BasicTextField`) operate exclusively on immutable `String` state. Entering text creates temporary immutable `String` instances on the managed heap that cannot be cleared immediately and must await JVM garbage collection. To minimize exposure, the in-memory `tokenBuffer: CharArray` and ViewModel `tokenHex: CharArray` are cleared with `\u0000` (NUL) upon submission, cancellation, or composition disposal as a best-effort mitigation.
 
 ## Owner hardware questions
 
@@ -79,6 +80,11 @@ SonarCloud analysis or confirmation of its issue gate.
 
 ### Resumption and open items
 
+Phase A checkpoint: commit `2486c68` on `codex/mi-crypto`,
+PR [36](https://github.com/zero2005x/RideFlux/pull/36), based on
+`feat/bond-backup`. The exact authorized local `bffe287` was published as that
+base branch without rewriting history. No PR has been merged or set to auto-merge.
+
 Phase B authentication/parcel transport, Phase C Android connection integration,
 Phase D registration UI and the extended import/export paths remain to be
 implemented on subsequent stacked branches. Commit/PR identifiers are recorded
@@ -106,3 +112,166 @@ the complete `lintDebug assembleDebug jacocoTestReport` command passed in
 785 / 815 lines (96.3%), 375 / 434 conditions, combined 92.9%.
 The final XML contains 855 tests with zero failures, errors or skips.
 No tests were weakened or skipped. Remote re-analysis follows the pushed fix.
+
+## Phase B: auth parcels and simulated sessions — 2026-10-05
+
+Added the source-compatible `MiAuthTransport` extension, owned/redacted auth
+notifications, sequential bounded auth mailbox, 18-byte MiParcel framing and
+`MiAuthSession`. Login verifies the scooter proof in constant time before
+sending the app proof. Registration requires an explicit stationary/button
+confirmation argument, uses the documented fixed headers, derives a 12-byte
+token and destroys its ephemeral private key where the JCA provider permits.
+Transport, timeout, malformed parcel, proof mismatch, button timeout and
+cancellation paths preserve secret cleanup. Simulator tests establish software
+self-consistency only and have not been tried on a real scooter.
+
+### Files and line counts relative to Phase A follow-up `d2aee82`
+
+| File | Added / removed lines |
+| --- | ---: |
+| `domain/.../transport/MiAuthTransport.kt` | 25 / 0 |
+| `data/protocol/.../xiaomi/MiAuthMailbox.kt` | 119 / 0 |
+| `data/protocol/.../xiaomi/MiAuthSession.kt` | 179 / 0 |
+| `data/protocol/.../xiaomi/MiParcel.kt` | 71 / 0 |
+| `data/protocol/src/test/.../xiaomi/MiAuthSessionTest.kt` | 362 / 0 |
+| `data/protocol/src/test/.../xiaomi/MiParcelTest.kt` | 52 / 0 |
+| `docs/MI_AUTH.md` | 6 / 2 |
+
+Crypto cleanup and the narrowly documented `kotlin:S5542` suppression were
+delivered in PR 36's follow-up `d2aee82`. The unpublished Phase B branch was
+rebased onto that checkpoint; only documentation needed conflict resolution.
+A comparison confirms that protocol/domain runtime sources match the final
+tested snapshot exactly. Published history was not rewritten.
+
+### Quality gates and coverage
+
+The refreshed isolated WSL mirror passed the full Java 21 command used in
+Phase A: `lintDebug assembleDebug jacocoTestReport --no-daemon
+--no-configuration-cache --console=plain --continue`. The initial Phase B
+snapshot passed in 6m 35s; the annotation snapshot passed in 3m 44s. After
+extracting login payload-size checks into `receiveSized` to keep the function
+within the complexity limit, the final required run passed in 2m 39s
+(430 tasks, 61 executed). Final XML: **886 tests,
+zero failures, errors or skips**. Protocol tests total 330, adding 31 over
+Phase A; other module totals remain as above. Both phone and HUD
+`LocalizationCoverageTest` suites pass. No flaky bridge-service failure occurred
+in any of the Phase B full runs. No new dependencies or coverage exclusions were
+added, and no APK was installed.
+
+| New-code comparison | Covered executable lines | Covered conditions | Lines + conditions |
+| --- | ---: | ---: | ---: |
+| `origin/main` (bond-backup plus Phases A/B) | 1019 / 1054 (96.7%) | 488 / 551 | 93.9% |
+| `2486c68` (Phase B plus crypto follow-up) | 252 / 260 (96.9%) | 113 / 117 | 96.8% |
+| `d2aee82` (final Phase B only) | 234 / 239 (97.9%) | 113 / 117 | 97.5% |
+
+Measured using final aggregate JaCoCo XML and `tools/newcov.py`, with new files
+included in `git diff -U0`. Missing-source checks pass. These are local
+Sonar-style results; a remote Phase B SonarCloud issue gate is not established.
+Phase C Android integration, Phase D UI/storage and extended key import/export
+remain pending. Commit and PR identifiers are added by the lead at checkpoint.
+The hardware and licensing questions above remain open. Phase B source
+checkpoints are `6d080fa` and `950db14` on `codex/mi-auth-protocol`.
+The published checkpoint is `582f380`,
+PR [37](https://github.com/zero2005x/RideFlux/pull/37), based on `codex/mi-crypto`.
+
+## Phase C: Android BLE transport, encrypted UART framing, and repository integration — 2026-10-05
+
+Implemented the Android platform BLE transport (`AndroidMiBleTransport`) with strict GATT profile resolution (`XiaomiGattProfile`: FE95 UPNP/AVDTP and Nordic UART RX/TX with sequential descriptor enablement), `EncryptedUartTransport` decorator framing plain M365 reads and decrypting 55 AB responses, `MiScooterConnection` implementing `ScooterConnection` (stored token lookup from `BondStore`, registration consent flow with power button prompt, periodic B0 register polling, and telemetry decoding), and `ScooterRepositoryImpl` routing for Xiaomi candidate devices.
+
+All implementation is Evidence Level L2 (implemented from reverse-engineering notes and simulated in Robolectric/unit tests, not tried on physical scooter hardware). Lock/unlock/power writes remain unsupported for this profile.
+
+### Files and line counts relative to Phase B `582f380`
+
+| File | Added / modified lines |
+| --- | ---: |
+| `data/ble/.../AndroidMiBleTransport.kt` | 179 / 0 |
+| `data/ble/.../XiaomiGattProfile.kt` | 42 / 0 |
+| `data/protocol/.../xiaomi/EncryptedUartTransport.kt` | 60 / 0 |
+| `data/protocol/.../xiaomi/MiScooterConnection.kt` | 198 / 0 |
+| `data/ble/.../ScooterRepositoryImpl.kt` | 57 / 23 |
+| `data/ble/.../ScooterClassifier.kt` | 7 / 0 |
+| `data/ble/.../GattUuids.kt` | 6 / 2 |
+| `data/ble/.../AndroidBleTransport.kt` | 1 / 0 |
+| `domain/.../connection/ScooterConnection.kt` | 9 / 0 |
+| `app/.../di/BleModule.kt` | 4 / 2 |
+| `data/ble/src/test/.../AndroidMiBleTransportTest.kt` | 300 / 0 |
+| `data/ble/src/test/.../XiaomiGattProfileTest.kt` | 148 / 0 |
+| `data/ble/src/test/.../ScooterRepositoryEdgeTest.kt` | 55 / 0 |
+| `data/ble/src/test/.../AndroidBleTransportTest.kt` | 10 / 0 |
+| `data/ble/src/test/.../ScooterClassifierTest.kt` | 10 / 0 |
+| `data/protocol/src/test/.../xiaomi/EncryptedUartTransportTest.kt` | 220 / 0 |
+| `data/protocol/src/test/.../xiaomi/MiScooterConnectionTest.kt` | 315 / 0 |
+| `docs/PROTOCOLS.md` | 10 / 2 |
+
+### Quality gates and coverage
+
+Full test suite and verification gates executed in isolated WSL environment with OpenJDK 21 and Android SDK:
+`lintDebug`, `assembleDebug`, and `jacocoTestReport` all pass with zero errors.
+Test suite reports **902 tests passed, 0 failed, 0 errors, 0 skipped** across all modules.
+
+| Metric | Measured |
+| --- | ---: |
+| New executable lines | 364 / 402 (90.5%) |
+| New conditions | 219 / 310 (70.6%) |
+| Sonar-style coverage (lines + conditions) | **81.9%** (Gate: >= 80.0%) |
+
+### Checkpoint and PR
+
+Phase C checkpoint: PR [38](https://github.com/zero2005x/RideFlux/pull/38) on `codex/mi-ble-transport`, based on `codex/mi-auth-protocol`. Remote GitHub Actions checks (Build, test, and SonarCloud, and GitGuardian) all pass green.
+
+## Phase D: registration consent UI and stored token wiring — 2026-10-05
+
+Implemented the registration consent dialog in `:app` (`DashboardScreen`), reactive registration and pairing state projection in `DashboardViewModel` with a 30-second countdown for physical power-button confirmation, explicit confirmation/cancellation lifecycle integration with `ScooterConnection`, and updated `ScooterPairingBanner` to handle Ninebot retail pairing, Xiaomi button prompt, and authentication progression. Added localized strings for registration warnings, instructions, disclaimers, and actions across all 18 string resource files (English and all 17 supported locales).
+
+All implementation is Evidence Level L2 (tested via simulated sessions and Robolectric unit tests, not tried on physical scooter hardware).
+
+### Files and line counts relative to Phase C
+
+| File | Added / modified lines |
+| --- | ---: |
+| `app/.../ui/dashboard/DashboardViewModel.kt` | 55 / 11 |
+| `app/.../ui/dashboard/DashboardScreen.kt` | 48 / 6 |
+| `app/src/main/res/values/strings.xml` | 8 / 0 |
+| `app/src/main/res/values-*/strings.xml` (17 locales) | 136 / 0 |
+| `app/src/test/.../ui/dashboard/DashboardViewModelMiTest.kt` | 275 / 0 |
+| `app/src/test/.../ui/dashboard/DashboardViewModelPlevTest.kt` | 21 / 0 |
+
+### Quality gates and coverage
+
+Full test suite and verification gates executed in isolated WSL environment with OpenJDK 21 and Android SDK:
+`./gradlew lintDebug assembleDebug jacocoTestReport --no-daemon --no-configuration-cache --console=plain --continue` passes with zero errors.
+Both phone and HUD APKs assemble cleanly.
+Test suite reports **933 tests passed, 0 failed, 0 errors, 0 skipped** across all modules.
+`LocalizationCoverageTest` passes across all 18 string resource files.
+
+| Metric | Measured |
+| --- | ---: |
+| New executable lines | 50 / 51 (98.0%) |
+| New conditions | 21 / 26 (80.8%) |
+| Sonar-style coverage (lines + conditions) | **92.2%** (Gate: >= 80.0%) |
+
+## Phase D+keys: selective bond export, manual key entry, and .rfbond file handling — 2026-10-05
+
+Implemented selective export allowing riders to toggle individual bond entries for export, manual hex entry for importing paired 12-byte Xiaomi BLE tokens and 16-byte Ninebot keys directly by MAC address (with validation, normalization of colon/dash delimiters, optional 0x prefix, PasswordVisualTransformation masking, overwrite confirmation prompt, clearable `tokenBuffer: CharArray` in Compose with `DisposableEffect` wipe, and atomic overwrite state transitions to eliminate race conditions), vehicle model display in export list and import preview, and registered content-only intent-filters for incoming `.rfbond` files (`ACTION_VIEW` and `ACTION_SEND`) with pre-checked RFBOND magic header before passphrase prompt, passing the parsed URI to `PendingBondImport` and navigating safely within the `BlePermissionGate`.
+
+Also updated `MainActivity` launchMode to `singleTop`, added comprehensive registration disclaimers (unverified speed prior to auth, external token invalidation risk, and prior-key import recommendation), and updated all 18 localization files and project documentation.
+
+All implementation is Evidence Level L2 (tested via simulated sessions and Robolectric unit tests, not tried on physical scooter hardware).
+
+### Quality gates and coverage
+
+Full test suite and verification gates executed in isolated WSL environment with OpenJDK 21 and Android SDK:
+`./gradlew lintDebug assembleDebug jacocoTestReport --no-daemon --no-configuration-cache --console=plain --continue` passes with zero errors.
+Both phone and HUD APKs assemble cleanly.
+Test suite reports **947 tests passed, 0 failed, 0 errors, 0 skipped** across all modules.
+`LocalizationCoverageTest` passes across all 18 string resource files.
+
+| Metric | Measured |
+| --- | ---: |
+| New executable lines | 222 / 242 (91.7%) |
+| New conditions | 80 / 91 (87.9%) |
+| Sonar-style coverage (lines + conditions) | **90.7%** (Gate: >= 80.0%) |
+
+### Checkpoint and PR
+
+Phase D+keys checkpoint: PR [40](https://github.com/zero2005x/RideFlux/pull/40) on `codex/mi-bond-keys`, based on `codex/mi-registration-ui`.

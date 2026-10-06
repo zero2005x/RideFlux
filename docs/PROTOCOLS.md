@@ -34,7 +34,7 @@ Electric scooters are modeled as peers under `ScooterDevice` and connected throu
 | Dialect | Models | Framing & Wire Spec | Features |
 |---|---|---|---|
 | **Ninebot Retail** | Ninebot KickScooter (ES1/ES2/ES4, MAX G30, F20/F30/F40, etc.) | Header `5A A5`, length = `payload + 9`, 16-bit negative sum checksum over length + payload. Request target `0x20` with 2-byte LE length. | 3-step automatic pairing (`0x5B` → `0x5C` → user button confirmation → `0x5D` acceptance). `0xB0` telemetry polling. `0x70`/`0x71` stationary lock commands. |
-| **Xiaomi M365** | Xiaomi M365, Pro, Pro2, 1S, Lite, Mi 3 | Header `55 AA`, length = `payload + 9`, 16-bit negative sum checksum. | B0 register mirror block with B5 speed (`raw / 1000f` km/h) and `0xFF00` invalid speed sentinel filtering. |
+| **Xiaomi Mi / M365** | M365-family development profile; model compatibility untested | Logical `55 AA` frames: total `size + 6` (`payload + 8`); authenticated UART `55 AB`: total `size + 16`, AES-CCM and inverted additive checksum. | FE95 token login and explicit-consent registration; B0 register decoding with B5 `raw / 1000f` and unknown-speed sentinel `0xFF00`. L2, not tried on a real scooter; lock/unlock/power disabled. See [Mi authentication](MI_AUTH.md). |
 
 ---
 
@@ -54,7 +54,8 @@ Electric scooters are modeled as peers under `ScooterDevice` and connected throu
 |---|---|---|
 | `SINGLE_CHAR` | `FFE0` service, `FFE1` notify + write | Begode (`G`/`GX`), KingSong (`K`), Ninebot One (`N1`), Veteran (`V`), and Ninebot Retail fallback |
 | `SPLIT_CHAR` | Notify `FFE0`/`FFE4`, write `FFE5`/`FFE9` | Inmotion legacy (`I1`) |
-| `NORDIC_UART` | `6E400001…`, RX `…0002` (write), TX `…0003` (notify) | Ninebot Z (`N2`), Inmotion (`I2`), VESC, and Ninebot / Xiaomi Scooters |
+| `NORDIC_UART` | `6E400001…`, RX `…0002` (write), TX `…0003` (notify) | Ninebot Z (`N2`), Inmotion (`I2`), VESC, and Ninebot Retail |
+| `XIAOMI_MI` | FE95 UPNP `00000010…`, AVDTP `00000019…`, plus NUS write `…0002` / notify `…0003` | Xiaomi Mi development profile; all characteristics required, no topology fallback |
 | `SERVICE_FE95` | `0000fe95-0000-1000-8000-00805f9b34fb` | Xiaomi / Ninebot scooter advertisement identifier |
 
 A UUID-only guess is never authoritative — the true family/dialect is confirmed by the bootstrap handshake after connect.
@@ -91,7 +92,7 @@ RideFlux 解碼哪些車輛家族（電動獨輪車、電動滑板車與智慧 B
 | 協定方言 | 適用車型 | 封包結構與通訊特徵 | 關鍵功能 |
 |---|---|---|---|
 | **Ninebot Retail** | Ninebot KickScooter 系列（ES1/ES2/ES4、MAX G30、F20/F30/F40 等） | 幀頭 `5A A5`，長度為 `payload + 9`，校驗和涵蓋長度位元組的小端 16 位元累加和反碼。讀取暫存器目標為 `0x20`，帶 2-byte 小端長度。 | 三步無人值守動態配對（`0x5B` → `0x5C` → 儀表按鍵確認 → `0x5D` 接受）。`0xB0` 暫存器週期性遙測輪詢。`0x70`/`0x71` 靜止鎖車指令。 |
-| **Xiaomi M365** | 小米 M365、Pro、Pro 2、1S、Lite、Mi 3 | 幀頭 `55 AA`，長度為 `payload + 9`，16 位元校驗和。 | B0 鏡像暫存器解析，B5 速度刻度（`raw / 1000f` km/h），具備 `0xFF00` 減速/空轉無效哨兵值過濾。 |
+| **Xiaomi Mi / M365** | M365 家族開發設定；車型相容性尚未試驗 | 邏輯 `55 AA` 封包總長為 `size + 6`（`payload + 8`）；認證後 UART `55 AB` 總長為 `size + 16`，使用 AES-CCM 與加總取反檢查碼。 | FE95 token 登入與明確同意後註冊；B0 暫存器解碼、B5 `raw / 1000f` 及未知速度哨兵 `0xFF00`。L2，尚未實車試用；鎖車、解鎖與電源寫入關閉。見 [Mi 認證](MI_AUTH.md#繁體中文)。 |
 
 ---
 
@@ -111,7 +112,8 @@ RideFlux 解碼哪些車輛家族（電動獨輪車、電動滑板車與智慧 B
 |---|---|---|
 | `SINGLE_CHAR` | `FFE0` 服務，`FFE1` 通知 + 寫入 | Begode（`G`/`GX`）、KingSong（`K`）、Ninebot One（`N1`）、Veteran（`V`）及 Ninebot Retail 自動降級 |
 | `SPLIT_CHAR` | 通知 `FFE0`/`FFE4`，寫入 `FFE5`/`FFE9` | Inmotion 舊款（`I1`） |
-| `NORDIC_UART` | `6E400001…`，RX `…0002`（寫入），TX `…0003`（通知） | Ninebot Z（`N2`）、Inmotion 新款（`I2`）、VESC 及 Ninebot / 小米滑板車 |
+| `NORDIC_UART` | `6E400001…`，RX `…0002`（寫入），TX `…0003`（通知） | Ninebot Z（`N2`）、Inmotion 新款（`I2`）、VESC 及 Ninebot Retail |
+| `XIAOMI_MI` | FE95 UPNP `00000010…`、AVDTP `00000019…`，加 NUS 寫入 `…0002`／通知 `…0003` | 小米 Mi 開發設定；必須具有所有特徵值，不降級至其他拓撲 |
 | `SERVICE_FE95` | `0000fe95-0000-1000-8000-00805f9b34fb` | 小米／九號滑板車專屬廣播識別服務 UUID |
 
 僅憑 UUID 的推測永遠不是定論——真正的家族要等連線後的啟動握手才會確認。

@@ -147,4 +147,12 @@ class BondEnvelopeTest {
     @Test fun `the default work factor is at least the recommended 600000`() {
         assertTrue(BondEnvelope.DEFAULT_ITERATIONS >= 600_000)
     }
+
+    @Test fun `isBondFile detects valid and invalid files`() {
+        assertTrue(BondEnvelope.isBondFile(seal()))
+        assertFalse(BondEnvelope.isBondFile(byteArrayOf(1, 2, 3)))
+        assertFalse(BondEnvelope.isBondFile("NOT_A_BOND_FILE_HEADER_PADDING_PADDING".toByteArray()))
+        assertFalse(BondEnvelope.isBondFile(ByteArray(64)))
+    }
 }
+

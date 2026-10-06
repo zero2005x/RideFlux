@@ -319,6 +319,7 @@ class DashboardViewModelBehaviourTest {
         val connection = FakeConnection()
         val viewModel = create(FakeRepository { connection }, handle())
         collect(viewModel.uiState)
+        await("telemetry subscribers") { connection.telemetry.subscriptionCount.value.takeIf { it >= 2 } }
 
         viewModel.setHeadlight(true)
         viewModel.setPedalsMode(2)

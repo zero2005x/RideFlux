@@ -47,7 +47,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.RadioButton
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -56,9 +62,23 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.rideflux.app.R
+import com.rideflux.app.navigation.Routes
 import com.rideflux.domain.bond.BondEnvelope
 import com.rideflux.domain.bond.BondFamily
+
+@Composable
+fun BondImportNavigator(navController: NavController) {
+    val pendingUri by PendingBondImport.pendingUri.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingUri) {
+        if (pendingUri != null && navController.currentDestination != null) {
+            navController.navigate(Routes.BOND_BACKUP) {
+                launchSingleTop = true
+            }
+        }
+    }
+}
 
 @Composable
 fun BondBackupRoute(
@@ -75,6 +95,15 @@ fun BondBackupRoute(
     val openDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> viewModel.onImportDocumentPicked(uri?.toString()) }
+
+    val pendingUri by PendingBondImport.pendingUri.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingUri) {
+        val uri = pendingUri
+        if (uri != null) {
+            PendingBondImport.pendingUri.value = null
+            viewModel.onImportDocumentPicked(uri)
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -100,10 +129,15 @@ fun BondBackupRoute(
         onNavigateUp = onNavigateUp,
         onExport = viewModel::requestExport,
         onImport = { openDocument.launch(arrayOf("*/*")) },
+        onOpenManualEntry = viewModel::openManualEntry,
+        onToggleExportSelection = viewModel::toggleExportSelection,
         onSubmitExport = { pass, confirm ->
             viewModel.submitExportPassphrase(pass, confirm, SystemClock.elapsedRealtime())
         },
         onSubmitImport = viewModel::submitImportPassphrase,
+        onSubmitManualKey = viewModel::submitManualKey,
+        onConfirmOverwriteManual = viewModel::confirmOverwriteManual,
+        onCancelOverwriteManual = viewModel::cancelOverwriteManual,
         onConfirmImport = viewModel::confirmImport,
         onDismiss = viewModel::dismissDialog,
     )
@@ -113,6 +147,7 @@ private fun noticeText(context: Context, notice: BondNotice): String = when (not
     is BondNotice.ExportDone -> context.getString(R.string.bond_export_done, notice.count)
     is BondNotice.ImportDone ->
         context.getString(R.string.bond_import_done, notice.imported, notice.overwritten, notice.kept)
+    is BondNotice.ManualKeyAdded -> context.getString(R.string.bond_manual_added, notice.maskedMac)
     BondNotice.InvalidFile -> context.getString(R.string.bond_invalid_file)
     BondNotice.IoFailed -> context.getString(R.string.bond_io_failed)
     BondNotice.ReauthUnavailable -> context.getString(R.string.bond_reauth_unavailable)
@@ -144,8 +179,13 @@ fun BondBackupScreen(
     onNavigateUp: () -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
+    onOpenManualEntry: () -> Unit,
+    onToggleExportSelection: (String) -> Unit,
     onSubmitExport: (CharArray, CharArray) -> Unit,
     onSubmitImport: (CharArray) -> Unit,
+    onSubmitManualKey: (String, CharArray, String, BondFamily) -> Unit,
+    onConfirmOverwriteManual: () -> Unit,
+    onCancelOverwriteManual: () -> Unit,
     onConfirmImport: (Set<Int>, Set<Int>) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -174,18 +214,35 @@ fun BondBackupScreen(
                 state.rows.isEmpty() -> Text(stringResource(R.string.bond_empty))
                 else -> state.rows.forEach { row ->
                     ListItem(
-                        headlineContent = { Text(row.label.ifBlank { row.maskedMac }) },
-                        supportingContent = { Text("${familyName(row.family)} · ${row.maskedMac}") },
+                        leadingContent = {
+                            Checkbox(
+                                checked = row.mac in state.selectedExportMacs,
+                                onCheckedChange = { onToggleExportSelection(row.mac) },
+                                enabled = !state.busy,
+                            )
+                        },
+                        headlineContent = { Text(row.label.ifBlank { row.model ?: row.maskedMac }) },
+                        supportingContent = {
+                            val details = listOfNotNull(
+                                familyName(row.family),
+                                row.model?.takeIf { it.isNotBlank() },
+                                row.maskedMac,
+                            ).joinToString(" · ")
+                            Text(details)
+                        },
                     )
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onExport, enabled = state.rows.isNotEmpty() && !state.busy) {
+                Button(onClick = onExport, enabled = state.selectedExportMacs.isNotEmpty() && !state.busy) {
                     Text(stringResource(R.string.bond_export))
                 }
                 OutlinedButton(onClick = onImport, enabled = !state.busy) {
                     Text(stringResource(R.string.bond_import))
                 }
+            }
+            OutlinedButton(onClick = onOpenManualEntry, enabled = !state.busy) {
+                Text(stringResource(R.string.bond_manual_button))
             }
         }
     }
@@ -206,121 +263,18 @@ fun BondBackupScreen(
             onDismiss = onDismiss,
         )
         is BondDialog.ImportPreview -> ImportPreviewDialog(dialog, onConfirmImport, onDismiss)
+        BondDialog.ManualEntry -> ManualEntryDialog(
+            error = state.manualEntryError,
+            onSubmit = onSubmitManualKey,
+            onDismiss = onDismiss,
+        )
+        is BondDialog.ConfirmOverwriteManual -> ConfirmOverwriteDialog(
+            maskedMac = dialog.entry.maskedMac(),
+            busy = state.busy,
+            onConfirm = onConfirmOverwriteManual,
+            onDismiss = onCancelOverwriteManual,
+        )
     }
 }
 
-@Composable
-private fun PassphraseDialog(
-    title: String,
-    confirmField: Boolean,
-    error: BondPassphraseError?,
-    onSubmit: (CharArray, CharArray) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var passphrase by remember { mutableStateOf("") }
-    var confirm by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (confirmField) Text(stringResource(R.string.bond_passphrase_hint))
-                OutlinedTextField(
-                    value = passphrase, onValueChange = { passphrase = it }, singleLine = true,
-                    label = { Text(stringResource(R.string.bond_passphrase)) },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                )
-                if (confirmField) {
-                    OutlinedTextField(
-                        value = confirm, onValueChange = { confirm = it }, singleLine = true,
-                        label = { Text(stringResource(R.string.bond_passphrase_confirm)) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    )
-                }
-                error?.let {
-                    Text(stringResource(errorText(it)), color = MaterialTheme.colorScheme.error)
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = passphrase.isNotEmpty(),
-                onClick = {
-                    val p = passphrase.toCharArray()
-                    val c = confirm.toCharArray()
-                    passphrase = ""
-                    confirm = ""
-                    onSubmit(p, c)
-                },
-            ) { Text(stringResource(if (confirmField) R.string.action_export else R.string.action_import)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
-}
 
-@Composable
-private fun ImportPreviewDialog(
-    dialog: BondDialog.ImportPreview,
-    onConfirm: (Set<Int>, Set<Int>) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val selected = remember { mutableStateListOf<Int>().apply { addAll(dialog.rows.map { it.index }) } }
-    val replace = remember { mutableStateListOf<Int>() }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.bond_preview_title)) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                dialog.rows.forEach { row ->
-                    Row {
-                        Checkbox(
-                            checked = row.index in selected,
-                            onCheckedChange = { if (it) selected += row.index else selected -= row.index },
-                        )
-                        Column {
-                            Text(row.label.ifBlank { row.maskedMac })
-                            Text("${familyName(row.family)} · ${row.maskedMac}",
-                                style = MaterialTheme.typography.bodySmall)
-                            if (row.conflict) {
-                                Row {
-                                    Checkbox(
-                                        checked = row.index in replace,
-                                        onCheckedChange = { if (it) replace += row.index else replace -= row.index },
-                                    )
-                                    Text(stringResource(R.string.bond_preview_replace),
-                                        style = MaterialTheme.typography.bodySmall)
-                                }
-                            }
-                        }
-                    }
-                }
-                if (dialog.skippedUnsupported > 0) {
-                    Text(stringResource(R.string.bond_preview_skipped, dialog.skippedUnsupported),
-                        style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(selected.toSet(), replace.toSet()) }) {
-                Text(stringResource(R.string.action_import))
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
-}
-
-private fun errorText(error: BondPassphraseError): Int = when (error) {
-    BondPassphraseError.WEAK -> R.string.bond_error_weak
-    BondPassphraseError.MISMATCH -> R.string.bond_error_mismatch
-    BondPassphraseError.WRONG_OR_CORRUPT -> R.string.bond_error_wrong
-}
-
-@Composable
-private fun familyName(family: BondFamily): String = stringResource(
-    when (family) {
-        BondFamily.XIAOMI_MI -> R.string.bond_family_xiaomi_mi
-        BondFamily.NINEBOT_CRYPTO -> R.string.bond_family_ninebot_crypto
-    },
-)

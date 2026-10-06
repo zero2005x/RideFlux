@@ -346,4 +346,25 @@
     <string name="bond_invalid_file">Це не припустимий файл резервної копії RideFlux.</string>
     <string name="bond_io_failed">Не вдалося прочитати або зберегти файл.</string>
     <string name="bond_load_failed">Збережені ключі сполучення не вдається прочитати на цьому телефоні.</string>
+    <string name="scooter_pairing_banner_prompt">Натисніть кнопку живлення на кермі для з\'єднання</string>
+    <string name="mi_registration_authenticating">Автентифікація з транспортним засобом…</string>
+    <string name="mi_registration_dialog_title">Потрібна реєстрація пристрою</string>
+    <string name="mi_registration_dialog_warning_stationary">Транспортний засіб має бути повністю нерухомим і стояти на підніжці.</string>
+    <string name="mi_registration_dialog_instructions">Після підтвердження зачекайте підказки (до 30 секунд) і натисніть один раз кнопку живлення на кермі.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Швидкість транспортного засобу не може бути перевірена до автентифікації. Оцінки не доводять зупинку. Не продовжуйте під час руху.</string>
+    <string name="mi_registration_dialog_confirm">Продовжити</string>
+    <string name="mi_registration_dialog_cancel">Скасувати</string>
+    <string name="bond_manual_button">Додати ключ вручну</string>
+    <string name="bond_manual_title">Додати ключ з\'єднання</string>
+    <string name="bond_manual_mac">Bluetooth-адреса (MAC)</string>
+    <string name="bond_manual_token">Шістнадцятковий токен</string>
+    <string name="bond_manual_label">Мітка (необов\'язково)</string>
+    <string name="bond_manual_error">Недійсна адреса Bluetooth або шістнадцятковий токен.</string>
+    <string name="bond_manual_added">Додано ключ з\'єднання для %1$s.</string>
+    <string name="action_add">Додати</string>
+    <string name="bond_overwrite_title">Замінити ключ з\'єднання?</string>
+    <string name="bond_overwrite_message">Ключ з\'єднання для %1$s вже існує на цьому телефоні. Замінити його?</string>
+    <string name="action_replace">Замінити</string>
+    <string name="mi_registration_dialog_warning_token_invalidation">Реєстрація може зробити недійсними токени в інших додатках (наприклад, Mi Home).</string>
+    <string name="mi_registration_dialog_recommend_import">Якщо у вас уже є ключ, рекомендується імпортувати його в Налаштування → Резервна копія замість повторної реєстрації.</string>
 </resources>
