@@ -357,4 +357,33 @@
     <string name="battery_pack_current">Battery pack: %1$dS</string>
     <string name="battery_pack_dialog_title">Battery pack</string>
     <string name="battery_pack_dialog_body">How many cells in series does this battery have? The charger label shows the voltage: 67.2 V is 16S, 84 V is 20S, 100.8 V is 24S.</string>
+    <string name="settings_bond_title">Pairing keys backup</string>
+    <string name="settings_bond_subtitle">Export or import scooter pairing keys as an encrypted file.</string>
+    <string name="bond_title">Pairing keys</string>
+    <string name="bond_warning">A pairing key gives control of your scooter. Anyone who has the backup file and its passphrase can use it. Keep backups private and use them only for your own scooter.</string>
+    <string name="bond_empty">No pairing keys are stored on this phone.</string>
+    <string name="bond_export">Export backup</string>
+    <string name="bond_import">Import backup</string>
+    <string name="bond_reauth_title">Confirm it is you</string>
+    <string name="bond_reauth_subtitle">Unlock to export pairing keys</string>
+    <string name="bond_reauth_unavailable">Set a screen lock first to export pairing keys.</string>
+    <string name="bond_reauth_expired">Confirmation expired. Please try again.</string>
+    <string name="bond_export_dialog_title">Protect the backup</string>
+    <string name="bond_import_dialog_title">Open backup</string>
+    <string name="bond_passphrase">Passphrase</string>
+    <string name="bond_passphrase_confirm">Repeat passphrase</string>
+    <string name="bond_passphrase_hint">At least 10 characters with several different ones. You need it to import the file and it cannot be recovered.</string>
+    <string name="bond_error_weak">Too weak: use at least 10 characters, with several different ones.</string>
+    <string name="bond_error_mismatch">The passphrases do not match.</string>
+    <string name="bond_error_wrong">Wrong passphrase, or the file is damaged.</string>
+    <string name="bond_preview_title">Choose keys to import</string>
+    <string name="bond_preview_replace">Already on this phone: replace it</string>
+    <string name="bond_preview_skipped">%d key(s) of a type this version cannot use were skipped.</string>
+    <string name="bond_export_done">Exported %d key(s).</string>
+    <string name="bond_import_done">Imported %1$d, replaced %2$d, kept %3$d.</string>
+    <string name="bond_invalid_file">This is not a valid RideFlux backup file.</string>
+    <string name="bond_io_failed">Could not read or save the file.</string>
+    <string name="bond_load_failed">The stored pairing keys cannot be read on this phone.</string>
+    <string name="bond_family_xiaomi_mi" translatable="false">Xiaomi Mi</string>
+    <string name="bond_family_ninebot_crypto" translatable="false">Ninebot</string>
 </resources>

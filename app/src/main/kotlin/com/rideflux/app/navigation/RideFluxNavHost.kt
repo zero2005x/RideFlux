@@ -168,6 +168,12 @@ fun RideFluxNavHost(
                 onNavigateUp = { navController.popBackStack() },
                 onOpenTripHistory = { navController.navigate(Routes.TRIP_HISTORY) },
                 onOpenGlassesSetup = { navController.navigate(Routes.GLASSES_SETUP) },
+                onOpenBondBackup = { navController.navigate(Routes.BOND_BACKUP) },
+            )
+        }
+        composable(Routes.BOND_BACKUP) {
+            com.rideflux.app.ui.bond.BondBackupRoute(
+                onNavigateUp = { navController.popBackStack() },
             )
         }
         composable(Routes.GLASSES_SETUP) {
@@ -202,6 +208,7 @@ object Routes {
     const val SCANNER: String = "scanner"
     const val SETTINGS: String = "settings"
     const val GLASSES_SETUP: String = "glasses-setup"
+    const val BOND_BACKUP: String = "bond-backup"
     const val TRIP_HISTORY: String = "trip-history"
     const val TRIP_PATTERN: String = "trip/{${TripDetailViewModel.ARG_TRIP_ID}}"
 

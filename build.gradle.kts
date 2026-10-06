@@ -295,6 +295,12 @@ sonar {
                 "**/com/rideflux/app/ui/dashboard/components/SpeedGauge.kt",
                 "**/com/rideflux/app/ui/dashboard/components/TelemetryChart.kt",
                 "**/com/rideflux/app/ui/dashboard/pages/*Page.kt",
+                // Pairing-key backup: Compose screen and the two platform calls (BiometricPrompt and
+                // the Android Keystore) that a JVM unit test cannot run. The store, the envelope and
+                // the view model around them are measured.
+                "**/com/rideflux/app/ui/bond/BondBackupScreen.kt",
+                "**/com/rideflux/app/ui/bond/DeviceReauth.kt",
+                "**/com/rideflux/data/preferences/AndroidKeystoreBondCipher.kt",
                 // :hud-app Compose UI.
                 "**/com/rideflux/hud/HudScreen.kt",
                 "**/com/rideflux/hud/permission/BlePermissionGate.kt",
