@@ -44,6 +44,9 @@ class DeviceReauth(
         }
     }
 
+    // DeviceReauth serves as an explicit user consent gate before export; exported data is sealed
+    // with a user-entered passphrase, so a hardware-backed CryptoObject is not required here.
+    @Suppress("kotlin:S6293")
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun startPrompt(title: String, subtitle: String) {
         val builder = BiometricPrompt.Builder(context).setTitle(title).setSubtitle(subtitle)

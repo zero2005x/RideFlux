@@ -5,7 +5,7 @@
 package com.rideflux.app.ui.bond
 
 import android.content.ContentResolver
-import android.net.Uri
+import androidx.core.net.toUri
 import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
 class ContentResolverBondFileIo(private val resolver: ContentResolver) : BondFileIo {
     override suspend fun read(location: String, maxBytes: Int): ByteArray? = withContext(Dispatchers.IO) {
         try {
-            resolver.openInputStream(Uri.parse(location))?.use { input ->
+            resolver.openInputStream(location.toUri())?.use { input ->
                 val out = ByteArrayOutputStream()
                 val buffer = ByteArray(BUFFER_BYTES)
                 var total = 0
@@ -34,7 +34,7 @@ class ContentResolverBondFileIo(private val resolver: ContentResolver) : BondFil
 
     override suspend fun write(location: String, bytes: ByteArray): Boolean = withContext(Dispatchers.IO) {
         try {
-            resolver.openOutputStream(Uri.parse(location), "wt")?.use { it.write(bytes); it.flush(); true } ?: false
+            resolver.openOutputStream(location.toUri(), "wt")?.use { it.write(bytes); it.flush(); true } ?: false
         } catch (_: Exception) {
             false
         }
