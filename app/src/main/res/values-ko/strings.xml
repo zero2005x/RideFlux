@@ -346,4 +346,12 @@
     <string name="bond_invalid_file">올바른 RideFlux 백업 파일이 아닙니다.</string>
     <string name="bond_io_failed">파일을 읽거나 저장할 수 없습니다.</string>
     <string name="bond_load_failed">저장된 페어링 키를 이 휴대폰에서 읽을 수 없습니다.</string>
+    <string name="scooter_pairing_banner_prompt">핸들바의 전원 버튼을 눌러 페어링을 완료하세요</string>
+    <string name="mi_registration_authenticating">기기와 인증 중…</string>
+    <string name="mi_registration_dialog_title">기기 등록 필요</string>
+    <string name="mi_registration_dialog_warning_stationary">기기는 킥스탠드를 세우고 완전히 정지된 상태여야 합니다.</string>
+    <string name="mi_registration_dialog_instructions">확인 후 안내(최대 30초)를 기다린 다음 핸들바의 전원 버튼을 한 번 누르세요.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">속도 추정치는 검증되지 않았으며 기기가 정지했음을 증명하지 않습니다. 주행 중에는 계속하지 마세요.</string>
+    <string name="mi_registration_dialog_confirm">계속</string>
+    <string name="mi_registration_dialog_cancel">취소</string>
 </resources>

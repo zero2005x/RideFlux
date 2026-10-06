@@ -18,6 +18,7 @@ import com.rideflux.domain.command.WheelCommand
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
 import com.rideflux.domain.connection.ScooterHandshakeState
+import com.rideflux.domain.connection.MiRegistrationState
 import com.rideflux.domain.device.PlevCategory
 import com.rideflux.domain.telemetry.ScooterTelemetry
 import com.rideflux.domain.connection.ScooterConnection
@@ -100,6 +101,7 @@ data class DashboardUiState(
     val isLocked: Boolean? = null,
     val lockControlsSupported: Boolean = false,
     val deviceModel: String? = null,
+    val miRegistrationState: MiRegistrationState = MiRegistrationState.NOT_REQUIRED,
 ) {
     /** Instantaneous power draw in watts, derived as `V·I`. */
     val powerW: Float? get() {
@@ -152,6 +154,7 @@ fun scooterDashboardState(
     remaining: Int?,
     useMetric: Boolean = true,
     keepScreenOnDashboard: Boolean = true,
+    miRegistration: MiRegistrationState = MiRegistrationState.NOT_REQUIRED,
 ): DashboardUiState = DashboardUiState(
     connectionState = connectionState,
     deviceCategory = PlevCategory.SCOOTER,
@@ -162,9 +165,11 @@ fun scooterDashboardState(
     tripDistanceMetres = telemetry?.tripDistanceMetres?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt(),
     handshakeState = handshake,
     lockControlsSupported = scooter.lockSupported,
-    handshakeRemainingSeconds = if (handshake == ScooterHandshakeState.WAITING_FOR_USER_CONFIRMATION) remaining else null,
+    handshakeRemainingSeconds = if (handshake == ScooterHandshakeState.WAITING_FOR_USER_CONFIRMATION ||
+        miRegistration == MiRegistrationState.WAITING_FOR_POWER_BUTTON) remaining else null,
     useMetric = useMetric,
     keepScreenOnDashboard = keepScreenOnDashboard,
+    miRegistrationState = miRegistration,
 )
 
 /**
@@ -360,8 +365,8 @@ class DashboardViewModel @Inject constructor(
             if (conn is PlevConnectionHandle.Scooter) {
                 var countdownJob: Job? = null
                 conn.connection.handshakeState.onEach { state ->
-                    countdownJob?.cancel()
                     if (state == ScooterHandshakeState.WAITING_FOR_USER_CONFIRMATION) {
+                        countdownJob?.cancel()
                         handshakeCountdown.value = 20
                         countdownJob = viewModelScope.launch {
                             repeat(20) {
@@ -369,7 +374,26 @@ class DashboardViewModel @Inject constructor(
                                 handshakeCountdown.value = 19 - it
                             }
                         }
-                    } else handshakeCountdown.value = null
+                    } else if (conn.connection.registrationState.value != MiRegistrationState.WAITING_FOR_POWER_BUTTON) {
+                        countdownJob?.cancel()
+                        handshakeCountdown.value = null
+                    }
+                }.launchIn(viewModelScope)
+
+                conn.connection.registrationState.onEach { regState ->
+                    if (regState == MiRegistrationState.WAITING_FOR_POWER_BUTTON) {
+                        countdownJob?.cancel()
+                        handshakeCountdown.value = 30
+                        countdownJob = viewModelScope.launch {
+                            repeat(30) {
+                                delay(1_000L)
+                                handshakeCountdown.value = 29 - it
+                            }
+                        }
+                    } else if (conn.connection.handshakeState.value != ScooterHandshakeState.WAITING_FOR_USER_CONFIRMATION) {
+                        countdownJob?.cancel()
+                        handshakeCountdown.value = null
+                    }
                 }.launchIn(viewModelScope)
                 return@launch
             }
@@ -504,6 +528,18 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    fun onMiRegistrationConsent(confirmed: Boolean) {
+        viewModelScope.launch {
+            val scooter = connectionAsync.await() as? PlevConnectionHandle.Scooter ?: return@launch
+            if (confirmed) {
+                scooter.connection.registerAfterUserConfirmation(true)
+            } else {
+                scooter.connection.registerAfterUserConfirmation(false)
+                scooter.connection.close()
+            }
+        }
+    }
+
     // ---- High-level command helpers -----------------------------------
 
     /**
@@ -617,12 +653,29 @@ class DashboardViewModel @Inject constructor(
     private fun combineDashboardFlows(handle: PlevConnectionHandle): kotlinx.coroutines.flow.Flow<DashboardUiState> {
         if (handle is PlevConnectionHandle.Scooter) {
             val scooter = handle.connection
+            val pairingFlow = kotlinx.coroutines.flow.combine(
+                scooter.handshakeState,
+                scooter.registrationState,
+                handshakeCountdown,
+            ) { handshake, registration, countdown ->
+                Triple(handshake, registration, countdown)
+            }
             return kotlinx.coroutines.flow.combine(
-                scooter.state, scooter.telemetry, scooter.handshakeState,
-                handshakeCountdown, settingsRepository.settings,
-            ) { state, telemetry, handshake, remaining, settings ->
-                scooterDashboardState(scooter, state, telemetry, handshake, remaining,
-                    settings.useMetric, settings.keepScreenOnDashboard)
+                scooter.state,
+                scooter.telemetry,
+                pairingFlow,
+                settingsRepository.settings,
+            ) { state, telemetry, (handshake, registration, countdown), settings ->
+                scooterDashboardState(
+                    scooter = scooter,
+                    connectionState = state,
+                    telemetry = telemetry,
+                    handshake = handshake,
+                    remaining = countdown,
+                    useMetric = settings.useMetric,
+                    keepScreenOnDashboard = settings.keepScreenOnDashboard,
+                    miRegistration = registration,
+                )
             }
         }
         val conn = (handle as PlevConnectionHandle.Wheel).connection

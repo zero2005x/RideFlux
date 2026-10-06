@@ -346,4 +346,12 @@
     <string name="bond_invalid_file">Ce n’est pas un fichier de sauvegarde RideFlux valide.</string>
     <string name="bond_io_failed">Impossible de lire ou d’enregistrer le fichier.</string>
     <string name="bond_load_failed">Les clés d’appairage enregistrées ne peuvent pas être lues sur ce téléphone.</string>
+    <string name="scooter_pairing_banner_prompt">Appuyez sur le bouton d\'alimentation du guidon pour associer</string>
+    <string name="mi_registration_authenticating">Authentification avec le véhicule…</string>
+    <string name="mi_registration_dialog_title">Enregistrement du véhicule requis</string>
+    <string name="mi_registration_dialog_warning_stationary">Le véhicule doit être totalement immobile et béquillé.</string>
+    <string name="mi_registration_dialog_instructions">Après confirmation, attendez l\'invite (jusqu\'à 30 secondes) et appuyez une fois sur le bouton d\'alimentation du guidon.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">Les estimations de vitesse ne sont pas vérifiées et ne prouvent pas l\'arrêt du véhicule. Ne continuez pas en roulant.</string>
+    <string name="mi_registration_dialog_confirm">Continuer</string>
+    <string name="mi_registration_dialog_cancel">Annuler</string>
 </resources>

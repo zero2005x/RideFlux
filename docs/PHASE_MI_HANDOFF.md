@@ -214,8 +214,42 @@ Test suite reports **902 tests passed, 0 failed, 0 errors, 0 skipped** across al
 | New conditions | 219 / 310 (70.6%) |
 | Sonar-style coverage (lines + conditions) | **81.9%** (Gate: >= 80.0%) |
 
+### Checkpoint and PR
+
+Phase C checkpoint: PR [38](https://github.com/zero2005x/RideFlux/pull/38) on `codex/mi-ble-transport`, based on `codex/mi-auth-protocol`. Remote GitHub Actions checks (Build, test, and SonarCloud, and GitGuardian) all pass green.
+
+## Phase D: registration consent UI and stored token wiring — 2026-10-05
+
+Implemented the registration consent dialog in `:app` (`DashboardScreen`), reactive registration and pairing state projection in `DashboardViewModel` with a 30-second countdown for physical power-button confirmation, explicit confirmation/cancellation lifecycle integration with `ScooterConnection`, and updated `ScooterPairingBanner` to handle Ninebot retail pairing, Xiaomi button prompt, and authentication progression. Added localized strings for registration warnings, instructions, disclaimers, and actions across all 18 string resource files (English and all 17 supported locales).
+
+All implementation is Evidence Level L2 (tested via simulated sessions and Robolectric unit tests, not tried on physical scooter hardware).
+
+### Files and line counts relative to Phase C
+
+| File | Added / modified lines |
+| --- | ---: |
+| `app/.../ui/dashboard/DashboardViewModel.kt` | 55 / 11 |
+| `app/.../ui/dashboard/DashboardScreen.kt` | 48 / 6 |
+| `app/src/main/res/values/strings.xml` | 8 / 0 |
+| `app/src/main/res/values-*/strings.xml` (17 locales) | 136 / 0 |
+| `app/src/test/.../ui/dashboard/DashboardViewModelMiTest.kt` | 275 / 0 |
+| `app/src/test/.../ui/dashboard/DashboardViewModelPlevTest.kt` | 21 / 0 |
+
+### Quality gates and coverage
+
+Full test suite and verification gates executed in isolated WSL environment with OpenJDK 21 and Android SDK:
+`./gradlew lintDebug assembleDebug jacocoTestReport --no-daemon --no-configuration-cache --console=plain --continue` passes with zero errors.
+Both phone and HUD APKs assemble cleanly.
+Test suite reports **933 tests passed, 0 failed, 0 errors, 0 skipped** across all modules.
+`LocalizationCoverageTest` passes across all 18 string resource files.
+
+| Metric | Measured |
+| --- | ---: |
+| New executable lines | 50 / 51 (98.0%) |
+| New conditions | 21 / 26 (80.8%) |
+| Sonar-style coverage (lines + conditions) | **92.2%** (Gate: >= 80.0%) |
+
 ### Next phases
 
-- Phase D (PR 4): UI registration dialog (stationary warning, power button prompt, unverified speed disclaimer) and token persistence in `:app`.
 - Phase D+keys (PR 5): Key export/import selection, manual hex entry, and `.rfbond` intent filters.
 

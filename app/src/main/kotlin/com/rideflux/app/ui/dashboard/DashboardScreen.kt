@@ -103,6 +103,7 @@ import com.rideflux.app.recording.RecordingUiState
 import com.rideflux.domain.alert.ThresholdAlert
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.ScooterHandshakeState
+import com.rideflux.domain.connection.MiRegistrationState
 import com.rideflux.domain.device.PlevCategory
 import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelAlert
@@ -205,6 +206,7 @@ fun DashboardRoute(
         onSetMaxSpeedKmh = viewModel::setMaxSpeedKmh,
         onLock = viewModel::onLockClicked,
         onUnlock = viewModel::onUnlockClicked,
+        onMiRegistrationConsent = viewModel::onMiRegistrationConsent,
         asksForBatteryPack = asksForBatteryPack,
         batteryPackCells = batteryPackCells,
         onSetBatteryPack = viewModel::setBatteryPackCells,
@@ -258,6 +260,7 @@ fun DashboardScreen(
     onSetMaxSpeedKmh: (Float) -> Unit = {},
     onLock: () -> Unit = {},
     onUnlock: () -> Unit = {},
+    onMiRegistrationConsent: (Boolean) -> Unit = {},
     asksForBatteryPack: Boolean = false,
     batteryPackCells: Int? = null,
     onSetBatteryPack: (Int) -> Unit = {},
@@ -402,6 +405,38 @@ fun DashboardScreen(
             dismissButton = {
                 TextButton(onClick = { showSpeedLimitDialog = false }) {
                     Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    if (uiState.miRegistrationState == MiRegistrationState.CONSENT_REQUIRED) {
+        AlertDialog(
+            onDismissRequest = { onMiRegistrationConsent(false) },
+            title = { Text(stringResource(R.string.mi_registration_dialog_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        stringResource(R.string.mi_registration_dialog_warning_stationary),
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(stringResource(R.string.mi_registration_dialog_instructions))
+                    Text(
+                        stringResource(R.string.mi_registration_dialog_disclaimer_speed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { onMiRegistrationConsent(true) }) {
+                    Text(stringResource(R.string.mi_registration_dialog_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onMiRegistrationConsent(false) }) {
+                    Text(stringResource(R.string.mi_registration_dialog_cancel))
                 }
             },
         )
@@ -651,8 +686,14 @@ fun isScooterLockActionEnabled(state: DashboardUiState): Boolean =
 
 @Composable
 private fun ScooterPairingBanner(state: DashboardUiState) {
-    val visible = state.deviceCategory == PlevCategory.SCOOTER &&
+    val isNinebotPairing = state.deviceCategory == PlevCategory.SCOOTER &&
         state.handshakeState == ScooterHandshakeState.WAITING_FOR_USER_CONFIRMATION
+    val isMiPairing = state.deviceCategory == PlevCategory.SCOOTER &&
+        state.miRegistrationState == MiRegistrationState.WAITING_FOR_POWER_BUTTON
+    val isMiAuthenticating = state.deviceCategory == PlevCategory.SCOOTER &&
+        state.miRegistrationState == MiRegistrationState.AUTHENTICATING
+
+    val visible = isNinebotPairing || isMiPairing || isMiAuthenticating
     val haptics = LocalHapticFeedback.current
     LaunchedEffect(visible) {
         if (visible) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -664,15 +705,23 @@ private fun ScooterPairingBanner(state: DashboardUiState) {
             contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
             shape = RoundedCornerShape(12.dp),
         ) {
-            Column(modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Press vehicle power button to pair / 請按下車把電源鍵完成配對")
-                val remaining = (state.handshakeRemainingSeconds ?: 20).coerceIn(0, 20)
-                Text("$remaining s", style = MaterialTheme.typography.labelLarge)
-                LinearProgressIndicator(
-                    progress = { remaining / 20f },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (isMiAuthenticating) {
+                    Text(stringResource(R.string.mi_registration_authenticating))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                } else {
+                    Text(stringResource(R.string.scooter_pairing_banner_prompt))
+                    val maxSeconds = if (isMiPairing) 30 else 20
+                    val remaining = (state.handshakeRemainingSeconds ?: maxSeconds).coerceIn(0, maxSeconds)
+                    Text("$remaining s", style = MaterialTheme.typography.labelLarge)
+                    LinearProgressIndicator(
+                        progress = { remaining / maxSeconds.toFloat() },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }

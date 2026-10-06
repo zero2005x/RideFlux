@@ -346,4 +346,12 @@
     <string name="bond_invalid_file">Este não é um ficheiro de cópia RideFlux válido.</string>
     <string name="bond_io_failed">Não foi possível ler ou guardar o ficheiro.</string>
     <string name="bond_load_failed">As chaves de emparelhamento guardadas não podem ser lidas neste telemóvel.</string>
+    <string name="scooter_pairing_banner_prompt">Pressione o botão liga/desliga no guidão para emparelhar</string>
+    <string name="mi_registration_authenticating">Autenticando com o veículo…</string>
+    <string name="mi_registration_dialog_title">Registro de veículo necessário</string>
+    <string name="mi_registration_dialog_warning_stationary">O veículo deve estar completamente parado e apoiado no descanso.</string>
+    <string name="mi_registration_dialog_instructions">Após confirmar, aguarde o aviso (até 30 segundos) e pressione o botão liga/desliga uma vez no guidão.</string>
+    <string name="mi_registration_dialog_disclaimer_speed">As estimativas de velocidade não são verificadas e não comprovam que o veículo está parado. Não prossiga durante a condução.</string>
+    <string name="mi_registration_dialog_confirm">Continuar</string>
+    <string name="mi_registration_dialog_cancel">Cancelar</string>
 </resources>
