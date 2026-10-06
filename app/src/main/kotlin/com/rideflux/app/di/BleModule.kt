@@ -12,6 +12,7 @@ import com.rideflux.data.ble.WheelCodecFactoryImpl
 import com.rideflux.data.ble.WheelRepositoryImpl
 import com.rideflux.data.ble.ScooterRepositoryImpl
 import com.rideflux.protocol.repository.PlevRepositoryImpl
+import com.rideflux.domain.bond.BondStore
 import com.rideflux.domain.codec.WheelCodecFactory
 import com.rideflux.domain.repository.WheelRepository
 import com.rideflux.domain.repository.PlevRepository
@@ -108,7 +109,8 @@ object BleModule {
     fun provideScooterRepository(
         @ApplicationContext context: Context,
         @ApplicationScope scope: CoroutineScope,
-    ): ScooterRepository = ScooterRepositoryImpl(context, scope)
+        bondStore: BondStore,
+    ): ScooterRepository = ScooterRepositoryImpl(context, scope, bondStore)
 
     @Provides
     @Singleton

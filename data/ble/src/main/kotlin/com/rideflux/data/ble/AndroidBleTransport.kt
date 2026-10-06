@@ -747,6 +747,7 @@ class AndroidBleTransport internal constructor(
             val rx = svc.getCharacteristic(GattUuids.CHAR_NUS_RX) ?: return null
             ResolvedChars(notify = tx, write = rx)
         }
+        GattTopology.XIAOMI_MI -> null // Xiaomi Mi requires AndroidMiBleTransport with FE95 authentication.
     }
 
     @Suppress("DEPRECATION")

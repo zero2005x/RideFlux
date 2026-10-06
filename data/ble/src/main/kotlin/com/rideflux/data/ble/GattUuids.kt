@@ -57,6 +57,8 @@ internal object GattUuids {
     // Xiaomi security service. Its characteristic layout must be verified per model.
     // Ninebot Retail may instead use NORDIC_UART or SINGLE_CHAR transport topology.
     val SERVICE_FE95: UUID = UUID.fromString("0000fe95-0000-1000-8000-00805f9b34fb")
+    val CHAR_MI_UPNP: UUID = UUID.fromString("00000010-0000-1000-8000-00805f9b34fb")
+    val CHAR_MI_AVDTP: UUID = UUID.fromString("00000019-0000-1000-8000-00805f9b34fb")
 
     // ---- CCC descriptor shared by every family -------------------------
 
@@ -71,5 +73,5 @@ internal object GattUuids {
     // scans unfiltered and classifies in-process.
 }
 
-/** Three GATT topologies defined in §1.1 and §1.2. */
-enum class GattTopology { SINGLE_CHAR, SPLIT_CHAR, NORDIC_UART }
+/** GATT topologies defined in §1.1, §1.2 and Xiaomi Mi FE95 specs. */
+enum class GattTopology { SINGLE_CHAR, SPLIT_CHAR, NORDIC_UART, XIAOMI_MI }

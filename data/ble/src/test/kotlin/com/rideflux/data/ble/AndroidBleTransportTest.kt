@@ -195,4 +195,14 @@ class AndroidBleTransportTest {
 
         assertTrue(runBlocking { transport.incoming.toList() }.isEmpty())
     }
+
+    @Test
+    fun resolveCharacteristicsReturnsNullForXiaomiMiTopology() {
+        val gatt = mockk<BluetoothGatt>(relaxed = true)
+        val xiaomiTransport = AndroidBleTransport(context, device, GattTopology.XIAOMI_MI)
+        val method = AndroidBleTransport::class.java.getDeclaredMethod("resolveExactly", BluetoothGatt::class.java, GattTopology::class.java)
+        method.isAccessible = true
+        val result = method.invoke(xiaomiTransport, gatt, GattTopology.XIAOMI_MI)
+        org.junit.Assert.assertNull(result)
+    }
 }
