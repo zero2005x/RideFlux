@@ -299,6 +299,7 @@ sonar {
                 // the Android Keystore) that a JVM unit test cannot run. The store, the envelope and
                 // the view model around them are measured.
                 "**/com/rideflux/app/ui/bond/BondBackupScreen.kt",
+                "**/com/rideflux/app/ui/bond/BondBackupDialogs.kt",
                 "**/com/rideflux/app/ui/bond/DeviceReauth.kt",
                 "**/com/rideflux/data/preferences/AndroidKeystoreBondCipher.kt",
                 // :hud-app Compose UI.

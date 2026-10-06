@@ -18,6 +18,7 @@ fun signingCredential(name: String): String? =
             f.readLines().map { it.trim() }
                 .firstOrNull { it.startsWith("$name=") }
                 ?.substringAfter('=')
+                ?.replace("\\:", ":")
                 ?.takeIf { it.isNotBlank() }
         }
 

@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 
 /**
@@ -77,7 +78,10 @@ class ScannerViewModel @Inject constructor(
             errorMessage = null,
         )
         val scanFlow = try {
-            combine(wheelRepository.scan(), scooterRepository.scan()) { wheels, scooters ->
+            combine(
+                wheelRepository.scan().onStart { emit(emptyList()) },
+                scooterRepository.scan().onStart { emit(emptyList()) },
+            ) { wheels, scooters ->
                 wheels.filterNot { wheel -> scooters.any { it.address == wheel.address } } to scooters
             }
         } catch (t: Throwable) {
