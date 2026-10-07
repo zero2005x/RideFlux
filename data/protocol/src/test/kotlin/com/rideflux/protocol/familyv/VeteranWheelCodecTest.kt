@@ -106,6 +106,9 @@ class VeteranWheelCodecTest {
         assertEquals(100f, telem.snapshot.batteryPercent)
         // In modern profile, offset 34 is vendor output multiplier, so pwmPercent must be null
         assertNull(telem.snapshot.pwmPercent)
+        // currentA and rideMode remain null pending live L3 capture verification
+        assertNull(telem.snapshot.currentA)
+        assertNull(telem.snapshot.rideMode)
         assertEquals(ChargingState.CHARGING, telem.snapshot.chargingState)
     }
 
@@ -134,6 +137,8 @@ class VeteranWheelCodecTest {
         assertTrue(telem != null)
         assertEquals(123.75f, telem!!.snapshot.voltageV)
         assertEquals(100f, telem.snapshot.batteryPercent)
+        assertNull(telem.snapshot.currentA)
+        assertNull(telem.snapshot.rideMode)
     }
 
     @Test
@@ -150,8 +155,13 @@ class VeteranWheelCodecTest {
         val codecNoCells = VeteranWheelCodec("11:22:33:44:55:66", profile = VeteranProtocolProfile.MODERN_NOSFET)
         val stateNoCells = codecNoCells.newState()
         val eventsNoCells = codecNoCells.decode(stateNoCells, unknownFrame)
+        val identifiedNoCells = eventsNoCells.filterIsInstance<DecodeEvent.Identified>().first()
         val telemNoCells = eventsNoCells.filterIsInstance<DecodeEvent.TelemetryUpdate>().first()
+        assertEquals("Nosfet (9999)", identifiedNoCells.identity.modelName)
         assertNull(telemNoCells.snapshot.batteryPercent)
+        assertNull(telemNoCells.snapshot.currentA)
+        assertNull(telemNoCells.snapshot.rideMode)
+        assertNull(telemNoCells.snapshot.pwmPercent)
 
         // 2. With seriesCells = 36 (e.g. 151.2V pack) -> derives SOC from single-cell curve
         val codecWithCells = VeteranWheelCodec(
@@ -163,5 +173,67 @@ class VeteranWheelCodecTest {
         val eventsWithCells = codecWithCells.decode(stateWithCells, unknownFrame)
         val telemWithCells = eventsWithCells.filterIsInstance<DecodeEvent.TelemetryUpdate>().first()
         assertEquals(100f, telemWithCells.snapshot.batteryPercent)
+    }
+
+    @Test
+    fun `legacy frame with default codec stays in LEGACY profile and scales current by 100`() {
+        val frame = ByteArray(36)
+        frame[0] = 0xDC.toByte()
+        frame[1] = 0x5A.toByte()
+        frame[2] = 0x5C.toByte()
+        frame[3] = 0x20.toByte() // length = 32
+        // voltage: 100.80V
+        frame[4] = 0x27
+        frame[5] = 0x60
+        // speed: 20.0 km/h
+        frame[6] = 0x00
+        frame[7] = 0xC8.toByte()
+        // phase current: 1500 (15.00A in legacy / 100)
+        frame[16] = 0x05
+        frame[17] = 0xDC.toByte()
+        // temp: 35.0°C
+        frame[18] = 0x0D
+        frame[19] = 0xAC.toByte()
+        // version raw u16BE @ 28 = 1000 (Sherman "0010")
+        frame[28] = 0x03
+        frame[29] = 0xE8.toByte()
+        // pedal mode u16BE @ 30 = 2
+        frame[30] = 0x00
+        frame[31] = 0x02
+        // pwm: 2500 (25.00%)
+        frame[34] = 0x09
+        frame[35] = 0xC4.toByte()
+
+        val codec = VeteranWheelCodec("11:22:33:44:55:66")
+        val state = codec.newState() as VeteranWheelCodec.VeteranState
+        val events = codec.decode(state, frame)
+
+        assertEquals(VeteranProtocolProfile.LEGACY, state.effectiveProfile)
+        val identified = events.filterIsInstance<DecodeEvent.Identified>().first()
+        val telem = events.filterIsInstance<DecodeEvent.TelemetryUpdate>().first()
+
+        assertEquals("Sherman", identified.identity.modelName)
+        assertEquals(15.00f, telem.snapshot.phaseCurrentA)
+        assertEquals(25.00f, telem.snapshot.pwmPercent)
+        assertNull(telem.snapshot.currentA)
+        assertNull(telem.snapshot.rideMode)
+    }
+
+    @Test
+    fun `unverified modern key with default codec does not auto latch to MODERN_NOSFET`() {
+        // Unknown key 999900: b30=0x0F, b28=0x41, b29=0xDC
+        val frame = makeNosfetFrame(
+            voltageHundredthsV = 14850,
+            b30 = 0x0F,
+            b28 = 0x41,
+            b29 = 0xDC,
+        )
+
+        val codec = VeteranWheelCodec("11:22:33:44:55:66")
+        val state = codec.newState() as VeteranWheelCodec.VeteranState
+        codec.decode(state, frame)
+
+        // Must remain in safe initial LEGACY profile because 9999 is unverified
+        assertEquals(VeteranProtocolProfile.LEGACY, state.effectiveProfile)
     }
 }

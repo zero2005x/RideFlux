@@ -23,10 +23,13 @@ import com.rideflux.domain.wheel.WheelIdentity
  * host-to-device commands, so every [WheelCommand] returns an empty
  * list.
  *
- * [profile] is explicit. The production factory currently uses the legacy
- * default because an advertisement name or pack voltage cannot establish
- * which layout a connected wheel speaks. Modern NOSFET decoding becomes
- * available only when a caller supplies that profile deliberately.
+ * [profile] determines the initial wire layout (legacy vs modern Nosfet).
+ * When constructed with the default [VeteranProtocolProfile.LEGACY], the codec
+ * safely auto-latches to [VeteranProtocolProfile.MODERN_NOSFET] once wire bytes
+ * evaluate to verified Nosfet hardware codes ("5010" for Apex, "5020" for Aero).
+ * For unverified or legacy hardware codes, the codec remains in its safe initial
+ * profile to prevent misinterpreting wire fields. Callers can also supply
+ * [VeteranProtocolProfile.MODERN_NOSFET] explicitly.
  */
 class VeteranWheelCodec(
     private val deviceAddress: String = "",
@@ -130,12 +133,19 @@ class VeteranWheelCodec(
                         speedKmh = r.frame.speedKmh.toFloat(),
                         tripDistanceMetres = r.frame.tripMeters.toInt(),
                         totalDistanceMetres = r.frame.totalMeters,
+                        // Power train: offset 16 is motor phase current. The vendor app derives pack
+                        // current in software via `(machineCurrent * output) / 10000`, but without live
+                        // L3 Bluetooth capture arbitration to confirm scaling and semantics, `currentA`
+                        // remains null (project rule 2).
                         phaseCurrentA = r.frame.phaseCurrentAmps.toFloat(),
                         mosTemperatureC = r.frame.temperatureCelsius.toFloat(),
                         pwmPercent = if (s.effectiveProfile == VeteranProtocolProfile.MODERN_NOSFET)
                             null else r.frame.hardwarePwmPercent.toFloat(),
                         pitchAngleDegrees = r.frame.pitchAngleDegrees.toFloat(),
                         batteryPercent = soc?.toFloat(),
+                        // Ride modes: decoder reads `pedalsMode` (offset 31 in modern, 30 in legacy), but
+                        // integer-to-mode mapping is unverified on live hardware and command dispatch is
+                        // strictly read-only, so `rideMode` remains null and DEFAULT_CAPABILITIES.rideModes is false.
                         chargingState = when (r.frame.chargeStatus) {
                             VeteranFrame.ChargeStatus.IDLE -> ChargingState.NOT_CONNECTED
                             VeteranFrame.ChargeStatus.CHARGING -> ChargingState.CHARGING
