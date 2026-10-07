@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">Ошибка поиска: %1$s</string>
     <string name="scanner_unknown_device">Неизвестное устройство</string>
     <string name="scanner_device_family">Семейство: %1$s</string>
+    <string name="scanner_select_brand_title">Выберите марку колеса</string>
 
     <string name="bridge_card_title">Мост HUD</string>
     <string name="bridge_state_off">Выключен</string>

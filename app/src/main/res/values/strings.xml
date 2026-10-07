@@ -69,6 +69,12 @@
     <string name="scanner_scan_failed_reason">Scan failed: %1$s</string>
     <string name="scanner_unknown_device">Unknown device</string>
     <string name="scanner_device_family">Family: %1$s</string>
+    <string name="scanner_select_brand_title">Select Wheel Brand</string>
+    <string name="scanner_brand_veteran" translatable="false">Veteran / Nosfet (V)</string>
+    <string name="scanner_brand_begode" translatable="false">Begode / GotWay (G)</string>
+    <string name="scanner_brand_kingsong" translatable="false">KingSong (K)</string>
+    <string name="scanner_brand_inmotion" translatable="false">Inmotion (I)</string>
+    <string name="scanner_brand_ninebot" translatable="false">Ninebot (N)</string>
 
     <!-- ===== HUD bridge card ========================================= -->
     <string name="bridge_card_title">HUD bridge</string>

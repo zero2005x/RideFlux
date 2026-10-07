@@ -46,6 +46,7 @@
     <string name="scanner_scan_failed_reason">فشل البحث: %1$s</string>
     <string name="scanner_unknown_device">جهاز غير معروف</string>
     <string name="scanner_device_family">العائلة: %1$s</string>
+    <string name="scanner_select_brand_title">اختر نوع المركبة</string>
 
     <string name="bridge_card_title">جسر HUD</string>
     <string name="bridge_state_off">متوقف</string>

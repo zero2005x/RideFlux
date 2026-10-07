@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">掃描失敗：%1$s</string>
     <string name="scanner_unknown_device">未知裝置</string>
     <string name="scanner_device_family">協定家族：%1$s</string>
+    <string name="scanner_select_brand_title">選擇車輛品牌</string>
 
     <string name="bridge_card_title">HUD 橋接</string>
     <string name="bridge_state_off">已關閉</string>

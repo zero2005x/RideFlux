@@ -47,12 +47,10 @@ import java.util.UUID
  * | Nordic UART `6E400001…`                                    | [WheelFamily.I2]  |
  * | nothing recognised                                         | `null`            |
  *
- * The single-char and Nordic-UART profiles are shared by more than one
- * family (G/K/N1 and I2/N2 respectively), so the returned family is
- * necessarily a guess — the true family is only confirmed after the
- * bootstrap handshake of §9. Callers that already know the family
- * MUST pass `expectedFamily` to
- * [com.rideflux.domain.repository.WheelRepository.connect].
+ * The single-char profile (`FFE0`/`FFE1`) is shared by Begode (G), KingSong (K),
+ * Ninebot One (N1), and Veteran / Nosfet (V) (see `GATT_V_FAMILY_BEGODE_COLLISION.md`).
+ * UUID inference alone cannot distinguish them; name classification and explicit
+ * family routing should be preferred where available.
  */
 class WheelCodecFactoryImpl(
     /**
@@ -87,7 +85,10 @@ class WheelCodecFactoryImpl(
                 seriesCells = { seriesCellsFor(address) },
             )
             WheelFamily.K -> KingSongWheelCodec(deviceAddress = address)
-            WheelFamily.V -> VeteranWheelCodec(deviceAddress = address)
+            WheelFamily.V -> VeteranWheelCodec(
+                deviceAddress = address,
+                seriesCells = { seriesCellsFor(address) },
+            )
             WheelFamily.N1 -> NinebotN1WheelCodec(deviceAddress = address)
             WheelFamily.N2 -> NinebotN2WheelCodec(deviceAddress = address)
             WheelFamily.I1 -> InmotionI1WheelCodec(deviceAddress = address)

@@ -31,11 +31,14 @@ import com.rideflux.domain.wheel.WheelIdentity
 class VeteranWheelCodec(
     private val deviceAddress: String = "",
     private val profile: VeteranProtocolProfile = VeteranProtocolProfile.LEGACY,
+    private val seriesCells: () -> Int? = { null },
 ) : WheelCodec {
 
     override val family: WheelFamily = WheelFamily.V
 
-    class VeteranState internal constructor() : WheelCodec.State {
+    class VeteranState internal constructor(
+        internal var effectiveProfile: VeteranProtocolProfile = VeteranProtocolProfile.LEGACY,
+    ) : WheelCodec.State {
         internal val buffer: ArrayList<Byte> = ArrayList(64)
         internal var last: WheelTelemetry = WheelTelemetry.EMPTY
         internal var identified: Boolean = false
@@ -45,7 +48,7 @@ class VeteranWheelCodec(
         internal var hasSpeedAlertBaseline: Boolean = false
     }
 
-    override fun newState(): WheelCodec.State = VeteranState()
+    override fun newState(): WheelCodec.State = VeteranState(effectiveProfile = profile)
 
     override fun handshakeFrames(state: WheelCodec.State): List<ByteArray> = emptyList()
 
@@ -69,10 +72,35 @@ class VeteranWheelCodec(
         while (progress && s.buffer.isNotEmpty()) {
             progress = false
             val wire = ByteArray(s.buffer.size) { s.buffer[it] }
-            when (val r = VeteranDecoder.decode(wire, offset = 0, expectCrcAlways = s.expectCrcAlways, profile = profile)) {
+
+            // Latch modern Nosfet profile if modern hardware key (e.g. 5010 for Apex, 5020 for Aero) is detected
+            if (s.effectiveProfile == VeteranProtocolProfile.LEGACY && wire.size >= 32) {
+                if (wire[0] == 0xDC.toByte() && wire[1] == 0x5A.toByte() && wire[2] == 0x5C.toByte()) {
+                    val b30 = wire[30].toInt() and 0xFF
+                    val b28 = wire[28].toInt() and 0xFF
+                    val b29 = wire[29].toInt() and 0xFF
+                    val modernKey = VeteranModelRegistry.modernHardwareKey(b30, b28, b29)
+                    if (modernKey == "5010" || modernKey == "5020") {
+                        s.effectiveProfile = VeteranProtocolProfile.MODERN_NOSFET
+                    }
+                }
+            }
+
+            when (val r = VeteranDecoder.decode(wire, offset = 0, expectCrcAlways = s.expectCrcAlways, profile = s.effectiveProfile)) {
                 is VeteranDecoder.DecodeResult.Ok -> {
                     repeat(r.consumedBytes) { s.buffer.removeAt(0) }
                     if (r.frame.crc32Present) s.expectCrcAlways = true
+
+                    val model = VeteranModelRegistry.lookup(r.frame.hardwareKey)
+                    val modelName = if (s.effectiveProfile == VeteranProtocolProfile.MODERN_NOSFET) {
+                        when {
+                            model != null -> "Nosfet ${model.name}"
+                            r.frame.hardwareKey.isNotBlank() -> "Nosfet (${r.frame.hardwareKey})"
+                            else -> "Nosfet"
+                        }
+                    } else {
+                        model?.name ?: "Veteran"
+                    }
 
                     if (!s.identified) {
                         s.identified = true
@@ -81,15 +109,19 @@ class VeteranWheelCodec(
                                 identity = WheelIdentity(
                                     address = deviceAddress,
                                     family = WheelFamily.V,
-                                    modelName = if (profile == VeteranProtocolProfile.MODERN_NOSFET)
-                                        VeteranModelRegistry.fromHardwareKey(r.frame.hardwareKey)?.name ?: "NOSFET / Veteran"
-                                        else "Veteran",
+                                    modelName = modelName,
                                     firmwareVersion = r.frame.firmwareVersionString,
                                 ),
                                 capabilities = DEFAULT_CAPABILITIES,
                             ),
                         )
                     }
+
+                    val soc = VeteranModelRegistry.stateOfCharge(
+                        hardwareCode = r.frame.hardwareKey,
+                        packCentiVolts = r.frame.voltageHundredthsV,
+                        userSeriesCells = seriesCells(),
+                    )
 
                     val now = System.currentTimeMillis()
                     val merged = s.last.copy(
@@ -100,9 +132,10 @@ class VeteranWheelCodec(
                         totalDistanceMetres = r.frame.totalMeters,
                         phaseCurrentA = r.frame.phaseCurrentAmps.toFloat(),
                         mosTemperatureC = r.frame.temperatureCelsius.toFloat(),
-                        pwmPercent = if (profile == VeteranProtocolProfile.MODERN_NOSFET)
+                        pwmPercent = if (s.effectiveProfile == VeteranProtocolProfile.MODERN_NOSFET)
                             null else r.frame.hardwarePwmPercent.toFloat(),
                         pitchAngleDegrees = r.frame.pitchAngleDegrees.toFloat(),
+                        batteryPercent = soc?.toFloat(),
                         chargingState = when (r.frame.chargeStatus) {
                             VeteranFrame.ChargeStatus.IDLE -> ChargingState.NOT_CONNECTED
                             VeteranFrame.ChargeStatus.CHARGING -> ChargingState.CHARGING

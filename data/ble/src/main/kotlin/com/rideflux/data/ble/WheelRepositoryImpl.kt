@@ -371,7 +371,10 @@ class WheelRepositoryImpl private constructor(
 
         val family = expectedFamily
             ?: inferFamilyHintForAddress(address)
-            ?: WheelFamily.G
+            ?: run {
+                Log.w(TAG, "device $address has no family hint or expectedFamily; falling back to G")
+                WheelFamily.G
+            }
 
         val codec = codecFactory.forFamilyWithAddress(family, address)
         val topology = codecFactory.topologyFor(family)

@@ -47,6 +47,7 @@
     <string name="scanner_scan_failed_reason">Pemindaian gagal: %1$s</string>
     <string name="scanner_unknown_device">Perangkat tidak dikenal</string>
     <string name="scanner_device_family">Famili: %1$s</string>
+    <string name="scanner_select_brand_title">Pilih merek roda</string>
 
     <string name="bridge_card_title">Jembatan HUD</string>
     <string name="bridge_state_off">Nonaktif</string>

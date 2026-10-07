@@ -29,11 +29,17 @@ class WheelNameClassifierTest {
             Case("KS-F22P", WheelFamily.K),
             Case("RW", WheelFamily.K),
             Case("ROCKWHEEL", WheelFamily.K),
-            // Veteran / Leaperkim.
+            // Veteran / Leaperkim / Nosfet.
             Case("Sherman-S", WheelFamily.V),
             Case("VETERAN ABRAMS", WheelFamily.V),
             Case("LEAPERKIM PATTON", WheelFamily.V),
             Case("LK-EX", WheelFamily.V),
+            Case("NOSFET", WheelFamily.V),
+            Case("Apex", WheelFamily.V),
+            Case("APEX_1234", WheelFamily.V),
+            Case("Aero", WheelFamily.V),
+            Case("AERO-01", WheelFamily.V),
+            Case("Aeon", WheelFamily.V),
             // Ninebot.
             Case("NBZ", WheelFamily.N2),
             Case("Ninebot Z10", WheelFamily.N2),

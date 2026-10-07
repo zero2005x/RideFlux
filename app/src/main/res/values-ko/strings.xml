@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">검색 실패: %1$s</string>
     <string name="scanner_unknown_device">알 수 없는 기기</string>
     <string name="scanner_device_family">패밀리: %1$s</string>
+    <string name="scanner_select_brand_title">휠 브랜드 선택</string>
 
     <string name="bridge_card_title">HUD 브리지</string>
     <string name="bridge_state_off">꺼짐</string>

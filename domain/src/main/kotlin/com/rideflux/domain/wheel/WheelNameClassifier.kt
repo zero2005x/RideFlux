@@ -112,9 +112,9 @@ object WheelNameClassifier {
         """(?:\bKINGSONG\b|^KS[\s_-]?\d|^KSS\d|^KS-S|^KS-F|^RW$|^ROCKW)""",
     )
 
-    /** Veteran model names that are unambiguous across vendors. */
+    /** Veteran / Nosfet model names that are unambiguous across vendors. */
     private val VETERAN_MODEL =
-        Regex("""VETERAN|SHERMAN|ABRAMS|PATTON|LYNX|ORYX|NOSFET|LEAPERKIM|^LK[\s_-]""")
+        Regex("""VETERAN|SHERMAN|ABRAMS|PATTON|LYNX|ORYX|NOSFET|LEAPERKIM|^LK[\s_-]|APEX|AERO|AEON""")
 
     /** Ninebot / NB model namespace. */
     private val NINEBOT_MODEL = Regex("""(^NB[\s_-]?\w*|\bNINEBOT\b|^NINEBOT-)""")

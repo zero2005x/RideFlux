@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">स्कैन विफल: %1$s</string>
     <string name="scanner_unknown_device">अज्ञात डिवाइस</string>
     <string name="scanner_device_family">फ़ैमिली: %1$s</string>
+    <string name="scanner_select_brand_title">पहिया ब्रांड चुनें</string>
 
     <string name="bridge_card_title">HUD ब्रिज</string>
     <string name="bridge_state_off">बंद</string>
