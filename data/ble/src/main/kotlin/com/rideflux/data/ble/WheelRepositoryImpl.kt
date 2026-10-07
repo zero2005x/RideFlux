@@ -326,19 +326,13 @@ class WheelRepositoryImpl internal constructor(
                     // the dead entry would sit in activeConnections()
                     // until someone happened to close it. Evict and
                     // rebuild instead.
-                    existing.connection.state.value is ConnectionState.Failed -> {
-                        val done = CompletableDeferred<Unit>()
-                        existing.closing = done
-                        awaitTeardown = done
-                        pendingTeardown = existing
-                        null
-                    }
-
-                    // If expectedFamily is provided and differs from the family of the
-                    // existing connection, the existing connection was built with the
-                    // wrong codec (e.g. guessed G when user explicitly selected V or K).
-                    // We must NOT reuse it! Evict and tear down, then rebuild with expectedFamily.
-                    expectedFamily != null && existing.connection.codec.family != expectedFamily -> {
+                    //
+                    // The same applies when expectedFamily differs from the
+                    // family of the existing connection: it was built with the
+                    // wrong codec (e.g. guessed G when the rider explicitly
+                    // selected V or K) and must not be reused.
+                    existing.connection.state.value is ConnectionState.Failed ||
+                        (expectedFamily != null && existing.connection.codec.family != expectedFamily) -> {
                         val done = CompletableDeferred<Unit>()
                         existing.closing = done
                         awaitTeardown = done
