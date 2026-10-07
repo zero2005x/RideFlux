@@ -107,9 +107,9 @@ object WheelNameClassifier {
      */
     private val INMOTION_MODEL = Regex("""^(?:INMOTION[\s_-]*)?V(\d{1,2})(?!\d)""")
 
-    /** `KS-16X`, `KS16S`, `KS_18L` — the KingSong model-number form. */
+    /** `KS-16X`, `KS16S`, `KS_18L`, `KS-F18`, `KS_F18`, `KSF18` — the KingSong model-number form. */
     private val KINGSONG_MODEL = Regex(
-        """(?:\bKINGSONG\b|^KS[\s_-]?\d|^KSS\d|^KS-S|^KS-F|^RW$|^ROCKW)""",
+        """(?:\bKINGSONG\b|^KS[\s_-]?[0-9]|^KSS[0-9]|^KS[\s_-]?[SF]|\bKS[\s_-]?F18\b|^RW$|^ROCKW)""",
     )
 
     /** Veteran / Nosfet model names that are unambiguous across vendors. */

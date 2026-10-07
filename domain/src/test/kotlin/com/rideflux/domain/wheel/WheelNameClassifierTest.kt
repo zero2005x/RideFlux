@@ -27,6 +27,10 @@ class WheelNameClassifierTest {
             Case("KSS18", WheelFamily.K),
             Case("KS-S18", WheelFamily.K),
             Case("KS-F22P", WheelFamily.K),
+            Case("KS-F18", WheelFamily.K),
+            Case("KS_F18", WheelFamily.K),
+            Case("KSF18", WheelFamily.K),
+            Case("KS F18", WheelFamily.K),
             Case("RW", WheelFamily.K),
             Case("ROCKWHEEL", WheelFamily.K),
             // Veteran / Leaperkim / Nosfet.
