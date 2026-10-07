@@ -64,7 +64,7 @@ import java.util.concurrent.ConcurrentHashMap
  * `ACCESS_FINE_LOCATION` before invoking either [scan] or [connect].
  */
 @SuppressLint("MissingPermission")
-class WheelRepositoryImpl private constructor(
+class WheelRepositoryImpl internal constructor(
     private val context: Context?,
     private val rootScope: CoroutineScope,
     private val codecFactory: BleWheelCodecFactory,
@@ -111,6 +111,14 @@ class WheelRepositoryImpl private constructor(
     private val connectMutex = Mutex()
     private val lastSeenNames = ConcurrentHashMap<String, String>()
     private val lastSeenServiceUuids = ConcurrentHashMap<String, Set<String>>()
+
+    /**
+     * Brand the rider picked by hand for a device whose advertisement does not
+     * identify it. Advertisement inference never guesses between G, K, V and N1
+     * for an unrecognised FFE0 name, so without this the rider would be asked
+     * again on every scan.
+     */
+    private val manualFamilies = ConcurrentHashMap<String, WheelFamily>()
 
     private val _active = MutableStateFlow<Map<String, WheelConnection>>(emptyMap())
 
@@ -175,6 +183,7 @@ class WheelRepositoryImpl private constructor(
                     lastSeenServiceUuids[address] = uuidStrings
                 }
                 val family = codecFactory.inferFromAdvertisement(name, uuidStrings)
+                    ?: manualFamilies[address]
                 if (family == null) {
                     val hasRelevantService = uuidStrings.any(::isRelevantWheelServiceUuid)
                     val shouldSurfaceUnclassified = name != null || hasRelevantService
@@ -293,6 +302,7 @@ class WheelRepositoryImpl private constructor(
         address: String,
         expectedFamily: WheelFamily?,
     ): WheelConnection {
+        expectedFamily?.let { manualFamilies[address] = it }
         while (true) {
             // Work that must happen outside the global lock, decided
             // while holding it.
@@ -488,7 +498,7 @@ class WheelRepositoryImpl private constructor(
     private fun inferFamilyHintForAddress(address: String): WheelFamily? {
         val name = lastSeenNames[address]
         val services = lastSeenServiceUuids[address].orEmpty()
-        return codecFactory.inferFromAdvertisement(name, services)
+        return codecFactory.inferFromAdvertisement(name, services) ?: manualFamilies[address]
     }
 
     private companion object {
