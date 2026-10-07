@@ -14,6 +14,7 @@ import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.wheel.WheelCapabilities
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelIdentity
+import com.rideflux.protocol.bytes.ByteReader
 
 /**
  * [WheelCodec] adapter for Family I2 (Inmotion V11 / V12 / V13 /
@@ -41,9 +42,12 @@ class InmotionI2WheelCodec(
         internal val buffer: ArrayList<Byte> = ArrayList(96)
         internal var last: WheelTelemetry = WheelTelemetry.EMPTY
         internal var identified: Boolean = false
+        internal var lastEmittedIdentity: WheelIdentity? = null
         internal var carType: String? = null
         internal var serial: String? = null
         internal var firmware: String? = null
+        internal var mainBoardMajor: Int? = null
+        internal var mainBoardMinor: Int? = null
         internal var previousFaults: Set<WheelFault> = emptySet()
         /** Byte offset of the `E0..E6` error bitmap within the real-time DATA. */
         internal var errorBitmapOffset: Int = 48
@@ -170,31 +174,48 @@ class InmotionI2WheelCodec(
                 s.serial = payload.toAsciiTrim()
             }
             InmotionI2CommandBuilder.MAIN_INFO_VERSION -> {
-                s.firmware = payload.toAsciiTrim()
+                // Selector 0x06 version table (§9.5.2 and InmotionAdapterV2.java:578-616).
+                // Binary response carries selector at data[0], driver board at [2..5],
+                // mainboard version at data[11..14] (MainBoard1=data[14], MainBoard2=data[13], MainBoard3=u16LE @11).
+                if (frame.data.size >= 24) {
+                    val mb3 = ByteReader.u16LE(frame.data, 11)
+                    val mb2 = frame.data[13].toInt() and 0xFF
+                    val mb1 = frame.data[14].toInt() and 0xFF
+                    s.mainBoardMajor = mb1
+                    s.mainBoardMinor = mb2
+                    s.firmware = "$mb1.$mb2.$mb3"
+                } else {
+                    val ascii = payload.toAsciiTrim()
+                    s.firmware = ascii
+                    val match = Regex("""^(\d+)\.(\d+)""").find(ascii)
+                    if (match != null) {
+                        s.mainBoardMajor = match.groupValues[1].toIntOrNull()
+                        s.mainBoardMinor = match.groupValues[2].toIntOrNull()
+                    }
+                }
             }
         }
     }
 
     private fun maybeEmitIdentified(s: InmotionI2State, events: MutableList<DecodeEvent>) {
-        if (s.identified) return
-        // Response order is not guaranteed. Wait for the complete
-        // identity tuple so the one-shot Identified event never
-        // permanently loses a serial or firmware value that arrives a
-        // few frames later.
-        if (s.carType == null || s.serial == null || s.firmware == null) return
-        s.identified = true
-        events.add(
-            DecodeEvent.Identified(
-                identity = WheelIdentity(
-                    address = deviceAddress,
-                    family = WheelFamily.I2,
-                    modelName = s.carType ?: "Inmotion",
-                    serialNumber = s.serial,
-                    firmwareVersion = s.firmware,
-                ),
-                capabilities = DEFAULT_CAPABILITIES,
-            ),
+        if (s.carType == null) return
+        val currentIdentity = WheelIdentity(
+            address = deviceAddress.ifBlank { "00:00:00:00:00:00" },
+            family = WheelFamily.I2,
+            modelName = s.carType ?: "Inmotion",
+            serialNumber = s.serial,
+            firmwareVersion = s.firmware,
         )
+        if (!s.identified || currentIdentity != s.lastEmittedIdentity) {
+            s.identified = true
+            s.lastEmittedIdentity = currentIdentity
+            events.add(
+                DecodeEvent.Identified(
+                    identity = currentIdentity,
+                    capabilities = DEFAULT_CAPABILITIES,
+                ),
+            )
+        }
     }
 
     private fun handleRealtime(
@@ -210,22 +231,24 @@ class InmotionI2WheelCodec(
             voltageV = core.voltageV.toFloat(),
             currentA = core.currentA.toFloat(),
         )
-        // The V11-early extended layout (speed / trip / phase current)
-        // and the error-bitmap offset are variant-dependent (§8.8) —
-        // applying them to V12/V13/V14 or V11 firmware ≥ 1.4 would
-        // silently decode garbage from the wrong offsets. Gate on the
-        // identified model; until the car type is known, only the
-        // universal core fields above are decoded.
+        // Gate V11 early layout on exact model "v11" AND verified firmware < 1.4.
+        // Unidentified firmware or FW >= 1.4 must NOT apply early layout offsets.
         if (isV11EarlyLayout(s)) {
-            if (frame.data.size >= 56 && frame.data.size >= InmotionI2RealtimeV11Early.MIN_DATA_SIZE) {
+            if (frame.data.size >= InmotionI2RealtimeV11Early.MIN_DATA_SIZE) {
                 val t = InmotionI2RealtimeV11Early.parse(frame.data)
                 merged = merged.copy(
                     speedKmh = t.speedKmh.toFloat(),
                     tripDistanceMetres = t.tripDistanceMetres,
-                    phaseCurrentA = t.phaseCurrentA.toFloat(),
+                    batteryPercent = t.batteryPercent?.toFloat(),
+                    mosTemperatureC = t.mosTempCelsius?.toFloat(),
+                    pitchAngleDegrees = t.pitchAngleDegrees?.toFloat(),
+                    rollAngleDegrees = t.rollAngleDegrees?.toFloat(),
+                    // phaseCurrentA remains null: offset 2 is bus current (currentA), not phase current.
                 )
             }
-            // Error bitmap at the V11 ≥ 1.4 offset.
+            // Error bitmap at offset 48 is NOT evaluated for early layout (§3.5.4.A).
+        } else {
+            // Error bitmap at offset 48 is evaluated only for newer models or FW >= 1.4.
             val off = s.errorBitmapOffset
             if (frame.data.size - off >= InmotionI2ErrorBitmap.SIZE) {
                 val bmp = InmotionI2ErrorBitmap.parse(frame.data, off)
@@ -238,11 +261,15 @@ class InmotionI2WheelCodec(
 
     /**
      * Exact model lookup prevents V11Y's distinct 74-byte layout from
-     * entering the 56-byte V11 path. Firmware-specific V11 offsets still
-     * require a firmware-qualified profile before broader publication.
+     * entering the V11 early path. Requires verified FW < 1.4.
      */
-    private fun isV11EarlyLayout(s: InmotionI2State): Boolean =
-        s.carType?.let { InmotionModelRegistry.find(it)?.key == "v11" } == true
+    private fun isV11EarlyLayout(s: InmotionI2State): Boolean {
+        val model = s.carType?.let { InmotionModelRegistry.find(it) }
+        if (model?.key != "v11") return false
+        val major = s.mainBoardMajor ?: return false
+        val minor = s.mainBoardMinor ?: return false
+        return major < 1 || (major == 1 && minor < 4)
+    }
 
     private fun maybeEmitFaultChange(s: InmotionI2State, now: Long): DecodeEvent.Alert? {
         // faults is nullable: null means "no fault report yet", which is

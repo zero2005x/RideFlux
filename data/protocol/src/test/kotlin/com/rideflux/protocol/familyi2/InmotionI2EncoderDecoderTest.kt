@@ -180,7 +180,8 @@ class InmotionI2EncoderDecoderTest {
 
         val tel = InmotionI2RealtimeV11Early.parse(data)
         assertEquals(8425, tel.voltageHundredthsV)
-        assertEquals(-500, tel.phaseCurrentHundredthsA)
+        assertEquals(-500, tel.currentHundredthsA)
+        assertEquals(-5.0, tel.currentA, 0.001)
         assertEquals(2500, tel.speedHundredthsKmh)
         assertEquals(100, tel.torqueHundredthsNm)
         assertEquals(300, tel.batteryPowerWatts)
