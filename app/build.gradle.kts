@@ -66,8 +66,8 @@ android {
         // Rokid's official consumer CXR client requires API 28.
         minSdk = 28
         targetSdk = 36
-        versionCode = 12
-        versionName = "0.1.11-nosfet.pre"
+        versionCode = 11
+        versionName = "0.1.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Optional CXR authentication. Values come only from environment
