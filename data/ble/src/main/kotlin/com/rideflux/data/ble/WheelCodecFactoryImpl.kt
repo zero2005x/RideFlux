@@ -99,13 +99,25 @@ class WheelCodecFactoryImpl(
     override fun inferFromAdvertisement(
         deviceName: String?,
         serviceUuids: Set<String>,
-    ): WheelFamily? =
-        // Name first: it is the only signal a board that advertises no
-        // service UUID gives us before connecting, and where both
-        // signals exist the name is the more specific of the two (the
-        // UUID set cannot tell K from G, or I2 from N2).
-        WheelNameClassifier.classify(deviceName)
-            ?: inferFromGattServiceUuids(serviceUuids)
+    ): WheelFamily? {
+        val nameHint = WheelNameClassifier.classify(deviceName)
+        if (nameHint != null) return nameHint
+
+        val normalised = serviceUuids.asSequence()
+            .map(::canonicaliseUuid)
+            .toSet()
+        val hasFfe0 = FFE0 in normalised
+        val hasFfe5 = FFE5 in normalised
+        val hasNus = NUS in normalised
+        return when {
+            hasFfe0 && hasFfe5 -> WheelFamily.I1
+            hasNus -> WheelFamily.I2
+            // FFE0 alone with an unclassified name is ambiguous across
+            // G, K, V, and N1. Return null so discovery surfaces the device as
+            // unclassified and prompts the user for manual brand selection.
+            else -> null
+        }
+    }
 
     override fun inferFromGattServiceUuids(uuids: Set<String>): WheelFamily? {
         val normalised = uuids.asSequence()

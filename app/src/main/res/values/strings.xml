@@ -74,7 +74,12 @@
     <string name="scanner_brand_begode" translatable="false">Begode / GotWay (G)</string>
     <string name="scanner_brand_kingsong" translatable="false">KingSong (K)</string>
     <string name="scanner_brand_inmotion" translatable="false">Inmotion (I)</string>
+    <string name="scanner_brand_inmotion_i2" translatable="false">Inmotion (Modern: V11 / V12 / V14 - I2)</string>
+    <string name="scanner_brand_inmotion_i1" translatable="false">Inmotion (Legacy: V5 / V8 / V10 - I1)</string>
     <string name="scanner_brand_ninebot" translatable="false">Ninebot (N)</string>
+    <string name="scanner_brand_ninebot_n1" translatable="false">Ninebot (Legacy: One / E+ / S2 - N1)</string>
+    <string name="scanner_brand_ninebot_n2" translatable="false">Ninebot (Modern: Z10 / ZT - N2)</string>
+    <string name="scanner_change_brand" translatable="false">Change brand</string>
 
     <!-- ===== HUD bridge card ========================================= -->
     <string name="bridge_card_title">HUD bridge</string>

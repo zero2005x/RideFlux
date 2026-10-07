@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.CastConnected
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.AlertDialog
@@ -220,7 +221,16 @@ fun ScannerScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(stringResource(R.string.scanner_brand_inmotion))
+                        Text(stringResource(R.string.scanner_brand_inmotion_i2))
+                    }
+                    TextButton(
+                        onClick = {
+                            manualFamilySelectionDevice = null
+                            onDeviceSelected(device.copy(family = WheelFamily.I1))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.scanner_brand_inmotion_i1))
                     }
                     TextButton(
                         onClick = {
@@ -229,7 +239,16 @@ fun ScannerScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(stringResource(R.string.scanner_brand_ninebot))
+                        Text(stringResource(R.string.scanner_brand_ninebot_n1))
+                    }
+                    TextButton(
+                        onClick = {
+                            manualFamilySelectionDevice = null
+                            onDeviceSelected(device.copy(family = WheelFamily.N2))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.scanner_brand_ninebot_n2))
                     }
                 }
             },
@@ -308,6 +327,7 @@ fun ScannerScreen(
                     onDeviceSelected = onDeviceSelected,
                     onScooterSelected = onScooterSelected,
                     onUnrecognisedDeviceSelected = { manualFamilySelectionDevice = it },
+                    onChangeBrand = { manualFamilySelectionDevice = it },
                     contentPadding = PaddingValues(),
                 )
             }
@@ -512,6 +532,7 @@ private fun ScannerContent(
     onDeviceSelected: (DiscoveredWheel) -> Unit,
     onScooterSelected: (ScooterDevice) -> Unit,
     onUnrecognisedDeviceSelected: (DiscoveredWheel) -> Unit = onDeviceSelected,
+    onChangeBrand: (DiscoveredWheel) -> Unit = onUnrecognisedDeviceSelected,
     contentPadding: PaddingValues,
 ) {
     val devices = uiState.devices.distinctBy { it.address }
@@ -553,7 +574,11 @@ private fun ScannerContent(
                     }
                 }
                 items(recognised, key = { it.address }) { device ->
-                    DeviceCard(device = device, onClick = { onDeviceSelected(device) })
+                    DeviceCard(
+                        device = device,
+                        onClick = { onDeviceSelected(device) },
+                        onChangeBrand = { onChangeBrand(device) },
+                    )
                 }
                 if (scooters.isNotEmpty()) {
                     item(key = "scooter_header") {
@@ -576,7 +601,11 @@ private fun ScannerContent(
                         )
                     }
                     items(unrecognised, key = { it.address }) { device ->
-                        DeviceCard(device = device, onClick = { onUnrecognisedDeviceSelected(device) })
+                        DeviceCard(
+                            device = device,
+                            onClick = { onUnrecognisedDeviceSelected(device) },
+                            onChangeBrand = { onUnrecognisedDeviceSelected(device) },
+                        )
                     }
                 }
             }
@@ -647,7 +676,11 @@ private fun ScooterCard(scooter: ScooterDevice, onClick: () -> Unit) {
 }
 
 @Composable
-private fun DeviceCard(device: DiscoveredWheel, onClick: () -> Unit) {
+private fun DeviceCard(
+    device: DiscoveredWheel,
+    onClick: () -> Unit,
+    onChangeBrand: (() -> Unit)? = null,
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -670,7 +703,7 @@ private fun DeviceCard(device: DiscoveredWheel, onClick: () -> Unit) {
                 modifier = Modifier.size(28.dp),
             )
             Spacer(Modifier.size(16.dp))
-            Column(modifier = Modifier.fillMaxWidth(0.85f)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = device.displayName ?: stringResource(R.string.scanner_unknown_device),
                     style = MaterialTheme.typography.titleMedium,
@@ -685,6 +718,15 @@ private fun DeviceCard(device: DiscoveredWheel, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 FamilyAndRssiRow(device)
+            }
+            if (onChangeBrand != null) {
+                IconButton(onClick = onChangeBrand) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = stringResource(R.string.scanner_change_brand),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
     }

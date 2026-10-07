@@ -324,6 +324,18 @@ class WheelRepositoryImpl private constructor(
                         null
                     }
 
+                    // If expectedFamily is provided and differs from the family of the
+                    // existing connection, the existing connection was built with the
+                    // wrong codec (e.g. guessed G when user explicitly selected V or K).
+                    // We must NOT reuse it! Evict and tear down, then rebuild with expectedFamily.
+                    expectedFamily != null && existing.connection.codec.family != expectedFamily -> {
+                        val done = CompletableDeferred<Unit>()
+                        existing.closing = done
+                        awaitTeardown = done
+                        pendingTeardown = existing
+                        null
+                    }
+
                     else -> {
                         existing.refCount++
                         SharedWheelConnection(address, existing.connection)

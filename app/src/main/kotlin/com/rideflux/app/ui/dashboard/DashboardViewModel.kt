@@ -764,5 +764,5 @@ class DashboardViewModel @Inject constructor(
  * reports non-zero speed (moving).
  */
 fun isVehicleActionPermitted(connectionState: ConnectionState, speedKmh: Float?): Boolean =
-    connectionState == ConnectionState.Ready && (speedKmh == null || speedKmh <= 0f)
+    connectionState == ConnectionState.Ready && speedKmh != null && speedKmh <= 0f
 
