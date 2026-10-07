@@ -342,10 +342,12 @@
     <string name="bond_preview_replace">Déjà sur ce téléphone : la remplacer</string>
     <plurals name="bond_preview_skipped">
         <item quantity="one">%1$d clé d’un type inutilisable par cette version a été ignorée.</item>
+        <item quantity="many">%1$d clés d’un type inutilisable par cette version ont été ignorées.</item>
         <item quantity="other">%1$d clés d’un type inutilisable par cette version ont été ignorées.</item>
     </plurals>
     <plurals name="bond_export_done">
         <item quantity="one">%1$d clé exportée.</item>
+        <item quantity="many">%1$d clés exportées.</item>
         <item quantity="other">%1$d clés exportées.</item>
     </plurals>
     <string name="bond_import_done">%1$d importée(s), %2$d remplacée(s), %3$d conservée(s).</string>

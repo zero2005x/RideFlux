@@ -69,6 +69,12 @@ Redmi 原設定與最終核對結果皆為：1080×2400 px（無 override）、4
 
 ## 驗證界限
 
+### PR #43 SonarCloud 複數資源修正
+
+首次 SonarCloud 分析的唯一失敗條件是 new reliability rating：西班牙文、法文、義大利文與葡萄牙文的兩組 bond plurals 缺少 CLDR `many` 分支，共 8 個 Android Lint `MissingQuantity` 問題。新程式碼覆蓋率 81.3%、重複率 0%、安全評級及熱點審查均通過。此前「lint 通過」指 Gradle task 成功；警告仍會被 Sonar 匯入為可靠性問題。
+
+已補齊上述 8 個分支，並讓 `check_bond_locales.py` 驗證這四個 locale 的 one／many／other，避免只檢查 quantity 名稱合法而漏掉必要分支。另外移除刪除流程僅包裝 suspend 呼叫的 dispatcher 切換（store 自行切換 I/O dispatcher），將英文固定長度 hex 提示改為 byte count 標籤以免誤判為缺少複數資源。這次資源修正沒有重跑裝置布局矩陣。
+
 沒有對金鑰頁截圖、錄影或關閉 FLAG_SECURE。布局結果來自語意、文字布局、邊界與觸控檢查，沒有聲稱完成截圖視覺審查、各語言母語者審校、TalkBack 實際語音播放、字形／色彩主觀檢查或各型車實際登入回歸。原始尺寸的大字體沒有另外重跑，通過矩陣明確列於上表。沒有修改或重新測試 RFBOND 交換協定。
 
 64 code-point emoji 名稱是 UI-only 壓力資料；不代表儲存接受 64 個 surrogate-pair emoji。既有 BondEntry 的 64 字元限制使用 String.length（UTF-16 code units），本次沒有變更 wire format／驗證規則或聲稱通過該名稱的實際匯入／持久化。

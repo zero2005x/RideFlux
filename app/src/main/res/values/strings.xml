@@ -418,6 +418,6 @@
     <string name="bond_delete_description">Delete key: %1$s, %2$s</string>
     <string name="bond_delete_message">Deleting this key may require pairing the scooter again. Its current connection will be closed.</string>
     <string name="bond_delete_failed">Could not delete the key. Try again.</string>
-    <string name="bond_hex_hint">Hexadecimal: %1$d bytes</string>
+    <string name="bond_hex_hint">Hexadecimal · byte count: %1$d</string>
     <string name="bond_mac_example" translatable="false">AA:BB:CC:DD:EE:FF</string>
 </resources>

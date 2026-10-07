@@ -43,6 +43,9 @@ for folder in sorted(ROOT.glob('values-*')):
             quantities = [e.attrib.get('quantity') for e in translated]
             assert len(quantities) == len(set(quantities)), f'{folder.name}/{key}: duplicate quantity'
             assert 'other' in quantities, f'{folder.name}/{key}: missing other'
+            # Android Lint/CLDR also requires a many branch for million counts in these locales.
+            if folder.name in {'values-es', 'values-fr', 'values-it', 'values-pt'}:
+                assert {'one', 'many', 'other'} <= set(quantities), f'{folder.name}/{key}: missing one/many/other'
             assert set(quantities) <= {'zero', 'one', 'two', 'few', 'many', 'other'}, f'{folder.name}/{key}: invalid quantity'
             expected = signature(''.join(next(e for e in original if e.attrib['quantity'] == 'other').itertext()))
             for item in translated:

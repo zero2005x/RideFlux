@@ -342,10 +342,12 @@
     <string name="bond_preview_replace">Già presente su questo telefono: sostituiscila</string>
     <plurals name="bond_preview_skipped">
         <item quantity="one">È stata ignorata %1$d chiave di un tipo non supportato da questa versione.</item>
+        <item quantity="many">Sono state ignorate %1$d chiavi di un tipo non supportato da questa versione.</item>
         <item quantity="other">Sono state ignorate %1$d chiavi di un tipo non supportato da questa versione.</item>
     </plurals>
     <plurals name="bond_export_done">
         <item quantity="one">Esportata %1$d chiave.</item>
+        <item quantity="many">Esportate %1$d chiavi.</item>
         <item quantity="other">Esportate %1$d chiavi.</item>
     </plurals>
     <string name="bond_import_done">%1$d importata/e, %2$d sostituita/e, %3$d mantenuta/e.</string>

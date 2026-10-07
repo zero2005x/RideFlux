@@ -444,7 +444,7 @@ class BondBackupViewModel internal constructor(
         ++refreshGeneration // invalidate any list read started before deletion
         viewModelScope.launch {
             try {
-                withContext(work) { removeKey(dialog.row.mac) }
+                removeKey(dialog.row.mac)
                 _state.update {
                     it.copy(rows = it.rows.filterNot { row -> row.mac == dialog.row.mac },
                         selectedExportMacs = it.selectedExportMacs - dialog.row.mac,

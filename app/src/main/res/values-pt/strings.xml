@@ -342,10 +342,12 @@
     <string name="bond_preview_replace">Já está neste telemóvel: substituir</string>
     <plurals name="bond_preview_skipped">
         <item quantity="one">Foi ignorada %1$d chave de um tipo não compatível com esta versão.</item>
+        <item quantity="many">Foram ignoradas %1$d chaves de um tipo não compatível com esta versão.</item>
         <item quantity="other">Foram ignoradas %1$d chaves de um tipo não compatível com esta versão.</item>
     </plurals>
     <plurals name="bond_export_done">
         <item quantity="one">Exportada %1$d chave.</item>
+        <item quantity="many">Exportadas %1$d chaves.</item>
         <item quantity="other">Exportadas %1$d chaves.</item>
     </plurals>
     <string name="bond_import_done">%1$d importada(s), %2$d substituída(s), %3$d mantida(s).</string>
