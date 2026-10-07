@@ -340,8 +340,14 @@
     <string name="bond_error_wrong">Phrase secrète incorrecte ou fichier endommagé.</string>
     <string name="bond_preview_title">Choisir les clés à importer</string>
     <string name="bond_preview_replace">Déjà sur ce téléphone : la remplacer</string>
-    <string name="bond_preview_skipped">%d clé(s) d’un type que cette version ne peut pas utiliser ont été ignorées.</string>
-    <string name="bond_export_done">%d clé(s) exportée(s).</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="one">%1$d clé d’un type inutilisable par cette version a été ignorée.</item>
+        <item quantity="other">%1$d clés d’un type inutilisable par cette version ont été ignorées.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="one">%1$d clé exportée.</item>
+        <item quantity="other">%1$d clés exportées.</item>
+    </plurals>
     <string name="bond_import_done">%1$d importée(s), %2$d remplacée(s), %3$d conservée(s).</string>
     <string name="bond_invalid_file">Ce n’est pas un fichier de sauvegarde RideFlux valide.</string>
     <string name="bond_io_failed">Impossible de lire ou d’enregistrer le fichier.</string>
@@ -367,4 +373,10 @@
     <string name="action_replace">Remplacer</string>
     <string name="mi_registration_dialog_warning_token_invalidation">L\'enregistrement peut invalider les jetons dans d\'autres applications (comme Mi Home).</string>
     <string name="mi_registration_dialog_recommend_import">Si vous possédez déjà une clé, il est recommandé de l\'importer dans Paramètres → Sauvegarde plutôt que de la réenregistrer.</string>
+    <string name="bond_delete_title">Supprimer la clé d’appairage ?</string>
+    <string name="bond_delete_action">Supprimer la clé</string>
+    <string name="bond_delete_description">Supprimer la clé : %1$s, %2$s</string>
+    <string name="bond_delete_message">Après la suppression de cette clé, vous devrez peut-être appairer à nouveau la trottinette. Sa connexion actuelle sera fermée.</string>
+    <string name="bond_delete_failed">Impossible de supprimer la clé. Réessayez.</string>
+    <string name="bond_hex_hint">Hexadécimal : %1$d octets</string>
 </resources>

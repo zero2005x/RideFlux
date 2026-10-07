@@ -514,4 +514,101 @@ class BondBackupViewModelTest {
         vm.onImportDocumentPicked("content://media/valid.rfbond")
         assertEquals(BondDialog.ImportPassphrase, vm.state.value.dialog)
     }
+
+    @Test fun `delete requires confirmation cancellation preserves keys and selection`() = runTest(dispatcher) {
+        val store = MemoryStore().apply {
+            put(entry("AA:BB:CC:DD:EE:01")); put(entry("AA:BB:CC:DD:EE:02"))
+        }
+        val vm = viewModel(store)
+        vm.toggleExportSelection("AA:BB:CC:DD:EE:02")
+        vm.confirmDelete()
+        vm.requestDelete("AA:BB:CC:DD:EE:01")
+        assertTrue(vm.state.value.dialog is BondDialog.ConfirmDelete)
+        assertEquals(2, store.items.size)
+        vm.dismissDialog()
+        vm.confirmDelete()
+        assertEquals(2, store.items.size)
+        assertEquals(setOf("AA:BB:CC:DD:EE:01"), vm.state.value.selectedExportMacs)
+        vm.requestDelete("AA:BB:CC:DD:EE:01")
+        vm.confirmDelete()
+        assertEquals(setOf("AA:BB:CC:DD:EE:02"), store.items.keys)
+        assertTrue(vm.state.value.selectedExportMacs.isEmpty())
+        assertEquals(BondDialog.None, vm.state.value.dialog)
+        vm.requestDelete("AA:BB:CC:DD:EE:02")
+        vm.confirmDelete()
+        assertTrue(vm.state.value.rows.isEmpty())
+        assertTrue(viewModel(store).state.value.rows.isEmpty())
+    }
+
+    @Test fun `delete failure is retryable and a busy deletion blocks duplicate taps and import`() = runTest(dispatcher) {
+        val store = MemoryStore().apply { put(entry("AA:BB:CC:DD:EE:01")) }
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var attempts = 0
+        var fail = true
+        val vm = BondBackupViewModel(store, BondBackup(store), FakeIo(), dispatcher) { mac ->
+            attempts++
+            if (fail) throw java.io.IOException("disk")
+            gate.await()
+            store.remove(mac)
+            Unit
+        }
+        vm.requestDelete("AA:BB:CC:DD:EE:01")
+        vm.confirmDelete()
+        assertTrue(vm.state.value.deleteFailed)
+        assertEquals(1, store.items.size)
+        fail = false
+        vm.confirmDelete()
+        assertTrue(vm.state.value.busy)
+        vm.confirmDelete()
+        vm.dismissDialog()
+        vm.onImportDocumentPicked("content://backup")
+        vm.openManualEntry()
+        assertEquals(2, attempts)
+        assertTrue(vm.state.value.dialog is BondDialog.ConfirmDelete)
+        gate.complete(Unit)
+        assertFalse(vm.state.value.busy)
+        assertFalse(vm.state.value.deleteFailed)
+        assertTrue(vm.state.value.rows.isEmpty())
+    }
+
+    @Test fun `refresh preserves deselected keys and discards stale reads after deletion`() = runTest(dispatcher) {
+        val backing = MemoryStore().apply {
+            put(entry("AA:BB:CC:DD:EE:01")); put(entry("AA:BB:CC:DD:EE:02"))
+        }
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var delayList = false
+        val store = object : BondStore by backing {
+            override suspend fun list(): List<BondEntry> {
+                val snapshot = backing.list()
+                if (delayList) gate.await()
+                return snapshot
+            }
+        }
+        val vm = viewModel(store)
+        vm.toggleExportSelection("AA:BB:CC:DD:EE:02")
+        delayList = true
+        vm.refresh()
+        vm.requestDelete("AA:BB:CC:DD:EE:01")
+        vm.confirmDelete()
+        gate.complete(Unit)
+        assertEquals(listOf("AA:BB:CC:DD:EE:02"), vm.state.value.rows.map { it.mac })
+        assertTrue(vm.state.value.selectedExportMacs.isEmpty())
+    }
+
+    @Test fun `initial asynchronous list read is not invalidated by initialization`() = runTest(dispatcher) {
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val store = object : BondStore {
+            override suspend fun list(): List<BondEntry> {
+                gate.await()
+                return listOf(entry("AA:BB:CC:DD:EE:01"))
+            }
+            override suspend fun put(entry: BondEntry) = Unit
+            override suspend fun remove(mac: String) = false
+        }
+        val vm = viewModel(store)
+        assertTrue(vm.state.value.rows.isEmpty())
+        gate.complete(Unit)
+        assertEquals(1, vm.state.value.rows.size)
+        assertEquals(setOf("AA:BB:CC:DD:EE:01"), vm.state.value.selectedExportMacs)
+    }
 }

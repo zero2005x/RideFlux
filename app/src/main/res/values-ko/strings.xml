@@ -340,8 +340,12 @@
     <string name="bond_error_wrong">암호가 틀렸거나 파일이 손상되었습니다.</string>
     <string name="bond_preview_title">가져올 키 선택</string>
     <string name="bond_preview_replace">이 휴대폰에 이미 있음: 바꾸기</string>
-    <string name="bond_preview_skipped">이 버전에서 사용할 수 없는 종류의 키 %d개를 건너뛰었습니다.</string>
-    <string name="bond_export_done">키 %d개를 내보냈습니다.</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="other">이 버전에서 사용할 수 없는 유형의 키 %1$d개를 건너뛰었습니다.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="other">%1$d개의 키를 내보냈습니다.</item>
+    </plurals>
     <string name="bond_import_done">%1$d개 가져옴, %2$d개 바꿈, %3$d개 유지.</string>
     <string name="bond_invalid_file">올바른 RideFlux 백업 파일이 아닙니다.</string>
     <string name="bond_io_failed">파일을 읽거나 저장할 수 없습니다.</string>
@@ -367,4 +371,10 @@
     <string name="action_replace">교체</string>
     <string name="mi_registration_dialog_warning_token_invalidation">등록하면 다른 앱(예: Mi Home)의 토큰이 무효화될 수 있습니다.</string>
     <string name="mi_registration_dialog_recommend_import">이미 페어링 키가 있는 경우 재등록보다 설정 → 백업에서 가져오는 것이 좋습니다.</string>
+    <string name="bond_delete_title">페어링 키를 삭제할까요?</string>
+    <string name="bond_delete_action">키 삭제</string>
+    <string name="bond_delete_description">키 삭제: %1$s, %2$s</string>
+    <string name="bond_delete_message">이 키를 삭제하면 스쿠터를 다시 페어링해야 할 수 있습니다. 현재 연결은 종료됩니다.</string>
+    <string name="bond_delete_failed">키를 삭제하지 못했습니다. 다시 시도하세요.</string>
+    <string name="bond_hex_hint">16진수: %1$d바이트</string>
 </resources>

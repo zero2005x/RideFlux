@@ -340,8 +340,12 @@
     <string name="bond_error_wrong">パスフレーズが違うか、ファイルが壊れています。</string>
     <string name="bond_preview_title">読み込むキーを選択</string>
     <string name="bond_preview_replace">このスマートフォンに既にあります：置き換える</string>
-    <string name="bond_preview_skipped">このバージョンでは使えない種類のキー %d 個をスキップしました。</string>
-    <string name="bond_export_done">%d 個のキーを書き出しました。</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="other">このバージョンでは使用できない種類のキー %1$d 件をスキップしました。</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="other">%1$d 件のキーをエクスポートしました。</item>
+    </plurals>
     <string name="bond_import_done">%1$d 個を読み込み、%2$d 個を置き換え、%3$d 個を維持しました。</string>
     <string name="bond_invalid_file">有効な RideFlux バックアップファイルではありません。</string>
     <string name="bond_io_failed">ファイルを読み込めないか、保存できませんでした。</string>
@@ -367,4 +371,10 @@
     <string name="action_replace">置換</string>
     <string name="mi_registration_dialog_warning_token_invalidation">登録を行うと、他のアプリ（Mi Home など）のトークンが無効になる場合があります。</string>
     <string name="mi_registration_dialog_recommend_import">既にペアリングキーをお持ちの場合は、再登録よりも「設定 → バックアップ」からインポートすることをお勧めします。</string>
+    <string name="bond_delete_title">ペアリングキーを削除しますか？</string>
+    <string name="bond_delete_action">キーを削除</string>
+    <string name="bond_delete_description">キーを削除：%1$s、%2$s</string>
+    <string name="bond_delete_message">このキーを削除すると、スクーターの再ペアリングが必要になる場合があります。現在の接続は切断されます。</string>
+    <string name="bond_delete_failed">キーを削除できませんでした。もう一度お試しください。</string>
+    <string name="bond_hex_hint">16進数：%1$d バイト</string>
 </resources>

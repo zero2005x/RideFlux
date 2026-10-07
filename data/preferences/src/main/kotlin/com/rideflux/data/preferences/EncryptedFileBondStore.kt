@@ -38,11 +38,13 @@ class EncryptedFileBondStore(
 
     override suspend fun put(entry: BondEntry) = mutex.withLock {
         withContext(dispatcher) {
-            val entries = load().filterNot { it.mac == entry.mac } + copyOf(entry)
+            val loaded = load()
+            val replacement = copyOf(entry)
             try {
-                save(entries)
+                save(loaded.filterNot { it.mac == entry.mac } + replacement)
             } finally {
-                entries.forEach(BondEntry::wipe)
+                loaded.forEach(BondEntry::wipe)
+                replacement.wipe()
             }
         }
     }

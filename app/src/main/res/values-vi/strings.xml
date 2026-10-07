@@ -340,8 +340,12 @@
     <string name="bond_error_wrong">Sai cụm mật khẩu hoặc tệp bị hỏng.</string>
     <string name="bond_preview_title">Chọn khóa để nhập</string>
     <string name="bond_preview_replace">Đã có trên điện thoại này: thay thế</string>
-    <string name="bond_preview_skipped">Đã bỏ qua %d khóa thuộc loại phiên bản này không dùng được.</string>
-    <string name="bond_export_done">Đã xuất %d khóa.</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="other">Đã bỏ qua %1$d khóa thuộc loại phiên bản này không hỗ trợ.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="other">Đã xuất %1$d khóa.</item>
+    </plurals>
     <string name="bond_import_done">Đã nhập %1$d, thay thế %2$d, giữ lại %3$d.</string>
     <string name="bond_invalid_file">Đây không phải tệp sao lưu RideFlux hợp lệ.</string>
     <string name="bond_io_failed">Không thể đọc hoặc lưu tệp.</string>
@@ -367,4 +371,10 @@
     <string name="action_replace">Thay thế</string>
     <string name="mi_registration_dialog_warning_token_invalidation">Đăng ký có thể làm mất hiệu lực mã token trong các ứng dụng khác (như Mi Home).</string>
     <string name="mi_registration_dialog_recommend_import">Nếu bạn đã có khóa ghép nối, nên nhập khóa trong Cài đặt → Sao lưu thay vì đăng ký lại.</string>
+    <string name="bond_delete_title">Xóa khóa ghép nối?</string>
+    <string name="bond_delete_action">Xóa khóa</string>
+    <string name="bond_delete_description">Xóa khóa: %1$s, %2$s</string>
+    <string name="bond_delete_message">Sau khi xóa khóa này, bạn có thể cần ghép nối lại xe. Kết nối hiện tại sẽ bị đóng.</string>
+    <string name="bond_delete_failed">Không thể xóa khóa. Hãy thử lại.</string>
+    <string name="bond_hex_hint">Hệ thập lục phân: %1$d byte</string>
 </resources>

@@ -107,4 +107,43 @@ class EncryptedFileBondStoreTest {
         repeat(64) { s.put(entry("AA:BB:CC:DD:00:%02X".format(it), it)) }
         assertEquals(64, s.list().size)
     }
+
+    @Test fun `removed keys stay removed after restart including the last key`() = runTest {
+        val file = File(folder.root, "restart.bin")
+        val s = store(file)
+        s.put(entry()); s.put(entry("11:22:33:44:55:66", seed = 9, label = "kept vehicle"))
+        s.remove("AA:BB:CC:DD:EE:FF")
+        val remaining = store(file).list().single()
+        assertEquals("11:22:33:44:55:66", remaining.mac)
+        assertEquals("kept vehicle", remaining.label)
+        assertArrayEquals(ByteArray(12) { (it + 9).toByte() }, remaining.credential())
+        remaining.wipe()
+        store(file).remove("11:22:33:44:55:66")
+        assertTrue(store(file).list().isEmpty())
+        assertFalse(File(folder.root, "restart.bin.tmp").exists())
+    }
+
+    @Test fun `failed removal preserves durable entries and can be retried`() = runTest {
+        val file = File(folder.root, "retry.bin")
+        val cipher = MemoryCipher()
+        var failSave = false
+        val flaky = object : BondCipher {
+            override fun encrypt(plain: ByteArray): ByteArray {
+                if (failSave) throw java.io.IOException("disk")
+                return cipher.encrypt(plain)
+            }
+            override fun decrypt(blob: ByteArray) = cipher.decrypt(blob)
+        }
+        val s = store(file, flaky)
+        s.put(entry()); s.put(entry("11:22:33:44:55:66"))
+        val before = file.readBytes()
+        failSave = true
+        assertThrows(java.io.IOException::class.java) {
+            kotlinx.coroutines.runBlocking { s.remove("AA:BB:CC:DD:EE:FF") }
+        }
+        assertArrayEquals(before, file.readBytes())
+        failSave = false
+        s.remove("AA:BB:CC:DD:EE:FF")
+        assertEquals(listOf("11:22:33:44:55:66"), store(file, cipher).list().map { it.mac })
+    }
 }

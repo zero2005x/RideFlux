@@ -340,8 +340,18 @@
     <string name="bond_error_wrong">Неправильна парольна фраза або файл пошкоджено.</string>
     <string name="bond_preview_title">Виберіть ключі для імпорту</string>
     <string name="bond_preview_replace">Уже є на цьому телефоні: замінити</string>
-    <string name="bond_preview_skipped">Пропущено ключів типу, який ця версія не підтримує: %d.</string>
-    <string name="bond_export_done">Експортовано ключів: %d.</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="one">Пропущено %1$d ключ типу, який ця версія не підтримує.</item>
+        <item quantity="few">Пропущено %1$d ключі типу, який ця версія не підтримує.</item>
+        <item quantity="many">Пропущено %1$d ключів типу, який ця версія не підтримує.</item>
+        <item quantity="other">Пропущено %1$d ключів типу, який ця версія не підтримує.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="one">Експортовано %1$d ключ.</item>
+        <item quantity="few">Експортовано %1$d ключі.</item>
+        <item quantity="many">Експортовано %1$d ключів.</item>
+        <item quantity="other">Експортовано %1$d ключів.</item>
+    </plurals>
     <string name="bond_import_done">Імпортовано: %1$d, замінено: %2$d, залишено: %3$d.</string>
     <string name="bond_invalid_file">Це не припустимий файл резервної копії RideFlux.</string>
     <string name="bond_io_failed">Не вдалося прочитати або зберегти файл.</string>
@@ -367,4 +377,10 @@
     <string name="action_replace">Замінити</string>
     <string name="mi_registration_dialog_warning_token_invalidation">Реєстрація може зробити недійсними токени в інших додатках (наприклад, Mi Home).</string>
     <string name="mi_registration_dialog_recommend_import">Якщо у вас уже є ключ, рекомендується імпортувати його в Налаштування → Резервна копія замість повторної реєстрації.</string>
+    <string name="bond_delete_title">Видалити ключ сполучення?</string>
+    <string name="bond_delete_action">Видалити ключ</string>
+    <string name="bond_delete_description">Видалити ключ: %1$s, %2$s</string>
+    <string name="bond_delete_message">Після видалення цього ключа може знадобитися повторне сполучення із самокатом. Поточне з’єднання буде закрито.</string>
+    <string name="bond_delete_failed">Не вдалося видалити ключ. Спробуйте ще раз.</string>
+    <string name="bond_hex_hint">Шістнадцятковий формат: %1$d байт</string>
 </resources>

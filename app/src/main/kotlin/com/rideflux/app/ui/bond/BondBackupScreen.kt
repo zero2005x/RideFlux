@@ -9,7 +9,6 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.os.SystemClock
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -18,47 +17,39 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.RadioButton
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -87,6 +78,7 @@ fun BondBackupRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var notice by remember { mutableStateOf<BondNotice?>(null) }
     SecureWindowEffect()
     val reauth = rememberDeviceReauth { ok -> viewModel.onReauthResult(ok, SystemClock.elapsedRealtime()) }
     val createDocument = rememberLauncherForActivityResult(
@@ -101,6 +93,7 @@ fun BondBackupRoute(
         val uri = pendingUri
         if (uri != null) {
             PendingBondImport.pendingUri.value = null
+            notice = null
             viewModel.onImportDocumentPicked(uri)
         }
     }
@@ -118,8 +111,7 @@ fun BondBackupRoute(
                         viewModel.reauthUnavailable()
                     }
                 is BondEvent.CreateDocument -> createDocument.launch(event.fileName)
-                is BondEvent.ShowNotice ->
-                    Toast.makeText(context, noticeText(context, event.notice), Toast.LENGTH_LONG).show()
+                is BondEvent.ShowNotice -> notice = event.notice
             }
         }
     }
@@ -127,9 +119,9 @@ fun BondBackupRoute(
     BondBackupScreen(
         state = state,
         onNavigateUp = onNavigateUp,
-        onExport = viewModel::requestExport,
-        onImport = { openDocument.launch(arrayOf("*/*")) },
-        onOpenManualEntry = viewModel::openManualEntry,
+        onExport = { notice = null; viewModel.requestExport() },
+        onImport = { notice = null; openDocument.launch(arrayOf("*/*")) },
+        onOpenManualEntry = { notice = null; viewModel.openManualEntry() },
         onToggleExportSelection = viewModel::toggleExportSelection,
         onSubmitExport = { pass, confirm ->
             viewModel.submitExportPassphrase(pass, confirm, SystemClock.elapsedRealtime())
@@ -139,15 +131,18 @@ fun BondBackupRoute(
         onConfirmOverwriteManual = viewModel::confirmOverwriteManual,
         onCancelOverwriteManual = viewModel::cancelOverwriteManual,
         onConfirmImport = viewModel::confirmImport,
+        onRequestDelete = { mac -> notice = null; viewModel.requestDelete(mac) },
+        onConfirmDelete = viewModel::confirmDelete,
         onDismiss = viewModel::dismissDialog,
+        notice = notice?.let { noticeText(context, it) },
     )
 }
 
-private fun noticeText(context: Context, notice: BondNotice): String = when (notice) {
-    is BondNotice.ExportDone -> context.getString(R.string.bond_export_done, notice.count)
+internal fun noticeText(context: Context, notice: BondNotice): String = when (notice) {
+    is BondNotice.ExportDone -> context.resources.getQuantityString(R.plurals.bond_export_done, notice.count, notice.count)
     is BondNotice.ImportDone ->
         context.getString(R.string.bond_import_done, notice.imported, notice.overwritten, notice.kept)
-    is BondNotice.ManualKeyAdded -> context.getString(R.string.bond_manual_added, notice.maskedMac)
+    is BondNotice.ManualKeyAdded -> context.getString(R.string.bond_manual_added, isolateMac(notice.maskedMac))
     BondNotice.InvalidFile -> context.getString(R.string.bond_invalid_file)
     BondNotice.IoFailed -> context.getString(R.string.bond_io_failed)
     BondNotice.ReauthUnavailable -> context.getString(R.string.bond_reauth_unavailable)
@@ -172,7 +167,6 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BondBackupScreen(
     state: BondUiState,
@@ -187,18 +181,23 @@ fun BondBackupScreen(
     onConfirmOverwriteManual: () -> Unit,
     onCancelOverwriteManual: () -> Unit,
     onConfirmImport: (Set<Int>, Set<Int>) -> Unit,
+    onRequestDelete: (String) -> Unit,
+    onConfirmDelete: () -> Unit,
     onDismiss: () -> Unit,
+    notice: String? = null,
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.bond_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateUp) {
+            Surface(color = MaterialTheme.colorScheme.surface) {
+                Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 4.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onNavigateUp, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
-                },
-            )
+                    Text(stringResource(R.string.bond_title),
+                        modifier = Modifier.weight(1f).padding(end = 12.dp), style = MaterialTheme.typography.titleLarge)
+                }
+            }
         },
     ) { padding ->
         Column(
@@ -206,42 +205,50 @@ fun BondBackupScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                Text(stringResource(R.string.bond_warning), Modifier.padding(16.dp))
+                Text(stringResource(R.string.bond_warning), Modifier.fillMaxWidth().padding(16.dp))
+            }
+            notice?.let { message ->
+                Card(Modifier.fillMaxWidth()) { Text(message, Modifier.fillMaxWidth().padding(16.dp)) }
             }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             when {
                 state.loadFailed -> Text(stringResource(R.string.bond_load_failed))
                 state.rows.isEmpty() -> Text(stringResource(R.string.bond_empty))
                 else -> state.rows.forEach { row ->
-                    ListItem(
-                        leadingContent = {
+                    Card(Modifier.fillMaxWidth()) {
+                        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            val selectionDescription = stringResource(R.string.bond_export) + ": " +
+                                row.label.ifBlank { row.model.orEmpty() } + ", " + isolateMac(row.maskedMac)
                             Checkbox(
+                                modifier = Modifier.semantics { contentDescription = selectionDescription },
                                 checked = row.mac in state.selectedExportMacs,
                                 onCheckedChange = { onToggleExportSelection(row.mac) },
                                 enabled = !state.busy,
                             )
-                        },
-                        headlineContent = { Text(row.label.ifBlank { row.model ?: row.maskedMac }) },
-                        supportingContent = {
-                            val details = listOfNotNull(
-                                familyName(row.family),
-                                row.model?.takeIf { it.isNotBlank() },
-                                row.maskedMac,
-                            ).joinToString(" · ")
-                            Text(details)
-                        },
-                    )
+                            BondSummary(row.label, row.model, row.maskedMac, row.family, Modifier.weight(1f).testTag("bond_summary_${row.maskedMac}"))
+                            IconButton(
+                                onClick = { onRequestDelete(row.mac) },
+                                enabled = !state.busy,
+                                modifier = Modifier.size(48.dp).testTag("bond_delete_${row.maskedMac}"),
+                            ) {
+                                Icon(Icons.Default.DeleteOutline, stringResource(
+                                    R.string.bond_delete_description,
+                                    row.label.ifBlank { row.model.orEmpty() }, isolateMac(row.maskedMac),
+                                ))
+                            }
+                        }
+                    }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onExport, enabled = state.selectedExportMacs.isNotEmpty() && !state.busy) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(modifier = Modifier.fillMaxWidth(), onClick = onExport, enabled = state.selectedExportMacs.isNotEmpty() && !state.busy) {
                     Text(stringResource(R.string.bond_export))
                 }
-                OutlinedButton(onClick = onImport, enabled = !state.busy) {
+                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onImport, enabled = !state.busy) {
                     Text(stringResource(R.string.bond_import))
                 }
             }
-            OutlinedButton(onClick = onOpenManualEntry, enabled = !state.busy) {
+            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onOpenManualEntry, enabled = !state.busy) {
                 Text(stringResource(R.string.bond_manual_button))
             }
         }
@@ -250,6 +257,7 @@ fun BondBackupScreen(
         BondDialog.None -> Unit
         BondDialog.ExportPassphrase -> PassphraseDialog(
             title = stringResource(R.string.bond_export_dialog_title),
+            busy = state.busy,
             confirmField = true,
             error = state.passphraseError,
             onSubmit = { pass, confirm -> onSubmitExport(pass, confirm) },
@@ -257,13 +265,19 @@ fun BondBackupScreen(
         )
         BondDialog.ImportPassphrase -> PassphraseDialog(
             title = stringResource(R.string.bond_import_dialog_title),
+            busy = state.busy,
             confirmField = false,
             error = state.passphraseError,
             onSubmit = { pass, _ -> onSubmitImport(pass) },
             onDismiss = onDismiss,
         )
-        is BondDialog.ImportPreview -> ImportPreviewDialog(dialog, onConfirmImport, onDismiss)
+        is BondDialog.ImportPreview -> ImportPreviewDialog(dialog, state.busy, onConfirmImport, onDismiss)
+        is BondDialog.ConfirmDelete -> ConfirmDeleteDialog(
+            row = dialog.row, busy = state.busy, failed = state.deleteFailed,
+            onConfirm = onConfirmDelete, onDismiss = onDismiss,
+        )
         BondDialog.ManualEntry -> ManualEntryDialog(
+            busy = state.busy,
             error = state.manualEntryError,
             onSubmit = onSubmitManualKey,
             onDismiss = onDismiss,

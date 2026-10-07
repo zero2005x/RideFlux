@@ -340,8 +340,12 @@
     <string name="bond_error_wrong">口令錯誤，或檔案已損毀。</string>
     <string name="bond_preview_title">選擇要匯入的金鑰</string>
     <string name="bond_preview_replace">這支手機已有此金鑰：取代它</string>
-    <string name="bond_preview_skipped">已略過 %d 把此版本無法使用的金鑰。</string>
-    <string name="bond_export_done">已匯出 %d 把金鑰。</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="other">已略過 %1$d 筆本版本無法使用的金鑰。</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="other">已匯出 %1$d 筆金鑰。</item>
+    </plurals>
     <string name="bond_import_done">已匯入 %1$d 把、取代 %2$d 把、保留 %3$d 把。</string>
     <string name="bond_invalid_file">這不是有效的 RideFlux 備份檔。</string>
     <string name="bond_io_failed">無法讀取或儲存檔案。</string>
@@ -367,4 +371,10 @@
     <string name="action_replace">取代</string>
     <string name="mi_registration_dialog_warning_token_invalidation">註冊新金鑰可能會使其他 App（如米家）中的權杖失效。</string>
     <string name="mi_registration_dialog_recommend_import">若您已持有配對金鑰，建議至「設定 → 備份」優先匯入，而非重新註冊。</string>
+    <string name="bond_delete_title">刪除配對金鑰？</string>
+    <string name="bond_delete_action">刪除金鑰</string>
+    <string name="bond_delete_description">刪除金鑰：%1$s，%2$s</string>
+    <string name="bond_delete_message">刪除此金鑰後可能需要重新配對車輛。目前的車輛連線將會關閉。</string>
+    <string name="bond_delete_failed">無法刪除金鑰，請重試。</string>
+    <string name="bond_hex_hint">十六進位：%1$d 位元組</string>
 </resources>

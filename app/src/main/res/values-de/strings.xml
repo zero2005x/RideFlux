@@ -340,8 +340,14 @@
     <string name="bond_error_wrong">Falsches Passwort oder beschädigte Datei.</string>
     <string name="bond_preview_title">Zu importierende Schlüssel wählen</string>
     <string name="bond_preview_replace">Bereits auf diesem Telefon: ersetzen</string>
-    <string name="bond_preview_skipped">%d Schlüssel eines von dieser Version nicht nutzbaren Typs wurden übersprungen.</string>
-    <string name="bond_export_done">%d Schlüssel exportiert.</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="one">%1$d Schlüssel eines von dieser Version nicht unterstützten Typs wurde übersprungen.</item>
+        <item quantity="other">%1$d Schlüssel eines von dieser Version nicht unterstützten Typs wurden übersprungen.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="one">%1$d Schlüssel exportiert.</item>
+        <item quantity="other">%1$d Schlüssel exportiert.</item>
+    </plurals>
     <string name="bond_import_done">%1$d importiert, %2$d ersetzt, %3$d behalten.</string>
     <string name="bond_invalid_file">Das ist keine gültige RideFlux-Sicherungsdatei.</string>
     <string name="bond_io_failed">Die Datei konnte nicht gelesen oder gespeichert werden.</string>
@@ -367,4 +373,10 @@
     <string name="action_replace">Ersetzen</string>
     <string name="mi_registration_dialog_warning_token_invalidation">Die Registrierung kann Token in anderen Apps (z. B. Mi Home) ungültig machen.</string>
     <string name="mi_registration_dialog_recommend_import">Wenn Sie bereits einen Schlüssel besitzen, wird der Import unter Einstellungen → Sicherung empfohlen.</string>
+    <string name="bond_delete_title">Kopplungsschlüssel löschen?</string>
+    <string name="bond_delete_action">Schlüssel löschen</string>
+    <string name="bond_delete_description">Schlüssel löschen: %1$s, %2$s</string>
+    <string name="bond_delete_message">Nach dem Löschen dieses Schlüssels muss der Roller möglicherweise erneut gekoppelt werden. Die aktuelle Verbindung wird getrennt.</string>
+    <string name="bond_delete_failed">Der Schlüssel konnte nicht gelöscht werden. Bitte erneut versuchen.</string>
+    <string name="bond_hex_hint">Hexadezimal: %1$d Bytes</string>
 </resources>

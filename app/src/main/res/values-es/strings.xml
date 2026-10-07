@@ -340,8 +340,14 @@
     <string name="bond_error_wrong">Frase de contraseña incorrecta o archivo dañado.</string>
     <string name="bond_preview_title">Elige las claves que importar</string>
     <string name="bond_preview_replace">Ya está en este teléfono: reemplazarla</string>
-    <string name="bond_preview_skipped">Se omitieron %d clave(s) de un tipo que esta versión no puede usar.</string>
-    <string name="bond_export_done">%d clave(s) exportada(s).</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="one">Se ha omitido %1$d clave de un tipo no compatible con esta versión.</item>
+        <item quantity="other">Se han omitido %1$d claves de un tipo no compatible con esta versión.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="one">Se ha exportado %1$d clave.</item>
+        <item quantity="other">Se han exportado %1$d claves.</item>
+    </plurals>
     <string name="bond_import_done">%1$d importada(s), %2$d reemplazada(s), %3$d conservada(s).</string>
     <string name="bond_invalid_file">Este no es un archivo de copia de RideFlux válido.</string>
     <string name="bond_io_failed">No se pudo leer o guardar el archivo.</string>
@@ -367,4 +373,10 @@
     <string name="action_replace">Reemplazar</string>
     <string name="mi_registration_dialog_warning_token_invalidation">El registro puede invalidar los tokens de otras aplicaciones (como Mi Home).</string>
     <string name="mi_registration_dialog_recommend_import">Si ya dispone de una clave, se recomienda importarla en Ajustes → Copia de seguridad en lugar de registrarla de nuevo.</string>
+    <string name="bond_delete_title">¿Eliminar la clave de vinculación?</string>
+    <string name="bond_delete_action">Eliminar clave</string>
+    <string name="bond_delete_description">Eliminar clave: %1$s, %2$s</string>
+    <string name="bond_delete_message">Si eliminas esta clave, puede que tengas que volver a vincular el patinete. Se cerrará su conexión actual.</string>
+    <string name="bond_delete_failed">No se pudo eliminar la clave. Inténtalo de nuevo.</string>
+    <string name="bond_hex_hint">Formato hexadecimal: %1$d bytes</string>
 </resources>

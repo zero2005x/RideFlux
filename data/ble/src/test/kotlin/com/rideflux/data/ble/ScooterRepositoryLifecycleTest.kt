@@ -6,6 +6,7 @@ import com.rideflux.domain.safety.MotionInterlock
 import com.rideflux.domain.transport.BleTransport
 import com.rideflux.protocol.familyscooter.connection.ScooterConnectionImpl
 import com.rideflux.protocol.familyscooter.ninebot.ScooterHandshakeStateMachine
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -72,5 +73,77 @@ class ScooterRepositoryLifecycleTest {
         assertEquals(0, transports.last().disconnectCount)
         replacement.close()
         assertEquals(1, transports.last().disconnectCount)
+    }
+
+    @Test fun removalClosesOnlySelectedSessionBeforeRemovingKey() = runTest {
+        val removed = mutableListOf<String>()
+        val transports = mutableMapOf<String, FakeBleTransport>()
+        val store = object : com.rideflux.domain.bond.BondStore {
+            override suspend fun list() = emptyList<com.rideflux.domain.bond.BondEntry>()
+            override suspend fun put(entry: com.rideflux.domain.bond.BondEntry) = Unit
+            override suspend fun remove(mac: String): Boolean {
+                assertEquals(1, transports.entries.single { it.key.equals(mac, ignoreCase = true) }.value.disconnectCount)
+                removed += mac
+                return true
+            }
+        }
+        val repo = ScooterRepositoryImpl(backgroundScope, store) { address, model, scope ->
+            val ble = FakeBleTransport().also { transports[address] = it }
+            val gate = MotionInterlock()
+            ScooterConnectionImpl(ble, ScooterDevice(address, model), scope,
+                ScooterHandshakeStateMachine(gate) { testScheduler.currentTime }, gate)
+        }
+        val old = repo.connect("aa:bb:cc:dd:ee:01")
+        repo.connect("AA:BB:CC:DD:EE:02")
+        runCurrent()
+        repo.removePairingKey("aa:bb:cc:dd:ee:01")
+        assertEquals(listOf("AA:BB:CC:DD:EE:01"), removed)
+        assertEquals(0, transports.getValue("AA:BB:CC:DD:EE:02").disconnectCount)
+        assertEquals(setOf("AA:BB:CC:DD:EE:02"), repo.activeConnections().first().keys)
+        repo.connect("AA:BB:CC:DD:EE:01")
+        runCurrent()
+        old.close()
+        assertEquals(0, transports.getValue("AA:BB:CC:DD:EE:01").disconnectCount)
+    }
+
+    @Test fun removalJoinsRegistrationBeforeDurableDeleteAndBlocksReconnect() = runTest {
+        val mac = "AA:BB:CC:DD:EE:01"
+        val operations = mutableListOf<String>()
+        val closing = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val enteredClose = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val store = object : com.rideflux.domain.bond.BondStore {
+            override suspend fun list() = emptyList<com.rideflux.domain.bond.BondEntry>()
+            override suspend fun put(entry: com.rideflux.domain.bond.BondEntry) { operations += "put" }
+            override suspend fun remove(mac: String): Boolean { operations += "remove"; return true }
+        }
+        var created = 0
+        val repo = ScooterRepositoryImpl(backgroundScope, store) { address, model, _ ->
+            created++
+            object : com.rideflux.domain.connection.ScooterConnection {
+                override val device = ScooterDevice(address, model)
+                override val state = kotlinx.coroutines.flow.MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
+                override val telemetry = kotlinx.coroutines.flow.MutableStateFlow<com.rideflux.domain.telemetry.ScooterTelemetry?>(null)
+                override val handshakeState = kotlinx.coroutines.flow.MutableStateFlow(com.rideflux.domain.connection.ScooterHandshakeState.UNBONDED)
+                override suspend fun start() {
+                    try { kotlinx.coroutines.awaitCancellation() }
+                    finally { operations += "registrationFinished" }
+                }
+                override suspend fun close() { enteredClose.complete(Unit); closing.await() }
+                override suspend fun lock() = com.rideflux.domain.command.CommandOutcome.Unsupported(com.rideflux.domain.command.WheelCommand.Raw(byteArrayOf()))
+                override suspend fun unlock() = lock()
+                override suspend fun readRegister(register: Int, readLength: Int): ByteArray? = null
+            }
+        }
+        repo.connect(mac)
+        runCurrent()
+        val delete = backgroundScope.launch { repo.removePairingKey(mac) }
+        enteredClose.await()
+        val reconnect = backgroundScope.launch { repo.connect(mac) }
+        runCurrent()
+        assertEquals(1, created)
+        closing.complete(Unit)
+        delete.join(); reconnect.join()
+        assertEquals(listOf("registrationFinished", "remove"), operations)
+        assertEquals(2, created)
     }
 }
