@@ -220,7 +220,7 @@ class VeteranWheelCodecTest {
     }
 
     @Test
-    fun `unverified modern key with default codec does not auto latch to MODERN_NOSFET`() {
+    fun `unverified modern key with default codec stays in UNKNOWN and emits null ambiguous fields`() {
         // Unknown key 999900: b30=0x0F, b28=0x41, b29=0xDC
         val frame = makeNosfetFrame(
             voltageHundredthsV = 14850,
@@ -231,9 +231,53 @@ class VeteranWheelCodecTest {
 
         val codec = VeteranWheelCodec("11:22:33:44:55:66")
         val state = codec.newState() as VeteranWheelCodec.VeteranState
-        codec.decode(state, frame)
+        val events = codec.decode(state, frame)
 
-        // Must remain in safe initial LEGACY profile because 9999 is unverified
-        assertEquals(VeteranProtocolProfile.LEGACY, state.effectiveProfile)
+        // Must remain in safe UNKNOWN profile because 9999 is uncatalogued
+        assertEquals(VeteranProtocolProfile.UNKNOWN, state.effectiveProfile)
+        val identified = events.filterIsInstance<DecodeEvent.Identified>().first()
+        val telem = events.filterIsInstance<DecodeEvent.TelemetryUpdate>().first()
+
+        assertEquals("Veteran", identified.identity.modelName)
+        assertNull(identified.identity.firmwareVersion)
+        assertNull(telem.snapshot.phaseCurrentA)
+        assertNull(telem.snapshot.pwmPercent)
+        assertNull(telem.snapshot.chargingState)
+        assertNull(telem.snapshot.currentA)
+        assertNull(telem.snapshot.rideMode)
+        // Common fields are still populated safely
+        assertEquals(148.50f, telem.snapshot.voltageV)
+        assertEquals(25.0f, telem.snapshot.speedKmh)
+    }
+
+    @Test
+    fun `truncated or bad CRC frame with modern candidate bytes does not latch profile`() {
+        val apexFrame = makeNosfetFrame(
+            voltageHundredthsV = 14850,
+            b30 = 0x07,
+            b28 = 0xA5,
+            b29 = 0x08,
+        )
+        // Truncate to 33 bytes (incomplete frame)
+        val truncated = apexFrame.copyOf(33)
+
+        val codec = VeteranWheelCodec("11:22:33:44:55:66")
+        val state = codec.newState() as VeteranWheelCodec.VeteranState
+        val events = codec.decode(state, truncated)
+
+        // Profile must NOT be latched by incomplete or unverified frames
+        assertEquals(VeteranProtocolProfile.UNKNOWN, state.effectiveProfile)
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun `codec is strictly read-only and forbids all commands including Raw`() {
+        val codec = VeteranWheelCodec("11:22:33:44:55:66")
+        val state = codec.newState()
+
+        val rawCmd = com.rideflux.domain.command.WheelCommand.Raw(byteArrayOf(0x01, 0x02, 0x03))
+        val encoded = codec.encode(state, rawCmd)
+        assertTrue(encoded.isEmpty())
+        assertEquals(false, VeteranWheelCodec.DEFAULT_CAPABILITIES.tiltback)
     }
 }
