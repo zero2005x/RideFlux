@@ -38,18 +38,45 @@ class M365CodecTest {
         assertNull(M365Codec.decodeB0(payload))
     }
 
-    @Test fun invalidSpeedSentinelsRemainUnknownEvenWhenWheelMayBeTurning() {
+    @Test fun reverseSpeedIsMagnitudeRatherThanUnsignedWraparoundOrUnknown() {
         val payload = ByteArray(32)
-        for (raw in listOf(0xff00, 0xff3e, 0xfff4, 0xffff)) {
+        // Literal LE16 wire words, including the old incorrectly classified sentinel range.
+        for ((raw, expected) in listOf(0xfc18 to 1f, 0xf63c to 2.5f,
+            0xff00 to 0.256f, 0xff3e to 0.194f, 0xfff4 to 0.012f, 0xffff to 0.001f)) {
             payload[10] = raw.toByte()
             payload[11] = (raw ushr 8).toByte()
             val block = requireNotNull(M365Codec.decodeB0(payload))
-            assertNull(block.speedKmh)
-            assertNull(block.toTelemetry(1).speedKmh)
+            assertEquals(raw, block.speedRaw)
+            assertEquals(expected, block.speedKmh!!, 0.000001f)
+            assertEquals(expected, block.toTelemetry(1).speedKmh!!, 0.000001f)
         }
         payload[10] = 0
         payload[11] = 0
         assertEquals(0f, requireNotNull(M365Codec.decodeB0(payload)).speedKmh!!, 0f)
+    }
+
+    @Test fun forwardAndFreeSpinningSpeedsKeepTheirScale() {
+        val payload = ByteArray(32)
+        for ((raw, expected) in listOf(1 to 0.001f, 2500 to 2.5f, 25000 to 25f,
+            30000 to 30f, 32767 to 32.767f)) {
+            payload[10] = raw.toByte()
+            payload[11] = (raw ushr 8).toByte()
+            assertEquals(expected, M365Codec.decodeB0(payload)!!.toTelemetry(1).speedKmh!!, 0.000001f)
+        }
+    }
+
+    @Test fun reverseSamplesRevokeStationaryPermitIncludingVerySlowMotion() {
+        val gate = com.rideflux.domain.safety.MotionInterlock()
+        val payload = ByteArray(32)
+        for (raw in listOf(0xfc18, 0xff00, 0xff3e, 0xffff)) {
+            gate.reset()
+            repeat(3) { gate.observe(0f, it.toLong()) }
+            assertEquals(com.rideflux.domain.safety.MotionState.STATIONARY_CONFIRMED, gate.state(2))
+            payload[10] = raw.toByte()
+            payload[11] = (raw ushr 8).toByte()
+            gate.observe(M365Codec.decodeB0(payload)!!.speedKmh, 3)
+            assertEquals(com.rideflux.domain.safety.MotionState.MOVING, gate.state(3))
+        }
     }
 
     @Test fun replyRejectsBadChecksumAndWrongLength() {
