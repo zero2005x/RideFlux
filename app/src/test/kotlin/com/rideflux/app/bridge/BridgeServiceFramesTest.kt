@@ -12,7 +12,10 @@ import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.SignalLevel
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
+import com.rideflux.domain.connection.ScooterConnection
+import com.rideflux.domain.repository.ScooterRepository
 import com.rideflux.domain.repository.WheelRepository
+import com.rideflux.domain.telemetry.ScooterTelemetry
 import com.rideflux.domain.settings.AppSettings
 import com.rideflux.domain.settings.SettingsRepository
 import com.rideflux.domain.telemetry.WheelTelemetry
@@ -51,6 +54,7 @@ import java.io.IOException
 class BridgeServiceFramesTest {
     private lateinit var service: BridgeService
     private lateinit var wheelRepository: WheelRepository
+    private lateinit var scooterRepository: ScooterRepository
 
     @Before
     fun setUp() {
@@ -60,6 +64,9 @@ class BridgeServiceFramesTest {
             .invoke(service, RuntimeEnvironment.getApplication())
         wheelRepository = mockk()
         service.wheelRepository = wheelRepository
+        scooterRepository = mockk()
+        every { scooterRepository.isDiscovered(any()) } returns false
+        service.scooterRepository = scooterRepository
         service.settingsRepository = mockk<SettingsRepository>(relaxed = true).also {
             every { it.settings } returns MutableStateFlow(AppSettings())
         }
@@ -118,6 +125,34 @@ class BridgeServiceFramesTest {
         assertEquals(SignalLevel.GOOD, frame.signal)
         assertEquals(BridgeState.RELAYING, BridgeService.state.value)
         coVerify(exactly = 1) { connection.close() }
+    }
+
+    @Test
+    fun discoveredScooterIsRelayedThroughTheScooterRepositoryNotAsAWheel() = runBlocking {
+        val address = "C7:B8:DC:3B:A1:B2"
+        val scooter = mockk<ScooterConnection>()
+        every { scooter.state } returns MutableStateFlow(ConnectionState.Ready)
+        every { scooter.telemetry } returns MutableStateFlow(
+            ScooterTelemetry(
+                timestampMillis = System.currentTimeMillis(),
+                speedKmh = 17.6f,
+                batteryPercent = 60f,
+                tripDistanceMetres = 5L,
+            ),
+        )
+        coEvery { scooter.close() } returns Unit
+        every { scooterRepository.isDiscovered(address) } returns true
+        coEvery { scooterRepository.connect(address) } returns scooter
+        setTarget(readTarget(Intent().putExtra(BridgeService.EXTRA_MAC, address))!!)
+
+        val frame = withTimeout(5_000) { frames().first { it.ready } }
+        assertEquals(17.6f, frame.speedKmh)
+        assertEquals(60f, frame.vehicleBatteryPercent)
+        assertEquals(5, frame.tripDistanceMetres)
+        assertNull(frame.voltageV)
+        assertEquals(BridgeState.RELAYING, BridgeService.state.value)
+        coVerify(exactly = 0) { wheelRepository.connect(any(), any()) }
+        coVerify(exactly = 1) { scooter.close() }
     }
 
     @Test

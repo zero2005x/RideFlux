@@ -30,6 +30,8 @@ import com.rideflux.data.bridge.BridgePairingToken
 import com.rideflux.data.bridge.SignalLevel
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
+import com.rideflux.domain.connection.ScooterConnection
+import com.rideflux.domain.repository.ScooterRepository
 import com.rideflux.domain.repository.WheelRepository
 import com.rideflux.domain.settings.SettingsRepository
 import com.rideflux.domain.wheel.WheelFamily
@@ -55,6 +57,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -68,6 +71,20 @@ enum class BridgeState { STOPPED, STANDBY, ATTACHING, RELAYING, DEGRADED }
 private data class BridgeTarget(
     val mac: String,
     val family: WheelFamily?,
+)
+
+/** The telemetry fields the HUD frame needs, common to wheels and scooters. */
+private data class BridgeReading(
+    val timestampMillis: Long,
+    val speedKmh: Float?,
+    val batteryPercent: Float?,
+    val voltageV: Float?,
+    val tripDistanceMetres: Int?,
+)
+
+private class VehicleLink(
+    val snapshots: Flow<WheelSnapshot>,
+    val close: suspend () -> Unit,
 )
 
 private data class WheelSnapshot(
@@ -87,6 +104,7 @@ private data class WheelSnapshot(
 class BridgeService : Service() {
 
     @Inject lateinit var wheelRepository: WheelRepository
+    @Inject lateinit var scooterRepository: ScooterRepository
     @Inject lateinit var settingsRepository: SettingsRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -376,11 +394,12 @@ class BridgeService : Service() {
         while (currentCoroutineContext().isActive) {
             setBridgeState(BridgeState.ATTACHING)
             var reachedReady = false
-            var connection: WheelConnection? = null
+            var closeLink: (suspend () -> Unit)? = null
             try {
-                connection = wheelRepository.connect(selected.mac, selected.family)
+                val link = openLink(selected)
+                closeLink = link.close
                 var reachedActiveState = false
-                connection.snapshotFlow().collect { snapshot ->
+                link.snapshots.collect { snapshot ->
                     when (snapshot.connectionState) {
                         ConnectionState.Ready -> {
                             reachedActiveState = true
@@ -411,7 +430,7 @@ class BridgeService : Service() {
                 Log.w(TAG, "wheel link ${selected.mac} ended: ${e.message}")
             } finally {
                 withContext(NonCancellable) {
-                    try { connection?.close() } catch (_: Throwable) { /* best-effort */ }
+                    try { closeLink?.invoke() } catch (_: Throwable) { /* best-effort */ }
                 }
             }
 
@@ -427,12 +446,50 @@ class BridgeService : Service() {
         }
     }
 
-    private fun WheelConnection.snapshotFlow(): Flow<WheelSnapshot> {
+    /**
+     * Xiaomi/Ninebot retail scooters are not wheels: their GATT link is owned by
+     * the scooter repository, which the dashboard shares.
+     */
+    private suspend fun openLink(selected: BridgeTarget): VehicleLink {
+        if (scooterRepository.isDiscovered(selected.mac)) {
+            val scooter = scooterRepository.connect(selected.mac)
+            return VehicleLink(scooter.snapshotFlow()) { scooter.close() }
+        }
+        val wheel = wheelRepository.connect(selected.mac, selected.family)
+        return VehicleLink(wheel.snapshotFlow()) { wheel.close() }
+    }
+
+    private fun WheelConnection.snapshotFlow(): Flow<WheelSnapshot> = snapshotFlow(
+        state,
+        telemetry.map {
+            BridgeReading(it.timestampMillis, it.speedKmh, it.batteryPercent, it.voltageV, it.tripDistanceMetres)
+        },
+    )
+
+    private fun ScooterConnection.snapshotFlow(): Flow<WheelSnapshot> = snapshotFlow(
+        state,
+        telemetry.map { t ->
+            t?.let {
+                BridgeReading(
+                    it.timestampMillis,
+                    it.speedKmh,
+                    it.batteryPercent,
+                    voltageV = null,
+                    tripDistanceMetres = it.tripDistanceMetres?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt(),
+                )
+            } ?: BridgeReading(0L, null, null, null, null)
+        },
+    )
+
+    private fun snapshotFlow(
+        state: Flow<ConnectionState>,
+        readings: Flow<BridgeReading>,
+    ): Flow<WheelSnapshot> {
         var lastTelemetryTimestamp = Long.MIN_VALUE
         var lastTelemetryElapsed = 0L
         return combine(
             state,
-            telemetry,
+            readings,
             phoneBatteryFlow(),
             flow {
                 while (true) {

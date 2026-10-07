@@ -73,6 +73,7 @@ class BridgeServiceActionsTest {
             .apply { isAccessible = true }
             .setBoolean(created, true)
         created.wheelRepository = mockk<WheelRepository>()
+        created.scooterRepository = mockk<com.rideflux.domain.repository.ScooterRepository>()
         created.settingsRepository = mockk<SettingsRepository>().also {
             every { it.settings } returns MutableStateFlow(AppSettings())
         }
