@@ -123,6 +123,10 @@ object VeteranDecoder {
         }
         val consumed = total
 
+        val b28 = ByteReader.u8(buffer, offset + 28)
+        val b29 = ByteReader.u8(buffer, offset + 29)
+        val b30 = ByteReader.u8(buffer, offset + 30)
+
         val frame = VeteranFrame(
             declaredLength = length,
             voltageHundredthsV = ByteReader.u16BE(buffer, offset + 4),
@@ -132,21 +136,30 @@ object VeteranDecoder {
             phaseCurrentHundredthsA = ByteReader.s16BE(buffer, offset + 16),
             temperatureHundredthsC = ByteReader.s16BE(buffer, offset + 18),
             autoPowerOffSeconds = ByteReader.u16BE(buffer, offset + 20),
-            chargeMode = if (profile == VeteranProtocolProfile.MODERN_NOSFET)
-                ByteReader.u8(buffer, offset + 23) else ByteReader.u16BE(buffer, offset + 22),
+            chargeMode = when (profile) {
+                VeteranProtocolProfile.MODERN_NOSFET -> ByteReader.u8(buffer, offset + 23)
+                VeteranProtocolProfile.LEGACY -> ByteReader.u16BE(buffer, offset + 22)
+                VeteranProtocolProfile.UNKNOWN -> 0
+            },
             speedAlertTenthsKmh = ByteReader.u16BE(buffer, offset + 24),
             speedTiltbackTenthsKmh = ByteReader.u16BE(buffer, offset + 26),
-            firmwareVersionRaw = if (profile == VeteranProtocolProfile.MODERN_NOSFET)
-                (ByteReader.u8(buffer, offset + 30) shl 16) or
-                    (ByteReader.u8(buffer, offset + 28) shl 8) or
-                    ByteReader.u8(buffer, offset + 29)
-                else ByteReader.u16BE(buffer, offset + 28),
-            pedalsMode = if (profile == VeteranProtocolProfile.MODERN_NOSFET)
-                ByteReader.u8(buffer, offset + 31) else ByteReader.u16BE(buffer, offset + 30),
+            firmwareVersionRaw = when (profile) {
+                VeteranProtocolProfile.MODERN_NOSFET -> (b30 shl 16) or (b28 shl 8) or b29
+                VeteranProtocolProfile.LEGACY -> ByteReader.u16BE(buffer, offset + 28)
+                VeteranProtocolProfile.UNKNOWN -> 0
+            },
+            pedalsMode = when (profile) {
+                VeteranProtocolProfile.MODERN_NOSFET -> ByteReader.u8(buffer, offset + 31)
+                VeteranProtocolProfile.LEGACY -> ByteReader.u16BE(buffer, offset + 30)
+                VeteranProtocolProfile.UNKNOWN -> 0
+            },
             pitchAngleHundredthsDeg = ByteReader.s16BE(buffer, offset + 32),
             hardwarePwmHundredthsPercent = ByteReader.u16BE(buffer, offset + 34),
             crc32Present = crcPresent,
             protocolProfile = profile,
+            rawByte28 = b28,
+            rawByte29 = b29,
+            rawByte30 = b30,
         )
         return DecodeResult.Ok(frame, consumed)
     }

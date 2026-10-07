@@ -123,8 +123,12 @@ object InmotionI2Decoder {
             if (cursor >= end) return Scan.Fail(InmotionI2DecodeError.TooShort)
             val b = wire[cursor]
             if (b == InmotionI2Codec.ESCAPE_BYTE) {
-                if (cursor + 1 >= end) return Scan.Fail(InmotionI2DecodeError.BadEscape)
-                body.add(wire[cursor + 1])
+                if (cursor + 1 >= end) return Scan.Fail(InmotionI2DecodeError.TooShort)
+                val next = wire[cursor + 1]
+                if (next != InmotionI2Codec.PREAMBLE_BYTE && next != InmotionI2Codec.ESCAPE_BYTE) {
+                    return Scan.Fail(InmotionI2DecodeError.BadEscape)
+                }
+                body.add(next)
                 cursor += 2
             } else {
                 body.add(b)
@@ -142,20 +146,27 @@ object InmotionI2Decoder {
  */
 data class InmotionI2RealtimeV11Early(
     val voltageHundredthsV: Int,
-    val phaseCurrentHundredthsA: Int,
+    val currentHundredthsA: Int,
     val speedHundredthsKmh: Int,
     val torqueHundredthsNm: Int,
     val batteryPowerWatts: Int,
     val motorPowerWatts: Int,
     val tripDistanceTenMetres: Int,
     val remainingRangeTenMetres: Int,
+    val batteryPercent: Int? = null,
+    val mosTempCelsius: Int? = null,
+    val boardTempCelsius: Int? = null,
+    val pitchAngleHundredthsDeg: Int? = null,
+    val rollAngleHundredthsDeg: Int? = null,
 ) {
     val voltageV: Double get() = voltageHundredthsV / 100.0
-    val phaseCurrentA: Double get() = phaseCurrentHundredthsA / 100.0
+    val currentA: Double get() = currentHundredthsA / 100.0
     val speedKmh: Double get() = speedHundredthsKmh / 100.0
     val torqueNm: Double get() = torqueHundredthsNm / 100.0
     val tripDistanceMetres: Int get() = tripDistanceTenMetres * 10
     val remainingRangeMetres: Int get() = remainingRangeTenMetres * 10
+    val pitchAngleDegrees: Double? get() = pitchAngleHundredthsDeg?.let { it / 100.0 }
+    val rollAngleDegrees: Double? get() = rollAngleHundredthsDeg?.let { it / 100.0 }
 
     companion object {
         const val MIN_DATA_SIZE: Int = 16
@@ -164,15 +175,26 @@ data class InmotionI2RealtimeV11Early(
             require(data.size >= MIN_DATA_SIZE) {
                 "DATA too short for V11 early telemetry: ${data.size} < $MIN_DATA_SIZE"
             }
+            val bat = if (data.size >= 17) (data[16].toInt() and 0x7F).coerceIn(0, 100) else null
+            val mos = if (data.size >= 18) (data[17].toInt() and 0xFF) - 176 else null
+            val board = if (data.size >= 21) (data[20].toInt() and 0xFF) - 176 else null
+            val pitch = if (data.size >= 24) ByteReader.s16LE(data, 22) else null
+            val roll = if (data.size >= 28) ByteReader.s16LE(data, 26) else null
+
             return InmotionI2RealtimeV11Early(
                 voltageHundredthsV = ByteReader.u16LE(data, 0),
-                phaseCurrentHundredthsA = ByteReader.s16LE(data, 2),
+                currentHundredthsA = ByteReader.s16LE(data, 2),
                 speedHundredthsKmh = ByteReader.s16LE(data, 4),
                 torqueHundredthsNm = ByteReader.s16LE(data, 6),
                 batteryPowerWatts = ByteReader.s16LE(data, 8),
                 motorPowerWatts = ByteReader.s16LE(data, 10),
                 tripDistanceTenMetres = ByteReader.u16LE(data, 12),
                 remainingRangeTenMetres = ByteReader.u16LE(data, 14),
+                batteryPercent = bat,
+                mosTempCelsius = mos,
+                boardTempCelsius = board,
+                pitchAngleHundredthsDeg = pitch,
+                rollAngleHundredthsDeg = roll,
             )
         }
     }

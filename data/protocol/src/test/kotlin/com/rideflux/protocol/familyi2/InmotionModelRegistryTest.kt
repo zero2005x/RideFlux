@@ -35,11 +35,15 @@ class InmotionModelRegistryTest {
 
         val v11y = codec.newState() as InmotionI2WheelCodec.InmotionI2State
         v11y.carType = "V11Y"
+        v11y.mainBoardMajor = 1
+        v11y.mainBoardMinor = 3
         val yTelemetry = codec.decodeSafely(v11y, frame).filterIsInstance<DecodeEvent.TelemetryUpdate>().single().snapshot
         assertNull(yTelemetry.speedKmh)
 
         val v11 = codec.newState() as InmotionI2WheelCodec.InmotionI2State
         v11.carType = "V11"
+        v11.mainBoardMajor = 1
+        v11.mainBoardMinor = 3
         val v11Telemetry = codec.decodeSafely(v11, frame).filterIsInstance<DecodeEvent.TelemetryUpdate>().single().snapshot
         assertEquals(25f, v11Telemetry.speedKmh!!, 0.01f)
     }

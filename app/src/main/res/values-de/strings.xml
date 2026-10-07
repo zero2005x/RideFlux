@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">Suche fehlgeschlagen: %1$s</string>
     <string name="scanner_unknown_device">Unbekanntes Gerät</string>
     <string name="scanner_device_family">Familie: %1$s</string>
+    <string name="scanner_select_brand_title">Wheel-Marke auswählen</string>
 
     <string name="bridge_card_title">HUD-Bridge</string>
     <string name="bridge_state_off">Aus</string>

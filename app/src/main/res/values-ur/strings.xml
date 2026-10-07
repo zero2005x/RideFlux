@@ -46,6 +46,7 @@
     <string name="scanner_scan_failed_reason">تلاش ناکام: %1$s</string>
     <string name="scanner_unknown_device">نامعلوم آلہ</string>
     <string name="scanner_device_family">فیملی: %1$s</string>
+    <string name="scanner_select_brand_title">پہیے کا برانڈ منتخب کریں</string>
 
     <string name="bridge_card_title">HUD پُل</string>
     <string name="bridge_state_off">بند</string>

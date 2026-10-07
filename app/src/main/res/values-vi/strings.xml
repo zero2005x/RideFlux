@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">Quét thất bại: %1$s</string>
     <string name="scanner_unknown_device">Thiết bị không xác định</string>
     <string name="scanner_device_family">Dòng giao thức: %1$s</string>
+    <string name="scanner_select_brand_title">Chọn thương hiệu xe</string>
 
     <string name="bridge_card_title">Cầu nối HUD</string>
     <string name="bridge_state_off">Tắt</string>

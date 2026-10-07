@@ -52,8 +52,8 @@ class DashboardViewModelTest {
     }
 
     @Test
-    fun isVehicleActionPermitted_readyAndNullSpeed_returnsTrue() {
-        org.junit.Assert.assertTrue(
+    fun isVehicleActionPermitted_readyAndNullSpeed_returnsFalse() {
+        org.junit.Assert.assertFalse(
             isVehicleActionPermitted(
                 com.rideflux.domain.connection.ConnectionState.Ready,
                 null,

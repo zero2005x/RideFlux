@@ -5,6 +5,7 @@
  */
 package com.rideflux.data.ble
 
+import com.rideflux.domain.codec.WheelCodec
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.wheel.WheelFamily
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -58,5 +59,29 @@ class WheelRepositoryLifecycleTest {
         assertEquals(0, transport.disconnectCount)
         second.close()
         assertEquals(1, transport.disconnectCount)
+    }
+
+    @Test fun reconnectWithDifferentExpectedFamilyEvictsAndRebuilds() = runTest {
+        val transports = mutableListOf<FakeBleTransport>()
+        val codecs = mutableListOf<WheelCodec>()
+        val repository = WheelRepositoryImpl(backgroundScope) { _, family, scope ->
+            val transport = FakeBleTransport().also(transports::add)
+            val codec = FakeWheelCodec(family = family ?: WheelFamily.G).also(codecs::add)
+            WheelConnectionImpl(transport, codec, scope, clock = { 1_000L })
+        }
+        val first = repository.connect("wheel", WheelFamily.G)
+        runCurrent()
+        assertEquals(1, transports.size)
+        assertEquals(WheelFamily.G, codecs.first().family)
+
+        // Connect with WheelFamily.V (e.g. user corrected brand)
+        val second = repository.connect("wheel", WheelFamily.V)
+        runCurrent()
+        assertEquals(2, transports.size)
+        assertEquals(WheelFamily.V, codecs.last().family)
+        assertEquals(1, transports.first().disconnectCount)
+
+        first.close()
+        second.close()
     }
 }

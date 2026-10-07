@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">Búsqueda fallida: %1$s</string>
     <string name="scanner_unknown_device">Dispositivo desconocido</string>
     <string name="scanner_device_family">Familia: %1$s</string>
+    <string name="scanner_select_brand_title">Seleccionar marca del monociclo</string>
 
     <string name="bridge_card_title">Puente HUD</string>
     <string name="bridge_state_off">Apagado</string>

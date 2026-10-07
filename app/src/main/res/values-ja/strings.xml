@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">スキャンに失敗しました: %1$s</string>
     <string name="scanner_unknown_device">不明なデバイス</string>
     <string name="scanner_device_family">ファミリー: %1$s</string>
+    <string name="scanner_select_brand_title">ホイールのブランドを選択</string>
 
     <string name="bridge_card_title">HUD ブリッジ</string>
     <string name="bridge_state_off">オフ</string>

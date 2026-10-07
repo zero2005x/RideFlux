@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">Помилка пошуку: %1$s</string>
     <string name="scanner_unknown_device">Невідомий пристрій</string>
     <string name="scanner_device_family">Родина: %1$s</string>
+    <string name="scanner_select_brand_title">Виберіть марку колеса</string>
 
     <string name="bridge_card_title">Міст HUD</string>
     <string name="bridge_state_off">Вимкнено</string>

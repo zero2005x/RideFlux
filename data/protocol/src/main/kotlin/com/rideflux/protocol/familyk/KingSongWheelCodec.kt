@@ -31,6 +31,22 @@ class KingSongWheelCodec(
         internal val buffer: ArrayList<Byte> = ArrayList(40)
         internal var last: WheelTelemetry = WheelTelemetry.EMPTY
         internal var identified: Boolean = false
+
+        // Observability and diagnostics
+        var notificationsReceived: Long = 0
+            internal set
+        var bytesReceived: Long = 0
+            internal set
+        var framesDecoded: Long = 0
+            internal set
+        var framesRejected: Long = 0
+            internal set
+        var unsupportedPagesSeen: Long = 0
+            internal set
+        var lastPageSeen: Int? = null
+            internal set
+        var lastHeaderSeen: Int? = null
+            internal set
     }
 
     override fun newState(): WheelCodec.State = KingSongState()
@@ -42,6 +58,21 @@ class KingSongWheelCodec(
 
     override fun decode(state: WheelCodec.State, bytes: ByteArray): List<DecodeEvent> {
         val s = state as KingSongState
+        s.notificationsReceived++
+        s.bytesReceived += bytes.size
+
+        if (s.buffer.size + bytes.size > MAX_BUFFER_BYTES) {
+            val overflowCount = s.buffer.size + bytes.size
+            s.buffer.clear()
+            s.framesRejected++
+            return listOf(
+                DecodeEvent.Malformed(
+                    reason = "KingSong buffer overflow ($overflowCount > $MAX_BUFFER_BYTES bytes without valid frame), clearing unsynced buffer",
+                    offendingBytes = null,
+                ),
+            )
+        }
+
         for (b in bytes) s.buffer.add(b)
 
         val events = ArrayList<DecodeEvent>()
@@ -49,14 +80,41 @@ class KingSongWheelCodec(
             val frameBytes = ByteArray(20) { s.buffer[it] }
             val frame = KingSongDecoder.decode(frameBytes)
             if (frame == null) {
+                val b0 = frameBytes[0].toInt() and 0xFF
+                val b1 = frameBytes[1].toInt() and 0xFF
+                if (b0 == 0xAA && b1 == 0x55) {
+                    s.framesRejected++
+                    s.lastHeaderSeen = 0xAA55
+                    val tailHigh = frameBytes[18].toInt() and 0xFF
+                    val tailLow = frameBytes[19].toInt() and 0xFF
+                    events.add(
+                        DecodeEvent.Malformed(
+                            reason = "KingSong frame with AA55 header rejected (tail at 18..19 is [0x${tailHigh.toString(16).padStart(2, '0')}, 0x${tailLow.toString(16).padStart(2, '0')}], expected [0x5A, 0x5A])",
+                            offendingBytes = frameBytes,
+                        ),
+                    )
+                } else if (b0 == 0xF1 && b1 == 0xEF) {
+                    s.framesRejected++
+                    s.lastHeaderSeen = 0xF1EF
+                    val page = frameBytes[16].toInt() and 0xFF
+                    events.add(
+                        DecodeEvent.Malformed(
+                            reason = "KingSong frame with F1EF header observed but unsupported in production (page=0x${page.toString(16).padStart(2, '0')})",
+                            offendingBytes = frameBytes,
+                        ),
+                    )
+                }
                 s.buffer.removeAt(0)
                 continue
             }
             repeat(20) { s.buffer.removeAt(0) }
+            s.framesDecoded++
+            s.lastHeaderSeen = 0xAA55
 
             val now = System.currentTimeMillis()
             when (frame) {
                 is KingSongFrame.LivePageA -> {
+                    s.lastPageSeen = KingSongDecoder.CMD_LIVE_PAGE_A
                     // Only declare the wheel identified after a real live
                     // telemetry frame has been decoded (the handshake name/
                     // serial replies are surfaced as Unknown frames and must
@@ -66,7 +124,7 @@ class KingSongWheelCodec(
                         events.add(
                             DecodeEvent.Identified(
                                 identity = WheelIdentity(
-                                    address = deviceAddress,
+                                    address = deviceAddress.ifBlank { "00:00:00:00:00:00" },
                                     family = WheelFamily.K,
                                     modelName = "KingSong",
                                 ),
@@ -91,6 +149,7 @@ class KingSongWheelCodec(
                     events.add(DecodeEvent.TelemetryUpdate(merged))
                 }
                 is KingSongFrame.LivePageB -> {
+                    s.lastPageSeen = KingSongDecoder.CMD_LIVE_PAGE_B
                     val merged = s.last.copy(
                         timestampMillis = now,
                         tripDistanceMetres = frame.tripDistanceMeters.toInt(),
@@ -101,7 +160,10 @@ class KingSongWheelCodec(
                     s.last = merged
                     events.add(DecodeEvent.TelemetryUpdate(merged))
                 }
-                is KingSongFrame.Unknown -> Unit
+                is KingSongFrame.Unknown -> {
+                    s.unsupportedPagesSeen++
+                    s.lastPageSeen = frame.commandCode
+                }
             }
         }
         return events
@@ -141,6 +203,8 @@ class KingSongWheelCodec(
         }
 
     companion object {
+        const val MAX_BUFFER_BYTES: Int = 512
+
         // Capabilities mirror what encode() actually implements.
         // ledStrip / decorativeLights / rideModes / pedalSensitivity
         // have no encode() mapping, so they are advertised as

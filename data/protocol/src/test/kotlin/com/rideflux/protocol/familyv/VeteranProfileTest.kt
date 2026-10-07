@@ -7,9 +7,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VeteranProfileTest {
-    @Test fun `default decoder profile remains legacy`() {
+    @Test fun `UNKNOWN profile decodes common fields and leaves ambiguous fields null`() {
         val bytes = hex("DC5A5C2025CD0000071F0000C77800280000110B0E1000010AF00AF00422000300140000")
-        val result = VeteranDecoder.decode(bytes)
+        val result = VeteranDecoder.decode(bytes, profile = VeteranProtocolProfile.UNKNOWN)
+        assertTrue(result is VeteranDecoder.DecodeResult.Ok)
+        val frame = (result as VeteranDecoder.DecodeResult.Ok).frame
+        assertEquals(VeteranProtocolProfile.UNKNOWN, frame.protocolProfile)
+        assertNull(frame.phaseCurrentAmps)
+        assertNull(frame.hardwarePwmPercent)
+        assertNull(frame.chargeStatus)
+        assertNull(frame.firmwareVersionString)
+    }
+
+    @Test fun `legacy profile decodes legacy fields`() {
+        val bytes = hex("DC5A5C2025CD0000071F0000C77800280000110B0E1000010AF00AF00422000300140000")
+        val result = VeteranDecoder.decode(bytes, profile = VeteranProtocolProfile.LEGACY)
         assertTrue(result is VeteranDecoder.DecodeResult.Ok)
         assertEquals(VeteranProtocolProfile.LEGACY, (result as VeteranDecoder.DecodeResult.Ok).frame.protocolProfile)
     }
@@ -30,7 +42,7 @@ class VeteranProfileTest {
         assertEquals(2, frame.chargeMode)
         assertEquals(3, frame.pedalsMode)
         assertEquals("5010", frame.hardwareKey)
-        assertEquals("Apex", VeteranModelRegistry.fromHardwareKey(frame.hardwareKey)?.name)
+        assertEquals("Apex", VeteranModelRegistry.fromHardwareKey(frame.hardwareKey!!)?.name)
         assertEquals(frame.hardwarePwmHundredthsPercent, frame.outputRaw)
     }
 

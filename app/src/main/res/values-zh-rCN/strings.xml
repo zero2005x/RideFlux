@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">扫描失败：%1$s</string>
     <string name="scanner_unknown_device">未知设备</string>
     <string name="scanner_device_family">协议家族：%1$s</string>
+    <string name="scanner_select_brand_title">选择车辆品牌</string>
 
     <string name="bridge_card_title">HUD 桥接</string>
     <string name="bridge_state_off">已关闭</string>

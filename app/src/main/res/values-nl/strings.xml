@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">Scan mislukt: %1$s</string>
     <string name="scanner_unknown_device">Onbekend apparaat</string>
     <string name="scanner_device_family">Familie: %1$s</string>
+    <string name="scanner_select_brand_title">Selecteer wielmerk</string>
 
     <string name="bridge_card_title">HUD-brug</string>
     <string name="bridge_state_off">Uit</string>

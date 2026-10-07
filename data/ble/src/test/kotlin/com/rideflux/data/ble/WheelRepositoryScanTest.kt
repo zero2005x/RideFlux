@@ -74,6 +74,40 @@ class WheelRepositoryScanTest {
     }
 
     @Test
+    fun deviceTheRiderClassifiedByHandIsRecognisedOnTheNextScan() = runTest {
+        val fixture = Fixture()
+        val repository = WheelRepositoryImpl(
+            fixture.context,
+            backgroundScope,
+            WheelCodecFactoryImpl(),
+        ) { _, family, scope ->
+            WheelConnectionImpl(
+                FakeBleTransport(),
+                FakeWheelCodec(family = family ?: WheelFamily.G),
+                scope,
+                clock = { 1_000L },
+            )
+        }
+        val emissions = mutableListOf<List<com.rideflux.domain.repository.DiscoveredWheel>>()
+        val job = backgroundScope.launch { repository.scan().collect { emissions.add(it) } }
+        runCurrent()
+        val ffe0 = listOf("0000ffe0-0000-1000-8000-00805f9b34fb")
+
+        // FFE0 alone with an unrecognised name is ambiguous: surfaced unclassified.
+        fixture.callback.onScanResult(0, fixture.result("11:22:33:44:55:66", "Odd Board", -60, ffe0))
+        runCurrent()
+        assertEquals(null, emissions.last().single().family)
+
+        // The rider picks KingSong; the same device is then classified on its own.
+        repository.connect("11:22:33:44:55:66", WheelFamily.K)
+        fixture.callback.onScanResult(0, fixture.result("11:22:33:44:55:66", "Odd Board", -61, ffe0))
+        runCurrent()
+        assertEquals(WheelFamily.K, emissions.last().single().family)
+
+        job.cancelAndJoin()
+    }
+
+    @Test
     fun scanFailureClosesCollectionWithErrorAndStopsScanner() = runTest {
         val fixture = Fixture()
         val repository = WheelRepositoryImpl(fixture.context, backgroundScope)

@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">Ricerca non riuscita: %1$s</string>
     <string name="scanner_unknown_device">Dispositivo sconosciuto</string>
     <string name="scanner_device_family">Famiglia: %1$s</string>
+    <string name="scanner_select_brand_title">Seleziona la marca del monoruota</string>
 
     <string name="bridge_card_title">Ponte HUD</string>
     <string name="bridge_state_off">Spento</string>

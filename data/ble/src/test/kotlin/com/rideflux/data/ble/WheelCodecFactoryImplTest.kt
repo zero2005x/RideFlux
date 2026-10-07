@@ -155,6 +155,14 @@ class WheelCodecFactoryImplTest {
     }
 
     @Test
+    fun `inferFromAdvertisement returns null for ambiguous FFE0 with unrecognised name`() {
+        val ffe0 = setOf("0000ffe0-0000-1000-8000-00805f9b34fb")
+        // FFE0 alone is ambiguous between G, K, V, and N1 when the device name is unknown.
+        assertNull(factory.inferFromAdvertisement("Unlabelled device", ffe0))
+        assertNull(factory.inferFromAdvertisement(null, ffe0))
+    }
+
+    @Test
     fun `topologyFor maps families to the correct GATT topology`() {
         assertEquals(GattTopology.SINGLE_CHAR, factory.topologyFor(WheelFamily.G))
         assertEquals(GattTopology.SINGLE_CHAR, factory.topologyFor(WheelFamily.GX))

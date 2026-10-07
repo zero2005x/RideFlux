@@ -47,12 +47,10 @@ import java.util.UUID
  * | Nordic UART `6E400001…`                                    | [WheelFamily.I2]  |
  * | nothing recognised                                         | `null`            |
  *
- * The single-char and Nordic-UART profiles are shared by more than one
- * family (G/K/N1 and I2/N2 respectively), so the returned family is
- * necessarily a guess — the true family is only confirmed after the
- * bootstrap handshake of §9. Callers that already know the family
- * MUST pass `expectedFamily` to
- * [com.rideflux.domain.repository.WheelRepository.connect].
+ * The single-char profile (`FFE0`/`FFE1`) is shared by Begode (G), KingSong (K),
+ * Ninebot One (N1), and Veteran / Nosfet (V) (see `GATT_V_FAMILY_BEGODE_COLLISION.md`).
+ * UUID inference alone cannot distinguish them; name classification and explicit
+ * family routing should be preferred where available.
  */
 class WheelCodecFactoryImpl(
     /**
@@ -87,7 +85,10 @@ class WheelCodecFactoryImpl(
                 seriesCells = { seriesCellsFor(address) },
             )
             WheelFamily.K -> KingSongWheelCodec(deviceAddress = address)
-            WheelFamily.V -> VeteranWheelCodec(deviceAddress = address)
+            WheelFamily.V -> VeteranWheelCodec(
+                deviceAddress = address,
+                seriesCells = { seriesCellsFor(address) },
+            )
             WheelFamily.N1 -> NinebotN1WheelCodec(deviceAddress = address)
             WheelFamily.N2 -> NinebotN2WheelCodec(deviceAddress = address)
             WheelFamily.I1 -> InmotionI1WheelCodec(deviceAddress = address)
@@ -98,13 +99,25 @@ class WheelCodecFactoryImpl(
     override fun inferFromAdvertisement(
         deviceName: String?,
         serviceUuids: Set<String>,
-    ): WheelFamily? =
-        // Name first: it is the only signal a board that advertises no
-        // service UUID gives us before connecting, and where both
-        // signals exist the name is the more specific of the two (the
-        // UUID set cannot tell K from G, or I2 from N2).
-        WheelNameClassifier.classify(deviceName)
-            ?: inferFromGattServiceUuids(serviceUuids)
+    ): WheelFamily? {
+        val nameHint = WheelNameClassifier.classify(deviceName)
+        if (nameHint != null) return nameHint
+
+        val normalised = serviceUuids.asSequence()
+            .map(::canonicaliseUuid)
+            .toSet()
+        val hasFfe0 = FFE0 in normalised
+        val hasFfe5 = FFE5 in normalised
+        val hasNus = NUS in normalised
+        return when {
+            hasFfe0 && hasFfe5 -> WheelFamily.I1
+            hasNus -> WheelFamily.I2
+            // FFE0 alone with an unclassified name is ambiguous across
+            // G, K, V, and N1. Return null so discovery surfaces the device as
+            // unclassified and prompts the user for manual brand selection.
+            else -> null
+        }
+    }
 
     override fun inferFromGattServiceUuids(uuids: Set<String>): WheelFamily? {
         val normalised = uuids.asSequence()

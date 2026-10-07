@@ -24,8 +24,10 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.CastConnected
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,7 +46,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -171,6 +176,91 @@ fun ScannerScreen(
     onOpenSettings: () -> Unit = {},
     onOpenTripHistory: () -> Unit = {},
 ) {
+    var manualFamilySelectionDevice by remember { mutableStateOf<DiscoveredWheel?>(null) }
+
+    manualFamilySelectionDevice?.let { device ->
+        AlertDialog(
+            onDismissRequest = { manualFamilySelectionDevice = null },
+            title = { Text(stringResource(R.string.scanner_select_brand_title)) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    TextButton(
+                        onClick = {
+                            manualFamilySelectionDevice = null
+                            onDeviceSelected(device.copy(family = WheelFamily.V))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.scanner_brand_veteran))
+                    }
+                    TextButton(
+                        onClick = {
+                            manualFamilySelectionDevice = null
+                            onDeviceSelected(device.copy(family = WheelFamily.G))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.scanner_brand_begode))
+                    }
+                    TextButton(
+                        onClick = {
+                            manualFamilySelectionDevice = null
+                            onDeviceSelected(device.copy(family = WheelFamily.K))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.scanner_brand_kingsong))
+                    }
+                    TextButton(
+                        onClick = {
+                            manualFamilySelectionDevice = null
+                            onDeviceSelected(device.copy(family = WheelFamily.I2))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.scanner_brand_inmotion_i2))
+                    }
+                    TextButton(
+                        onClick = {
+                            manualFamilySelectionDevice = null
+                            onDeviceSelected(device.copy(family = WheelFamily.I1))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.scanner_brand_inmotion_i1))
+                    }
+                    TextButton(
+                        onClick = {
+                            manualFamilySelectionDevice = null
+                            onDeviceSelected(device.copy(family = WheelFamily.N1))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.scanner_brand_ninebot_n1))
+                    }
+                    TextButton(
+                        onClick = {
+                            manualFamilySelectionDevice = null
+                            onDeviceSelected(device.copy(family = WheelFamily.N2))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.scanner_brand_ninebot_n2))
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { manualFamilySelectionDevice = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -236,6 +326,8 @@ fun ScannerScreen(
                     uiState = uiState,
                     onDeviceSelected = onDeviceSelected,
                     onScooterSelected = onScooterSelected,
+                    onUnrecognisedDeviceSelected = { manualFamilySelectionDevice = it },
+                    onChangeBrand = { manualFamilySelectionDevice = it },
                     contentPadding = PaddingValues(),
                 )
             }
@@ -439,6 +531,8 @@ private fun ScannerContent(
     uiState: ScannerUiState,
     onDeviceSelected: (DiscoveredWheel) -> Unit,
     onScooterSelected: (ScooterDevice) -> Unit,
+    onUnrecognisedDeviceSelected: (DiscoveredWheel) -> Unit = onDeviceSelected,
+    onChangeBrand: (DiscoveredWheel) -> Unit = onUnrecognisedDeviceSelected,
     contentPadding: PaddingValues,
 ) {
     val devices = uiState.devices.distinctBy { it.address }
@@ -480,7 +574,11 @@ private fun ScannerContent(
                     }
                 }
                 items(recognised, key = { it.address }) { device ->
-                    DeviceCard(device = device, onClick = { onDeviceSelected(device) })
+                    DeviceCard(
+                        device = device,
+                        onClick = { onDeviceSelected(device) },
+                        onChangeBrand = { onChangeBrand(device) },
+                    )
                 }
                 if (scooters.isNotEmpty()) {
                     item(key = "scooter_header") {
@@ -503,7 +601,11 @@ private fun ScannerContent(
                         )
                     }
                     items(unrecognised, key = { it.address }) { device ->
-                        DeviceCard(device = device, onClick = { onDeviceSelected(device) })
+                        DeviceCard(
+                            device = device,
+                            onClick = { onUnrecognisedDeviceSelected(device) },
+                            onChangeBrand = { onUnrecognisedDeviceSelected(device) },
+                        )
                     }
                 }
             }
@@ -574,7 +676,11 @@ private fun ScooterCard(scooter: ScooterDevice, onClick: () -> Unit) {
 }
 
 @Composable
-private fun DeviceCard(device: DiscoveredWheel, onClick: () -> Unit) {
+private fun DeviceCard(
+    device: DiscoveredWheel,
+    onClick: () -> Unit,
+    onChangeBrand: (() -> Unit)? = null,
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -597,7 +703,7 @@ private fun DeviceCard(device: DiscoveredWheel, onClick: () -> Unit) {
                 modifier = Modifier.size(28.dp),
             )
             Spacer(Modifier.size(16.dp))
-            Column(modifier = Modifier.fillMaxWidth(0.85f)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = device.displayName ?: stringResource(R.string.scanner_unknown_device),
                     style = MaterialTheme.typography.titleMedium,
@@ -612,6 +718,15 @@ private fun DeviceCard(device: DiscoveredWheel, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 FamilyAndRssiRow(device)
+            }
+            if (onChangeBrand != null) {
+                IconButton(onClick = onChangeBrand) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = stringResource(R.string.scanner_change_brand),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
     }

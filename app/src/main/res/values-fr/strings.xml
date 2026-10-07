@@ -45,6 +45,7 @@
     <string name="scanner_scan_failed_reason">Échec du scan : %1$s</string>
     <string name="scanner_unknown_device">Appareil inconnu</string>
     <string name="scanner_device_family">Famille : %1$s</string>
+    <string name="scanner_select_brand_title">Sélectionner la marque de la roue</string>
 
     <string name="bridge_card_title">Pont HUD</string>
     <string name="bridge_state_off">Désactivé</string>

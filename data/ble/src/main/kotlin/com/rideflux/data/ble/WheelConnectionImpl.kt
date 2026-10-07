@@ -74,7 +74,7 @@ private const val HANDSHAKE_TIMEOUT_MILLIS = 15_000L
  */
 class WheelConnectionImpl(
     private val transport: BleTransport,
-    private val codec: WheelCodec,
+    val codec: WheelCodec,
     private val scope: CoroutineScope,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : WheelConnection {
