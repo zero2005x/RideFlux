@@ -332,16 +332,24 @@
     <string name="bond_reauth_expired">La conferma è scaduta. Riprova.</string>
     <string name="bond_export_dialog_title">Proteggi il backup</string>
     <string name="bond_import_dialog_title">Apri backup</string>
-    <string name="bond_passphrase">Passphrase</string>
-    <string name="bond_passphrase_confirm">Ripeti la passphrase</string>
+    <string name="bond_passphrase">Frase segreta</string>
+    <string name="bond_passphrase_confirm">Ripeti la frase segreta</string>
     <string name="bond_passphrase_hint">Almeno 10 caratteri, con più caratteri diversi. Serve per importare il file e non può essere recuperata.</string>
     <string name="bond_error_weak">Troppo debole: usa almeno 10 caratteri, con più caratteri diversi.</string>
-    <string name="bond_error_mismatch">Le passphrase non coincidono.</string>
+    <string name="bond_error_mismatch">Le frasi segrete non coincidono.</string>
     <string name="bond_error_wrong">Passphrase errata o file danneggiato.</string>
     <string name="bond_preview_title">Scegli le chiavi da importare</string>
     <string name="bond_preview_replace">Già presente su questo telefono: sostituiscila</string>
-    <string name="bond_preview_skipped">%d chiave/i di un tipo che questa versione non può usare sono state ignorate.</string>
-    <string name="bond_export_done">%d chiave/i esportata/e.</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="one">È stata ignorata %1$d chiave di un tipo non supportato da questa versione.</item>
+        <item quantity="many">Sono state ignorate %1$d chiavi di un tipo non supportato da questa versione.</item>
+        <item quantity="other">Sono state ignorate %1$d chiavi di un tipo non supportato da questa versione.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="one">Esportata %1$d chiave.</item>
+        <item quantity="many">Esportate %1$d chiavi.</item>
+        <item quantity="other">Esportate %1$d chiavi.</item>
+    </plurals>
     <string name="bond_import_done">%1$d importata/e, %2$d sostituita/e, %3$d mantenuta/e.</string>
     <string name="bond_invalid_file">Questo non è un file di backup RideFlux valido.</string>
     <string name="bond_io_failed">Impossibile leggere o salvare il file.</string>
@@ -367,4 +375,10 @@
     <string name="action_replace">Sostituisci</string>
     <string name="mi_registration_dialog_warning_token_invalidation">La registrazione potrebbe invalidare i token in altre app (come Mi Home).</string>
     <string name="mi_registration_dialog_recommend_import">Se possiedi già una chiave, è consigliabile importarla da Impostazioni → Backup anziché registrarsi nuovamente.</string>
+    <string name="bond_delete_title">Eliminare la chiave di associazione?</string>
+    <string name="bond_delete_action">Elimina chiave</string>
+    <string name="bond_delete_description">Elimina chiave: %1$s, %2$s</string>
+    <string name="bond_delete_message">Dopo aver eliminato questa chiave, potrebbe essere necessario associare di nuovo il monopattino. La connessione attuale verrà chiusa.</string>
+    <string name="bond_delete_failed">Impossibile eliminare la chiave. Riprova.</string>
+    <string name="bond_hex_hint">Esadecimale: %1$d byte</string>
 </resources>

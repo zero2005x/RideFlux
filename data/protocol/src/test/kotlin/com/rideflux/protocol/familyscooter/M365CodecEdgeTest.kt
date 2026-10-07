@@ -44,13 +44,14 @@ class M365CodecEdgeTest {
         assertNull(M365Codec.decodeBatteryVoltageV(ByteArray(3)))
     }
 
-    @Test fun `speed just below the sentinel is a real value and temperature keeps its sign`() {
+    @Test fun `reverse speed and temperature decode signed little endian words`() {
         val payload = ByteArray(32)
         payload[10] = 0xff.toByte(); payload[11] = 0xfe.toByte()
         payload[22] = 0xf6.toByte(); payload[23] = 0xff.toByte()
         val block = M365Codec.decodeB0(payload)!!
-        assertEquals(65.279f, block.speedKmh!!, 0.001f)
+        assertEquals(0.257f, block.speedKmh!!, 0.001f)
         assertEquals(-10, block.frameTemperatureRaw)
-        assertEquals(M365Codec.NO_SPEED_SENTINEL, 0xFF00)
+        payload[10] = 0; payload[11] = 0x80.toByte()
+        assertEquals(32.768f, M365Codec.decodeB0(payload)!!.speedKmh!!, 0.001f)
     }
 }

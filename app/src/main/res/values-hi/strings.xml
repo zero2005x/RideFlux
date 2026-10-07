@@ -340,8 +340,14 @@
     <string name="bond_error_wrong">पासफ़्रेज़ गलत है या फ़ाइल क्षतिग्रस्त है।</string>
     <string name="bond_preview_title">आयात करने के लिए कुंजियाँ चुनें</string>
     <string name="bond_preview_replace">इस फ़ोन में पहले से है: बदलें</string>
-    <string name="bond_preview_skipped">इस संस्करण द्वारा उपयोग न किए जा सकने वाले प्रकार की %d कुंजियाँ छोड़ दी गईं।</string>
-    <string name="bond_export_done">%d कुंजियाँ निर्यात की गईं।</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="one">%1$d कुंजी छोड़ दी गई, जिसका प्रकार इस संस्करण में समर्थित नहीं है।</item>
+        <item quantity="other">%1$d कुंजियाँ छोड़ दी गईं, जिनका प्रकार इस संस्करण में समर्थित नहीं है।</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="one">%1$d कुंजी निर्यात की गई।</item>
+        <item quantity="other">%1$d कुंजियाँ निर्यात की गईं।</item>
+    </plurals>
     <string name="bond_import_done">%1$d आयात, %2$d बदली, %3$d रखी गईं।</string>
     <string name="bond_invalid_file">यह मान्य RideFlux बैकअप फ़ाइल नहीं है।</string>
     <string name="bond_io_failed">फ़ाइल पढ़ी या सहेजी नहीं जा सकी।</string>
@@ -367,4 +373,10 @@
     <string name="action_replace">बदलें</string>
     <string name="mi_registration_dialog_warning_token_invalidation">पंजीकरण करने से अन्य ऐप्स (जैसे Mi Home) में टोकन अमान्य हो सकते हैं।</string>
     <string name="mi_registration_dialog_recommend_import">यदि आपके पास पहले से पेयरिंग कुंजी है, तो पुनः पंजीकरण करने के बजाय सेटिंग्स → बैकअप में इसे आयात करने की अनुशंसा की जाती है।</string>
+    <string name="bond_delete_title">पेयरिंग कुंजी हटाएँ?</string>
+    <string name="bond_delete_action">कुंजी हटाएँ</string>
+    <string name="bond_delete_description">कुंजी हटाएँ: %1$s, %2$s</string>
+    <string name="bond_delete_message">इस कुंजी को हटाने के बाद स्कूटर को फिर से पेयर करना पड़ सकता है। इसका मौजूदा कनेक्शन बंद हो जाएगा।</string>
+    <string name="bond_delete_failed">कुंजी नहीं हटाई जा सकी। फिर से कोशिश करें।</string>
+    <string name="bond_hex_hint">हेक्साडेसिमल: %1$d बाइट</string>
 </resources>

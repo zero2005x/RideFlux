@@ -378,8 +378,14 @@
     <string name="bond_error_wrong">Wrong passphrase, or the file is damaged.</string>
     <string name="bond_preview_title">Choose keys to import</string>
     <string name="bond_preview_replace">Already on this phone: replace it</string>
-    <string name="bond_preview_skipped">%d key(s) of a type this version cannot use were skipped.</string>
-    <string name="bond_export_done">Exported %d key(s).</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="one">%1$d key of a type this version cannot use was skipped.</item>
+        <item quantity="other">%1$d keys of a type this version cannot use were skipped.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="one">Exported %1$d key.</item>
+        <item quantity="other">Exported %1$d keys.</item>
+    </plurals>
     <string name="bond_import_done">Imported %1$d, replaced %2$d, kept %3$d.</string>
     <string name="bond_invalid_file">This is not a valid RideFlux backup file.</string>
     <string name="bond_io_failed">Could not read or save the file.</string>
@@ -407,4 +413,11 @@
     <string name="action_replace">Replace</string>
     <string name="mi_registration_dialog_warning_token_invalidation">Registering may invalidate tokens in other apps (such as Mi Home).</string>
     <string name="mi_registration_dialog_recommend_import">If you already have a pairing key, importing it in Settings → Backup is recommended.</string>
+    <string name="bond_delete_title">Delete pairing key?</string>
+    <string name="bond_delete_action">Delete key</string>
+    <string name="bond_delete_description">Delete key: %1$s, %2$s</string>
+    <string name="bond_delete_message">Deleting this key may require pairing the scooter again. Its current connection will be closed.</string>
+    <string name="bond_delete_failed">Could not delete the key. Try again.</string>
+    <string name="bond_hex_hint">Hexadecimal · byte count: %1$d</string>
+    <string name="bond_mac_example" translatable="false">AA:BB:CC:DD:EE:FF</string>
 </resources>

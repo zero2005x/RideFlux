@@ -87,9 +87,11 @@ object NinebotRetailCodec {
     /** ES2 B0..BB core shares word positions with M365; speed remains raw. */
     fun decodeEs2B0(payload: ByteArray): M365Codec.B0Block? = M365Codec.decodeB0(payload)
 
-    /** Diagnostic candidate only: B5 scale is owner-verified on M365, not on Ninebot ES2. */
-    fun decodeSpeedKmh(bytes: ByteArray): Float? =
-        readReplyPayload(bytes, 0xb0, 32)?.let(M365Codec::decodeB0)?.speedKmh
+    /** Diagnostic candidate only. ES2 sign/scale is unverified; retain its unknown-speed guard. */
+    fun decodeSpeedKmh(bytes: ByteArray): Float? {
+        val raw = readReplyPayload(bytes, 0xb0, 32)?.let(M365Codec::decodeB0)?.speedRaw ?: return null
+        return if (raw >= 0xff00) null else raw / 1_000f
+    }
 
     enum class EscFamily { ES2, M365 }
     enum class RegisterMeaning { BATTERY_CURRENT_RAW, EXTERNAL_BATTERY_TEMPERATURE_C, UNKNOWN }

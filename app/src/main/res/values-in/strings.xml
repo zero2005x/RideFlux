@@ -342,8 +342,12 @@
     <string name="bond_error_wrong">Frasa sandi salah atau berkas rusak.</string>
     <string name="bond_preview_title">Pilih kunci yang akan diimpor</string>
     <string name="bond_preview_replace">Sudah ada di ponsel ini: ganti</string>
-    <string name="bond_preview_skipped">%d kunci dengan jenis yang tidak dapat digunakan versi ini dilewati.</string>
-    <string name="bond_export_done">%d kunci diekspor.</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="other">%1$d kunci dengan jenis yang tidak didukung versi ini dilewati.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="other">Mengekspor %1$d kunci.</item>
+    </plurals>
     <string name="bond_import_done">%1$d diimpor, %2$d diganti, %3$d dipertahankan.</string>
     <string name="bond_invalid_file">Ini bukan berkas cadangan RideFlux yang valid.</string>
     <string name="bond_io_failed">Tidak dapat membaca atau menyimpan berkas.</string>
@@ -369,4 +373,10 @@
     <string name="action_replace">Ganti</string>
     <string name="mi_registration_dialog_warning_token_invalidation">Mendaftar dapat membatalkan token di aplikasi lain (seperti Mi Home).</string>
     <string name="mi_registration_dialog_recommend_import">Jika Anda sudah memiliki kunci, disarankan untuk mengimpornya di Pengaturan → Cadangan daripada mendaftar ulang.</string>
+    <string name="bond_delete_title">Hapus kunci penyandingan?</string>
+    <string name="bond_delete_action">Hapus kunci</string>
+    <string name="bond_delete_description">Hapus kunci: %1$s, %2$s</string>
+    <string name="bond_delete_message">Setelah kunci ini dihapus, skuter mungkin perlu disandingkan kembali. Koneksi saat ini akan ditutup.</string>
+    <string name="bond_delete_failed">Kunci tidak dapat dihapus. Coba lagi.</string>
+    <string name="bond_hex_hint">Heksadesimal: %1$d byte</string>
 </resources>

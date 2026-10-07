@@ -8,6 +8,7 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.util.Log
+import com.rideflux.domain.bond.BondEntry
 import com.rideflux.domain.bond.BondStore
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.ScooterConnection
@@ -20,6 +21,7 @@ import com.rideflux.protocol.familyscooter.xiaomi.MiScooterConnection
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -31,6 +33,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.sync.Mutex
@@ -52,6 +55,12 @@ class ScooterRepositoryImpl private constructor(
         rootScope: CoroutineScope,
         connectionFactory: (String, String, CoroutineScope) -> ScooterConnection,
     ) : this(null, rootScope, connectionFactory, null)
+
+    internal constructor(
+        rootScope: CoroutineScope,
+        bondStore: BondStore,
+        connectionFactory: (String, String, CoroutineScope) -> ScooterConnection,
+    ) : this(null, rootScope, connectionFactory, bondStore)
 
     private val adapter: BluetoothAdapter? by lazy {
         (context?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
@@ -116,6 +125,28 @@ class ScooterRepositoryImpl private constructor(
         }
     }.distinctUntilChanged()
 
+    override suspend fun removePairingKey(address: String) {
+        val normalized = BondEntry.normalizeMac(address)
+        val store = requireNotNull(bondStore)
+        // Keep new connections out until both the live session and durable key are gone.
+        connectMutex.withLock {
+            val matching = entries.filterKeys { it.equals(normalized, ignoreCase = true) }
+            for ((cachedAddress, entry) in matching) {
+                try {
+                    entry.connection.close()
+                } finally {
+                    // Registration may be saving a key. Join it before removal so it cannot
+                    // write the credential back after this operation returns.
+                    entry.scopeJob.cancelAndJoin()
+                    entries.remove(cachedAddress, entry)
+                    entry.closing?.complete(Unit)
+                    publishActive()
+                }
+            }
+            store.remove(normalized)
+        }
+    }
+
     override suspend fun connect(address: String): ScooterConnection {
         while (true) {
             var pendingTeardown: Entry? = null
@@ -162,6 +193,7 @@ class ScooterRepositoryImpl private constructor(
         publishActive()
         entryScope.launch {
             try { connection.start() }
+            catch (cancel: CancellationException) { throw cancel }
             catch (failure: Exception) { Log.e(TAG, "Scooter start failed for $address", failure) }
         }
         return SharedScooterConnection(address, connection)

@@ -1,0 +1,11 @@
+// Build synthetic UI tests under an independent package to retain installed release data.
+// Use only with :app:assembleDebug and :app:assembleDebugAndroidTest.
+allprojects { p ->
+    p.plugins.withId('com.android.application') {
+        if (p.name == 'app') {
+            p.extensions.getByName('androidComponents').finalizeDsl { dsl ->
+                dsl.defaultConfig.applicationId = 'com.rideflux.layoutqa'
+            }
+        }
+    }
+}

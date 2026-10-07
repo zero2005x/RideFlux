@@ -14,7 +14,25 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -31,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -41,6 +60,7 @@ import com.rideflux.domain.bond.BondFamily
 @Composable
 internal fun PassphraseDialog(
     title: String,
+    busy: Boolean,
     confirmField: Boolean,
     error: BondPassphraseError?,
     onSubmit: (CharArray, CharArray) -> Unit,
@@ -48,13 +68,17 @@ internal fun PassphraseDialog(
 ) {
     var passphrase by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
+    DisposableEffect(Unit) {
+        onDispose { passphrase = ""; confirm = "" }
+    }
+    BondAlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (confirmField) Text(stringResource(R.string.bond_passphrase_hint))
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (confirmField) Text(stringResource(R.string.bond_passphrase_hint), Modifier.fillMaxWidth())
                 OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(), enabled = !busy,
                     value = passphrase, onValueChange = { passphrase = it }, singleLine = true,
                     label = { Text(stringResource(R.string.bond_passphrase)) },
                     visualTransformation = PasswordVisualTransformation(),
@@ -62,6 +86,7 @@ internal fun PassphraseDialog(
                 )
                 if (confirmField) {
                     OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(), enabled = !busy,
                         value = confirm, onValueChange = { confirm = it }, singleLine = true,
                         label = { Text(stringResource(R.string.bond_passphrase_confirm)) },
                         visualTransformation = PasswordVisualTransformation(),
@@ -69,13 +94,13 @@ internal fun PassphraseDialog(
                     )
                 }
                 error?.let {
-                    Text(stringResource(errorText(it)), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(errorText(it)), modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.error)
                 }
             }
         },
         confirmButton = {
-            TextButton(
-                enabled = passphrase.isNotEmpty(),
+            TextButton(modifier = Modifier.fillMaxWidth(),
+                enabled = !busy && passphrase.isNotEmpty(),
                 onClick = {
                     val p = passphrase.toCharArray()
                     val c = confirm.toCharArray()
@@ -85,62 +110,57 @@ internal fun PassphraseDialog(
                 },
             ) { Text(stringResource(if (confirmField) R.string.action_export else R.string.action_import)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = { TextButton(modifier = Modifier.fillMaxWidth(), onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 
 @Composable
 internal fun ImportPreviewDialog(
     dialog: BondDialog.ImportPreview,
+    busy: Boolean,
     onConfirm: (Set<Int>, Set<Int>) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val selected = remember { mutableStateListOf<Int>().apply { addAll(dialog.rows.map { it.index }) } }
-    val replace = remember { mutableStateListOf<Int>() }
-    AlertDialog(
-        onDismissRequest = onDismiss,
+    val selected = remember(dialog) { mutableStateListOf<Int>().apply { addAll(dialog.rows.map { it.index }) } }
+    val replace = remember(dialog) { mutableStateListOf<Int>() }
+    BondAlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
         title = { Text(stringResource(R.string.bond_preview_title)) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 dialog.rows.forEach { row ->
-                    Row {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
-                            checked = row.index in selected,
+                            checked = row.index in selected, enabled = !busy,
                             onCheckedChange = { if (it) selected += row.index else selected -= row.index },
                         )
-                        Column {
-                            Text(row.label.ifBlank { row.model ?: row.maskedMac })
-                            val details = listOfNotNull(
-                                familyName(row.family),
-                                row.model?.takeIf { it.isNotBlank() },
-                                row.maskedMac,
-                            ).joinToString(" · ")
-                            Text(details, style = MaterialTheme.typography.bodySmall)
+                        Column(Modifier.weight(1f)) {
+                            BondSummary(row.label, row.model, row.maskedMac, row.family)
                             if (row.conflict) {
-                                Row {
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Checkbox(
-                                        checked = row.index in replace,
+                                        checked = row.index in replace, enabled = !busy && row.index in selected,
                                         onCheckedChange = { if (it) replace += row.index else replace -= row.index },
                                     )
                                     Text(stringResource(R.string.bond_preview_replace),
-                                        style = MaterialTheme.typography.bodySmall)
+                                        modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                                 }
                             }
                         }
                     }
                 }
                 if (dialog.skippedUnsupported > 0) {
-                    Text(stringResource(R.string.bond_preview_skipped, dialog.skippedUnsupported),
+                    Text(pluralStringResource(R.plurals.bond_preview_skipped, dialog.skippedUnsupported, dialog.skippedUnsupported), modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(selected.toSet(), replace.toSet()) }) {
+            TextButton(modifier = Modifier.fillMaxWidth(), enabled = !busy && selected.isNotEmpty(), onClick = { onConfirm(selected.toSet(), replace.toSet()) }) {
                 Text(stringResource(R.string.action_import))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = { TextButton(modifier = Modifier.fillMaxWidth(), onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 
@@ -170,6 +190,7 @@ internal fun familyName(family: BondFamily): String = stringResource(
  */
 @Composable
 internal fun ManualEntryDialog(
+    busy: Boolean,
     error: BondManualEntryError?,
     onSubmit: (String, CharArray, String, BondFamily) -> Unit,
     onDismiss: () -> Unit,
@@ -193,19 +214,19 @@ internal fun ManualEntryDialog(
         onDismiss()
     }
 
-    AlertDialog(
-        onDismissRequest = dismissAndWipe,
+    BondAlertDialog(
+        onDismissRequest = { if (!busy) dismissAndWipe() },
         title = { Text(stringResource(R.string.bond_manual_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.fillMaxWidth()) {
                     BondFamily.entries.forEach { f ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { family = f },
+                            modifier = Modifier.fillMaxWidth().clickable(enabled = !busy) { family = f },
                         ) {
-                            RadioButton(selected = family == f, onClick = { family = f })
-                            Text(familyName(f), style = MaterialTheme.typography.bodyMedium)
+                            RadioButton(selected = family == f, enabled = !busy, onClick = { family = f })
+                            Text(familyName(f), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                             Spacer(Modifier.width(8.dp))
                         }
                     }
@@ -215,12 +236,14 @@ internal fun ManualEntryDialog(
                     onValueChange = { mac = it },
                     singleLine = true,
                     label = { Text(stringResource(R.string.bond_manual_mac)) },
-                    placeholder = { Text("AA:BB:CC:DD:EE:FF") },
+                    placeholder = { Text(stringResource(R.string.bond_mac_example)) },
+                    textStyle = ltrTextStyle(), enabled = !busy,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("bond_mac"),
                 )
                 OutlinedTextField(
                     value = String(tokenBuffer, 0, tokenLength),
+                    textStyle = ltrTextStyle(), enabled = !busy,
                     onValueChange = { input ->
                         val count = input.length.coerceAtMost(tokenBuffer.size)
                         input.toCharArray(tokenBuffer, 0, 0, count)
@@ -230,22 +253,22 @@ internal fun ManualEntryDialog(
                     singleLine = true,
                     label = { Text(stringResource(R.string.bond_manual_token)) },
                     placeholder = {
-                        Text(if (family == BondFamily.XIAOMI_MI) "00 11 22 … (12 bytes)" else "00 11 22 … (16 bytes)")
+                        Text(stringResource(R.string.bond_hex_hint, family.credentialBytes))
                     },
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
-                    value = label,
+                    value = label, enabled = !busy,
                     onValueChange = { label = it },
                     singleLine = true,
                     label = { Text(stringResource(R.string.bond_manual_label)) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("bond_label"),
                 )
                 if (error != null) {
                     Text(
-                        stringResource(R.string.bond_manual_error),
+                        stringResource(R.string.bond_manual_error), modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -254,8 +277,8 @@ internal fun ManualEntryDialog(
         },
         confirmButton = {
             val hasNonWhitespace = (0 until tokenLength).any { !tokenBuffer[it].isWhitespace() }
-            TextButton(
-                enabled = mac.isNotBlank() && tokenLength > 0 && hasNonWhitespace,
+            TextButton(modifier = Modifier.fillMaxWidth(),
+                enabled = !busy && mac.isNotBlank() && tokenLength > 0 && hasNonWhitespace,
                 onClick = {
                     val chars = tokenBuffer.copyOfRange(0, tokenLength)
                     tokenBuffer.fill('\u0000')
@@ -267,7 +290,7 @@ internal fun ManualEntryDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = dismissAndWipe) {
+            TextButton(modifier = Modifier.fillMaxWidth(), onClick = dismissAndWipe, enabled = !busy) {
                 Text(stringResource(R.string.action_cancel))
             }
         },
@@ -281,19 +304,100 @@ internal fun ConfirmOverwriteDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    BondAlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
         title = { Text(stringResource(R.string.bond_overwrite_title)) },
-        text = { Text(stringResource(R.string.bond_overwrite_message, maskedMac)) },
+        text = { Text(stringResource(R.string.bond_overwrite_message, isolateMac(maskedMac)), Modifier.fillMaxWidth()) },
         confirmButton = {
-            TextButton(onClick = onConfirm, enabled = !busy) {
+            TextButton(modifier = Modifier.fillMaxWidth(), onClick = onConfirm, enabled = !busy) {
                 Text(stringResource(R.string.action_replace))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !busy) {
+            TextButton(modifier = Modifier.fillMaxWidth(), onClick = onDismiss, enabled = !busy) {
                 Text(stringResource(R.string.action_cancel))
             }
         },
     )
+}
+
+/** Isolate machine identifiers when interpolating them into RTL prose. */
+internal fun isolateMac(mac: String) = "\u2066$mac\u2069"
+
+@Composable
+private fun ltrTextStyle(): TextStyle = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.Ltr)
+
+@Composable
+internal fun BondSummary(
+    label: String, model: String?, maskedMac: String, family: BondFamily,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        val name = label.ifBlank { model?.takeIf(String::isNotBlank) ?: maskedMac }
+        val nameStyle = if (name == maskedMac) MaterialTheme.typography.titleMedium.copy(textDirection = TextDirection.Ltr)
+            else MaterialTheme.typography.titleMedium
+        Text(name, style = nameStyle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Text(maskedMac, style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Ltr))
+        }
+        Text(familyName(family), style = MaterialTheme.typography.labelMedium)
+        model?.takeIf { it.isNotBlank() && it != label }?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+internal fun ConfirmDeleteDialog(
+    row: BondRow, busy: Boolean, failed: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit,
+) {
+    BondAlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = { Text(stringResource(R.string.bond_delete_title)) },
+        text = {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                BondSummary(row.label, row.model, row.maskedMac, row.family)
+                Text(stringResource(R.string.bond_delete_message), Modifier.fillMaxWidth())
+                if (failed) Text(stringResource(R.string.bond_delete_failed), modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        confirmButton = {
+            TextButton(modifier = Modifier.fillMaxWidth(), onClick = onConfirm, enabled = !busy) { Text(stringResource(R.string.bond_delete_action)) }
+        },
+        dismissButton = {
+            TextButton(modifier = Modifier.fillMaxWidth(), onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+/** One scroll container includes actions, so even a large font and IME cannot strand them. */
+@Composable
+private fun BondAlertDialog(
+    onDismissRequest: () -> Unit, title: @Composable () -> Unit, text: @Composable () -> Unit,
+    confirmButton: @Composable () -> Unit, dismissButton: @Composable () -> Unit,
+) {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val direction = LocalLayoutDirection.current
+    Dialog(onDismissRequest = onDismissRequest, properties = DialogProperties(
+        usePlatformDefaultWidth = false, decorFitsSystemWindows = false,
+        securePolicy = SecureFlagPolicy.SecureOn,
+    )) {
+        CompositionLocalProvider(LocalContext provides context, LocalDensity provides density,
+            LocalLayoutDirection provides direction) {
+            Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(24.dp), contentAlignment = Alignment.Center) {
+                Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {
+                    Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        androidx.compose.material3.ProvideTextStyle(MaterialTheme.typography.headlineSmall) { title() }
+                        text()
+                        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                            confirmButton()
+                            dismissButton()
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

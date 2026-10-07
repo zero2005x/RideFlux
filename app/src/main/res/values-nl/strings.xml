@@ -340,8 +340,14 @@
     <string name="bond_error_wrong">Onjuiste wachtzin of beschadigd bestand.</string>
     <string name="bond_preview_title">Kies de te importeren sleutels</string>
     <string name="bond_preview_replace">Staat al op deze telefoon: vervangen</string>
-    <string name="bond_preview_skipped">%d sleutel(s) van een type dat deze versie niet kan gebruiken zijn overgeslagen.</string>
-    <string name="bond_export_done">%d sleutel(s) geëxporteerd.</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="one">%1$d sleutel van een type dat deze versie niet ondersteunt is overgeslagen.</item>
+        <item quantity="other">%1$d sleutels van een type dat deze versie niet ondersteunt zijn overgeslagen.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="one">%1$d sleutel geëxporteerd.</item>
+        <item quantity="other">%1$d sleutels geëxporteerd.</item>
+    </plurals>
     <string name="bond_import_done">%1$d geïmporteerd, %2$d vervangen, %3$d behouden.</string>
     <string name="bond_invalid_file">Dit is geen geldig RideFlux-back-upbestand.</string>
     <string name="bond_io_failed">Het bestand kon niet worden gelezen of opgeslagen.</string>
@@ -367,4 +373,10 @@
     <string name="action_replace">Vervangen</string>
     <string name="mi_registration_dialog_warning_token_invalidation">Registratie kan tokens in andere apps (zoals Mi Home) ongeldig maken.</string>
     <string name="mi_registration_dialog_recommend_import">Als u al een sleutel hebt, wordt aangeraden deze te importeren via Instellingen → Back-up in plaats van opnieuw te registreren.</string>
+    <string name="bond_delete_title">Koppelingssleutel verwijderen?</string>
+    <string name="bond_delete_action">Sleutel verwijderen</string>
+    <string name="bond_delete_description">Sleutel verwijderen: %1$s, %2$s</string>
+    <string name="bond_delete_message">Na het verwijderen van deze sleutel moet je de scooter mogelijk opnieuw koppelen. De huidige verbinding wordt verbroken.</string>
+    <string name="bond_delete_failed">De sleutel kon niet worden verwijderd. Probeer het opnieuw.</string>
+    <string name="bond_hex_hint">Hexadecimaal: %1$d bytes</string>
 </resources>

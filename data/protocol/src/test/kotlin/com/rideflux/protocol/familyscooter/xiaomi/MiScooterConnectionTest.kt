@@ -23,7 +23,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -60,6 +63,7 @@ class MiScooterConnectionTest {
         var disconnected = false
         var loginKeys: MiLoginKeys? = null
         var scooterCipher: MiUartFrame? = null
+        var speedWord: Int = 0
 
         private val scooterRandom = ByteArray(16) { (it + 5).toByte() }
         private val ecdhPair = MiEcdh.generate()
@@ -84,6 +88,8 @@ class MiScooterConnectionTest {
                 val reg = plain[3].toInt() and 0xFF
                 if (reg == 0xB0) {
                     val b0Payload = ByteArray(32) { 0 }
+                    b0Payload[10] = speedWord.toByte()
+                    b0Payload[11] = (speedWord ushr 8).toByte()
                     b0Payload[24] = 0xA0.toByte(); b0Payload[25] = 0x0F.toByte()
                     val replyFrame = byteArrayOf(0x22.toByte(), 0x23.toByte(), 0x01.toByte(), 0xB0.toByte()) + b0Payload
                     val encrypted = cipher.encrypt(replyFrame)
@@ -258,6 +264,24 @@ class MiScooterConnectionTest {
             val connection = MiScooterConnection(transport, device, scope, store)
             val reply = connection.readRegister(0xB0, 32)
             assertNull(reply)
+        }
+    }
+
+    @Test
+    fun encryptedReverseSpeedReachesTelemetryWithoutWraparound() = runBlocking {
+        store.put(BondEntry(device.address, BondFamily.XIAOMI_MI, transport.expectedToken, "MyScooter", "M365"))
+        transport.speedWord = 0xfc18 // -1000 m/h: used to be displayed as 64.536 km/h.
+        val connection = MiScooterConnection(transport, device, scope, store, readTimeoutMillis = 1_000)
+        try {
+            connection.start()
+            assertEquals(ConnectionState.Ready, connection.state.value)
+            assertNotNull(connection.readRegister(0xB0, 32))
+            val telemetry = withTimeout(2_000) { connection.telemetry.filterNotNull().first() }
+            assertEquals(1f, telemetry.speedKmh!!, 0.000001f)
+            assertFalse(connection.lockSupported)
+            assertTrue(connection.lock() is CommandOutcome.Unsupported)
+        } finally {
+            connection.close()
         }
     }
 

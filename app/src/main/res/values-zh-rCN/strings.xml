@@ -340,8 +340,12 @@
     <string name="bond_error_wrong">口令错误，或文件已损坏。</string>
     <string name="bond_preview_title">选择要导入的密钥</string>
     <string name="bond_preview_replace">这部手机已有此密钥：替换它</string>
-    <string name="bond_preview_skipped">已跳过 %d 个此版本无法使用的密钥。</string>
-    <string name="bond_export_done">已导出 %d 个密钥。</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="other">已跳过 %1$d 个本版本无法使用的密钥。</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="other">已导出 %1$d 个密钥。</item>
+    </plurals>
     <string name="bond_import_done">已导入 %1$d 个、替换 %2$d 个、保留 %3$d 个。</string>
     <string name="bond_invalid_file">这不是有效的 RideFlux 备份文件。</string>
     <string name="bond_io_failed">无法读取或保存文件。</string>
@@ -367,4 +371,10 @@
     <string name="action_replace">替换</string>
     <string name="mi_registration_dialog_warning_token_invalidation">注册新密钥可能会使其他 App（如米家）中的令牌失效。</string>
     <string name="mi_registration_dialog_recommend_import">若您已持有配对密钥，建议在“设置 → 备份”中优先导入，而非重新注册。</string>
+    <string name="bond_delete_title">删除配对密钥？</string>
+    <string name="bond_delete_action">删除密钥</string>
+    <string name="bond_delete_description">删除密钥：%1$s，%2$s</string>
+    <string name="bond_delete_message">删除此密钥后可能需要重新配对车辆。当前的车辆连接将会关闭。</string>
+    <string name="bond_delete_failed">无法删除密钥，请重试。</string>
+    <string name="bond_hex_hint">十六进制：%1$d 字节</string>
 </resources>

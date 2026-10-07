@@ -340,8 +340,16 @@
     <string name="bond_error_wrong">Frase-passe errada ou ficheiro danificado.</string>
     <string name="bond_preview_title">Escolha as chaves a importar</string>
     <string name="bond_preview_replace">Já está neste telemóvel: substituir</string>
-    <string name="bond_preview_skipped">Foram ignoradas %d chave(s) de um tipo que esta versão não consegue usar.</string>
-    <string name="bond_export_done">%d chave(s) exportada(s).</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="one">Foi ignorada %1$d chave de um tipo não compatível com esta versão.</item>
+        <item quantity="many">Foram ignoradas %1$d chaves de um tipo não compatível com esta versão.</item>
+        <item quantity="other">Foram ignoradas %1$d chaves de um tipo não compatível com esta versão.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="one">Exportada %1$d chave.</item>
+        <item quantity="many">Exportadas %1$d chaves.</item>
+        <item quantity="other">Exportadas %1$d chaves.</item>
+    </plurals>
     <string name="bond_import_done">%1$d importada(s), %2$d substituída(s), %3$d mantida(s).</string>
     <string name="bond_invalid_file">Este não é um ficheiro de cópia RideFlux válido.</string>
     <string name="bond_io_failed">Não foi possível ler ou guardar o ficheiro.</string>
@@ -367,4 +375,10 @@
     <string name="action_replace">Substituir</string>
     <string name="mi_registration_dialog_warning_token_invalidation">O registo pode invalidar tokens noutras aplicações (como o Mi Home).</string>
     <string name="mi_registration_dialog_recommend_import">Se já possui uma chave, recomenda-se importá-la em Definições → Cópia de segurança em vez de registar novamente.</string>
+    <string name="bond_delete_title">Excluir a chave de pareamento?</string>
+    <string name="bond_delete_action">Excluir chave</string>
+    <string name="bond_delete_description">Excluir chave: %1$s, %2$s</string>
+    <string name="bond_delete_message">Após excluir esta chave, talvez seja necessário parear a scooter novamente. A conexão atual será encerrada.</string>
+    <string name="bond_delete_failed">Não foi possível excluir a chave. Tente novamente.</string>
+    <string name="bond_hex_hint">Formato hexadecimal: %1$d bytes</string>
 </resources>

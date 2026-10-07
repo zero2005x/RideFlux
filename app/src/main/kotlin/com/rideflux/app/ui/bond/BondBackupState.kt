@@ -37,6 +37,7 @@ sealed interface BondDialog {
     data object ExportPassphrase : BondDialog
     data object ImportPassphrase : BondDialog
     data class ImportPreview(val rows: List<BondImportRow>, val skippedUnsupported: Int) : BondDialog
+    data class ConfirmDelete(val row: BondRow) : BondDialog
     data object ManualEntry : BondDialog
     data class ConfirmOverwriteManual(val entry: BondEntry) : BondDialog
 }
@@ -62,6 +63,7 @@ data class BondUiState(
     val busy: Boolean = false,
     val dialog: BondDialog = BondDialog.None,
     val passphraseError: BondPassphraseError? = null,
+    val deleteFailed: Boolean = false,
     val manualEntryError: BondManualEntryError? = null,
 )
 

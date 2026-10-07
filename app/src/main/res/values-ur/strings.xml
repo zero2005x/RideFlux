@@ -341,8 +341,14 @@
     <string name="bond_error_wrong">پاس فریز غلط ہے یا فائل خراب ہے۔</string>
     <string name="bond_preview_title">امپورٹ کرنے کے لیے کیز منتخب کریں</string>
     <string name="bond_preview_replace">اس فون میں پہلے سے موجود ہے: تبدیل کریں</string>
-    <string name="bond_preview_skipped">اس ورژن کے لیے ناقابلِ استعمال قسم کی %d کیز چھوڑ دی گئیں۔</string>
-    <string name="bond_export_done">%d کیز ایکسپورٹ ہو گئیں۔</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="one">%1$d کلید نظر انداز کی گئی کیونکہ اس کی قسم اس ورژن میں معاون نہیں ہے۔</item>
+        <item quantity="other">%1$d کلیدیں نظر انداز کی گئیں کیونکہ ان کی قسم اس ورژن میں معاون نہیں ہے۔</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="one">%1$d کلید برآمد کی گئی۔</item>
+        <item quantity="other">%1$d کلیدیں برآمد کی گئیں۔</item>
+    </plurals>
     <string name="bond_import_done">%1$d امپورٹ، %2$d تبدیل، %3$d برقرار۔</string>
     <string name="bond_invalid_file">یہ درست RideFlux بیک اپ فائل نہیں ہے۔</string>
     <string name="bond_io_failed">فائل پڑھی یا محفوظ نہیں کی جا سکی۔</string>
@@ -368,4 +374,10 @@
     <string name="action_replace">تبدیل کریں</string>
     <string name="mi_registration_dialog_warning_token_invalidation">رجسٹریشن دیگر ایپس (جیسے Mi Home) میں ٹوکنز کو کالعدم کر سکتی ہے۔</string>
     <string name="mi_registration_dialog_recommend_import">اگر آپ کے پاس پہلے سے جوڑا بنانے کی کلید ہے، تو دوبارہ رجسٹر کرنے کے بجائے ترتیبات ← بیک اپ میں اسے درآمد کرنے کی سفارش کی جاتی ہے۔</string>
+    <string name="bond_delete_title">جوڑا بنانے کی کلید حذف کریں؟</string>
+    <string name="bond_delete_action">کلید حذف کریں</string>
+    <string name="bond_delete_description">کلید حذف کریں: %1$s، %2$s</string>
+    <string name="bond_delete_message">اس کلید کو حذف کرنے کے بعد اسکوٹر کو دوبارہ جوڑنا پڑ سکتا ہے۔ موجودہ کنکشن بند ہو جائے گا۔</string>
+    <string name="bond_delete_failed">کلید حذف نہیں ہو سکی۔ دوبارہ کوشش کریں۔</string>
+    <string name="bond_hex_hint">ہیکساڈیسیمل: %1$d بائٹس</string>
 </resources>

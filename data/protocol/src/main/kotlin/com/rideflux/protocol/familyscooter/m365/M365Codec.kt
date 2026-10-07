@@ -3,6 +3,7 @@ package com.rideflux.protocol.familyscooter.m365
 import com.rideflux.domain.telemetry.ScooterTelemetry
 import com.rideflux.protocol.familyscooter.RetailFraming
 import com.rideflux.protocol.familyscooter.RetailFraming.u
+import kotlin.math.abs
 
 /** Xiaomi 55 AA retail register reads. Source: ninebot-docs protocol.md/M365ESC.md (L1). */
 object M365Codec {
@@ -10,15 +11,15 @@ object M365Codec {
         val errorCode: Int,
         val warningCode: Int,
         val batteryPercent: Int,
-        /** Unsigned B5 raw value. Validated only on one captured M365, not on ES2. */
+        /** B5 wire word, retained unsigned for diagnostics; M365 velocity is signed LE16. */
         val speedRaw: Int,
         val totalDistanceMetres: Long,
         val tripDistanceMetres: Int,
         val frameTemperatureRaw: Int,
     ) {
-        /** Invalid ESC estimates are unknown, never proof of a stopped vehicle. */
+        /** Speed magnitude in either direction; only the exact zero word means stopped. */
         val speedKmh: Float?
-            get() = if (speedRaw >= NO_SPEED_SENTINEL) null else speedRaw / 1_000f
+            get() = if (speedRaw !in 0..0xffff) null else abs(speedRaw.toShort().toInt()) / 1_000f
 
         fun toTelemetry(timestampMillis: Long) = ScooterTelemetry(
             timestampMillis = timestampMillis,
@@ -28,8 +29,6 @@ object M365Codec {
             tripDistanceMetres = tripDistanceMetres.toLong(),
         )
     }
-
-    const val NO_SPEED_SENTINEL = 0xFF00
 
     /** Length counts command, argument, and the mandatory one-byte read size. */
     fun readRequest(register: Int, byteCount: Int, destination: Int = 0x20): ByteArray {

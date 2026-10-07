@@ -1,5 +1,11 @@
 # Phase 6 protocol convergence handoff
 
+> Superseded for M365 speed on 2026-10-07: B5 is now interpreted as signed LE16
+> velocity, with `abs(signedRaw) / 1000f` exposed as speed. The unsigned and
+> `>= 0xFF00` sentinel assumptions below were historical; they misread reverse
+> motion. The unverified Ninebot diagnostic decoder retains its previous guard.
+> See [M365 reverse-speed correction](M365_REVERSE_SPEED_2026-10-07.md).
+
 ## Implemented
 
 - `M365Codec.B0Block` decodes register B5 as an unsigned little-endian metres-per-hour value and exposes `raw / 1000f` km/h in M365 telemetry. Values `>= 0xFF00` produce `null` (unknown).

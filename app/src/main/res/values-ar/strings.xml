@@ -341,8 +341,22 @@
     <string name="bond_error_wrong">عبارة المرور خاطئة أو الملف تالف.</string>
     <string name="bond_preview_title">اختر المفاتيح المراد استيرادها</string>
     <string name="bond_preview_replace">موجود بالفعل على هذا الهاتف: استبدله</string>
-    <string name="bond_preview_skipped">تم تخطي %d مفتاحًا من نوع لا تستطيع هذه النسخة استخدامه.</string>
-    <string name="bond_export_done">تم تصدير %d مفتاحًا.</string>
+    <plurals name="bond_preview_skipped">
+        <item quantity="zero">تم تجاهل %1$d من المفاتيح غير المدعومة في هذا الإصدار.</item>
+        <item quantity="one">تم تجاهل مفتاح واحد (%1$d) لا يدعمه هذا الإصدار.</item>
+        <item quantity="two">تم تجاهل مفتاحين (%1$d) لا يدعمهما هذا الإصدار.</item>
+        <item quantity="few">تم تجاهل %1$d مفاتيح لا يدعمها هذا الإصدار.</item>
+        <item quantity="many">تم تجاهل %1$d مفتاحًا لا يدعمه هذا الإصدار.</item>
+        <item quantity="other">تم تجاهل %1$d من المفاتيح غير المدعومة في هذا الإصدار.</item>
+    </plurals>
+    <plurals name="bond_export_done">
+        <item quantity="zero">لم يتم تصدير أي مفتاح (%1$d).</item>
+        <item quantity="one">تم تصدير مفتاح واحد (%1$d).</item>
+        <item quantity="two">تم تصدير مفتاحين (%1$d).</item>
+        <item quantity="few">تم تصدير %1$d مفاتيح.</item>
+        <item quantity="many">تم تصدير %1$d مفتاحًا.</item>
+        <item quantity="other">تم تصدير %1$d من المفاتيح.</item>
+    </plurals>
     <string name="bond_import_done">تم استيراد %1$d واستبدال %2$d والإبقاء على %3$d.</string>
     <string name="bond_invalid_file">هذا ليس ملف نسخة احتياطية صالحًا لـ RideFlux.</string>
     <string name="bond_io_failed">تعذّرت قراءة الملف أو حفظه.</string>
@@ -368,4 +382,10 @@
     <string name="action_replace">استبدال</string>
     <string name="mi_registration_dialog_warning_token_invalidation">قد يؤدي التسجيل إلى إبطال الرموز في التطبيقات الأخرى (مثل Mi Home).</string>
     <string name="mi_registration_dialog_recommend_import">إذا كان لديك مفتاح اقتران بالفعل، فمن المستحسن استيراده من الإعدادات ← النسخ الاحتياطي بدلاً من إعادة التسجيل.</string>
+    <string name="bond_delete_title">حذف مفتاح الاقتران؟</string>
+    <string name="bond_delete_action">حذف المفتاح</string>
+    <string name="bond_delete_description">حذف المفتاح: %1$s، %2$s</string>
+    <string name="bond_delete_message">قد يتطلب حذف هذا المفتاح إقران السكوتر مجددًا. سيتم إغلاق اتصاله الحالي.</string>
+    <string name="bond_delete_failed">تعذر حذف المفتاح. حاول مجددًا.</string>
+    <string name="bond_hex_hint">ست عشري: %1$d بايت</string>
 </resources>
