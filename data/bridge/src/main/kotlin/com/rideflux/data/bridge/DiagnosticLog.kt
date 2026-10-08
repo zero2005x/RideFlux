@@ -5,6 +5,8 @@
 package com.rideflux.data.bridge
 
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -66,10 +68,8 @@ class DiagnosticLog(
         lastKey = null
         repeats = 0
         currentSize = -1L
-        runCatching {
-            currentFile().delete()
-            previousFile().delete()
-        }
+        runCatching { Files.deleteIfExists(currentFile().toPath()) }
+        runCatching { Files.deleteIfExists(previousFile().toPath()) }
         Unit
     }
 
@@ -96,8 +96,9 @@ class DiagnosticLog(
     }
 
     private fun rotate() {
-        previousFile().delete()
-        currentFile().renameTo(previousFile())
+        // Throws when it cannot move, which append() turns into a dropped line rather than a
+        // log that grows without bound.
+        Files.move(currentFile().toPath(), previousFile().toPath(), StandardCopyOption.REPLACE_EXISTING)
         currentSize = 0L
     }
 

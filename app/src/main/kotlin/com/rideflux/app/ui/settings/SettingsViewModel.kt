@@ -13,6 +13,7 @@ import com.rideflux.app.bridge.ApprovedGlasses
 import com.rideflux.app.bridge.ApprovedGlassesStore
 import com.rideflux.app.bridge.BridgePairingStore
 import com.rideflux.app.bridge.BridgeService
+import com.rideflux.app.bridge.DiagnosticExporter
 import com.rideflux.app.bridge.DiagnosticReport
 import com.rideflux.app.BuildConfig
 import com.rideflux.data.bridge.DiagnosticLogs
@@ -157,8 +158,8 @@ class SettingsViewModel @Inject constructor(
     fun exportDiagnostics(uri: Uri) {
         viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) {
-                    val report = DiagnosticReport.build(
+                DiagnosticExporter(appContext.contentResolver).save(uri) {
+                    DiagnosticReport.build(
                         appVersion = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                         androidRelease = Build.VERSION.RELEASE,
                         device = "${Build.MANUFACTURER} ${Build.MODEL}",
@@ -166,9 +167,6 @@ class SettingsViewModel @Inject constructor(
                         zone = ZoneId.systemDefault(),
                         log = DiagnosticLogs.snapshot(),
                     )
-                    appContext.contentResolver.openOutputStream(uri)?.use { out ->
-                        out.write(report.toByteArray(Charsets.UTF_8))
-                    } ?: error("Failed to open output stream")
                 }
                 _backupEvent.emit(BackupUiEvent.DiagnosticsSaved)
             } catch (e: Exception) {

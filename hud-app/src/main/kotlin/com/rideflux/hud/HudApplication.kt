@@ -22,10 +22,9 @@ import java.io.File
 class HudApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        // The glasses have no root and clear logcat on every reboot, so keep the log where
-        // `adb pull /sdcard/Android/data/com.rideflux.hud/files/diagnostics` can reach it.
-        val dir = File(getExternalFilesDir(null) ?: filesDir, "diagnostics")
-        DiagnosticLogs.install(DiagnosticLog(dir))
+        // The glasses clear logcat on every reboot, so keep the log in app-private storage;
+        // HudActivity prints it for `adb shell dumpsys activity top --rideflux-diag`.
+        DiagnosticLogs.install(DiagnosticLog(File(filesDir, "diagnostics")))
         DiagnosticLogs.record("hud", "process start ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
     }
 }
