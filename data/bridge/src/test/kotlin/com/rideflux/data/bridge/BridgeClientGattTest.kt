@@ -498,6 +498,48 @@ class BridgeClientGattTest {
     }
 
     @Test
+    fun aLinkThatIsUpButNeverSubscribesIsRestartedAfterFourSecondsNotTen() = runTest {
+        val fixture = Fixture()
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        fixture.scanCallback.onScanResult(0, fixture.scanResult)
+        fixture.gattCallback.onConnectionStateChange(
+            fixture.gatt, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_CONNECTED,
+        )
+        runCurrent()
+        // Service discovery never answers.
+
+        shadowOf(Looper.getMainLooper()).idleFor(3_500, TimeUnit.MILLISECONDS)
+        advanceTimeBy(3_500)
+        runCurrent()
+        assertNull("still within the 4 s that a healthy link needs well under 1 s of", run.error)
+
+        shadowOf(Looper.getMainLooper()).idleFor(1_000, TimeUnit.MILLISECONDS)
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertEquals("bridge subscribe timeout", run.message())
+        verify(exactly = 1) { fixture.gatt.close() }
+    }
+
+    @Test
+    fun aLinkThatSubscribesInTimeIsNeverRestarted() = runTest {
+        val fixture = Fixture()
+        val run = collectErrors(newClient(fixture))
+        runCurrent()
+        connectAndDiscover(fixture)
+        fixture.gattCallback.onDescriptorWrite(fixture.gatt, fixture.cccd, BluetoothGatt.GATT_SUCCESS)
+        runCurrent()
+
+        shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.SECONDS)
+        advanceTimeBy(30_000)
+        runCurrent()
+
+        assertNull(run.error)
+        run.job.cancelAndJoin()
+    }
+
+    @Test
     fun teardownSurvivesABluetoothStackThatThrows() = runTest {
         val fixture = Fixture()
         every { fixture.scanner.stopScan(any<ScanCallback>()) } throws IllegalStateException("scanner gone")
