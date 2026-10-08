@@ -22,6 +22,9 @@ fun signingCredential(name: String): String? =
             f.readLines().map { it.trim() }
                 .firstOrNull { it.startsWith("$name=") }
                 ?.substringAfter('=')
+                // local.properties escapes ':' (C\:/path), which Gradle's own reader undoes
+                // but this hand-rolled one did not; :app already does the same.
+                ?.replace("\\:", ":")
                 ?.takeIf { it.isNotBlank() }
         }
 
