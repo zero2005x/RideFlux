@@ -168,6 +168,43 @@ class BridgeServiceFramesTest {
     }
 
     @Test
+    fun glassesConnectingAfreshShowAHudThatWasBlankedInAnEarlierSession() {
+        BridgeService.setHudVisible(false)
+        setLinkState(GlassesLinkState.READY)
+        assertFalse("waiting for glasses keeps the choice", BridgeService.hudVisible.value)
+
+        setLinkState(GlassesLinkState.CONNECTED)
+
+        assertTrue(BridgeService.hudVisible.value)
+    }
+
+    @Test
+    fun blankingTheHudDuringASessionSurvivesFurtherConnectedUpdatesAndALinkDrop() {
+        setLinkState(GlassesLinkState.CONNECTED)
+        BridgeService.setHudVisible(false)
+
+        setLinkState(GlassesLinkState.CONNECTED)
+        assertFalse("still the same session", BridgeService.hudVisible.value)
+
+        setLinkState(GlassesLinkState.READY)
+        assertFalse("a drop on its own does not change the choice", BridgeService.hudVisible.value)
+    }
+
+    @Test
+    fun aFailingPipelineAnswersWithDegradedStandbyInsteadOfEndingTheStream() = runBlocking {
+        // The very first read of the settings throws, which happens outside the wheel loop's own
+        // try/catch, so it reaches the pipeline-level handler.
+        every { service.settingsRepository.settings } throws IllegalStateException("boom") andThen
+            MutableStateFlow(AppSettings())
+
+        val frame = withTimeout(5_000) { frames().first() }
+
+        assertFalse(frame.ready)
+        assertTrue(frame.stale)
+        assertEquals(BridgeState.DEGRADED, BridgeService.state.value)
+    }
+
+    @Test
     fun readyLinkWithoutTelemetryIsMarkedStaleAndDegraded() = runBlocking {
         val address = "22:33:44:55:66:77"
         val connection = mockk<WheelConnection>()
@@ -189,6 +226,12 @@ class BridgeServiceFramesTest {
     private fun frames(): Flow<BridgeFrame> =
         BridgeService::class.java.getDeclaredMethod("frames").apply { isAccessible = true }
             .invoke(service) as Flow<BridgeFrame>
+
+    private fun setLinkState(state: GlassesLinkState) {
+        BridgeService::class.java.getDeclaredMethod("setLinkState", GlassesLinkState::class.java)
+            .apply { isAccessible = true }
+            .invoke(service, state)
+    }
 
     private fun readTarget(intent: Intent): Any? =
         BridgeService::class.java.getDeclaredMethod("readTarget", Intent::class.java)

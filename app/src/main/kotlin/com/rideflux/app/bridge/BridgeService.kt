@@ -49,13 +49,12 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -137,6 +136,8 @@ class BridgeService : Service() {
     override fun onCreate() {
         super.onCreate()
         DiagnosticLogs.record(DIAG, "service created")
+        // The flag outlives the service for as long as the process does; a new service is a new ride.
+        showHudForNewSession("service created")
         _linkMode.value = GlassesLinkPreferences.read(this)
         ContextCompat.registerReceiver(
             this,
@@ -372,8 +373,22 @@ class BridgeService : Service() {
         }
     }
 
+    private fun frames(): Flow<BridgeFrame> = framePipeline().restartingOnFailure(
+        backoffMillis = ::reconnectBackoffMillis,
+        healthyAfterMillis = PIPELINE_HEALTHY_MILLIS,
+        elapsedRealtime = SystemClock::elapsedRealtime,
+        onFailure = ::onPipelineFailed,
+        standbyFor = { waitMillis -> emitStandbyFor(waitMillis) },
+    )
+
+    private fun onPipelineFailed(error: Throwable) {
+        Log.e(TAG, "bridge frame pipeline failed; restarting it", error)
+        DiagnosticLogs.record(DIAG, "pipeline failed: ${error.javaClass.simpleName}: ${error.message}")
+        setBridgeState(BridgeState.DEGRADED)
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun frames(): Flow<BridgeFrame> = combine(
+    private fun framePipeline(): Flow<BridgeFrame> = combine(
         target.flatMapLatest { selected ->
             if (selected == null) {
                 setBridgeState(BridgeState.STANDBY)
@@ -389,12 +404,16 @@ class BridgeService : Service() {
         // reacts at once instead of at the next telemetry tick — which
         // in standby would be up to a second away.
         frame.copy(hudHidden = !visible)
-    }.catch { error ->
-        if (error is CancellationException) throw error
-        Log.e(TAG, "bridge frame pipeline failed; falling back to standby", error)
-        DiagnosticLogs.record(DIAG, "pipeline failed: ${error.javaClass.simpleName}: ${error.message}")
-        setBridgeState(BridgeState.DEGRADED)
-        emitAll(idleFrames())
+    }
+
+    /** Standby frames for [waitMillis], so the glasses see a live phone while a link comes back. */
+    private suspend fun FlowCollector<BridgeFrame>.emitStandbyFor(waitMillis: Long) {
+        val deadline = SystemClock.elapsedRealtime() + waitMillis
+        do {
+            emit(standbyFrame(phoneBatteryPercent = readPhoneBatteryPercent()).copy(hudHidden = !_hudVisible.value))
+            val remaining = deadline - SystemClock.elapsedRealtime()
+            if (remaining > 0L) delay(min(IDLE_HEARTBEAT_MILLIS, remaining))
+        } while (SystemClock.elapsedRealtime() < deadline)
     }
 
     /** Never completes unless its owning coroutine is cancelled. */
@@ -447,12 +466,7 @@ class BridgeService : Service() {
             setBridgeState(BridgeState.DEGRADED)
             val waitMs = reconnectBackoffMillis(if (reachedReady) 0L else attempt)
             attempt = if (reachedReady) 0L else attempt + 1L
-            val deadline = SystemClock.elapsedRealtime() + waitMs
-            do {
-                emit(standbyFrame(phoneBatteryPercent = readPhoneBatteryPercent()))
-                val remaining = deadline - SystemClock.elapsedRealtime()
-                if (remaining > 0L) delay(min(IDLE_HEARTBEAT_MILLIS, remaining))
-            } while (SystemClock.elapsedRealtime() < deadline)
+            emitStandbyFor(waitMs)
         }
     }
 
@@ -708,7 +722,20 @@ class BridgeService : Service() {
     }
 
     private fun setLinkState(value: GlassesLinkState) {
+        // A blanked HUD is a choice made for one stretch of riding. The glasses restarting or
+        // coming back are a new session, and a display that stays blank across it, with nothing
+        // on the phone to explain why, looks like a dead link. (A blank that is still wanted is one
+        // ring press away.) Staying CONNECTED, or dropping to READY, keeps the rider's choice.
+        if (value == GlassesLinkState.CONNECTED && _linkState.value != GlassesLinkState.CONNECTED) {
+            showHudForNewSession("glasses connected")
+        }
         _linkState.value = value
+    }
+
+    private fun showHudForNewSession(reason: String) {
+        if (_hudVisible.value) return
+        DiagnosticLogs.record(DIAG, "hud shown again: $reason")
+        setHudVisible(true)
     }
 
     private fun startForegroundCompat() {
@@ -781,6 +808,9 @@ class BridgeService : Service() {
         private const val STALE_THRESHOLD_MILLIS = 3_000L
         private const val STALE_TICK_MILLIS = 1_000L
         private const val IDLE_HEARTBEAT_MILLIS = 1_000L
+
+        /** A pipeline that ran this long before failing has recovered; its retry delay starts over. */
+        private const val PIPELINE_HEALTHY_MILLIS = 30_000L
         private const val PHONE_BATTERY_POLL_MILLIS = 15_000L
         private const val PUBLISHER_SWITCH_SETTLE_MILLIS = 1_000L
 
@@ -823,7 +853,10 @@ class BridgeService : Service() {
          * Deliberately *not* persisted: a hidden HUD is a momentary
          * choice made mid-ride, and starting a later ride with a
          * blank display the rider does not remember switching off is
-         * worse than making them press the ring again.
+         * worse than making them press the ring again. For the same
+         * reason it is put back to "shown" whenever the service starts
+         * and whenever glasses connect afresh (see [setLinkState]), so a
+         * blank cannot silently outlive the session it was chosen in.
          */
         val hudVisible: StateFlow<Boolean> = _hudVisible.asStateFlow()
 
