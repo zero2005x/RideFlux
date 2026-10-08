@@ -20,10 +20,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.rideflux.data.bridge.DiagnosticLogs
 import com.rideflux.hud.permission.BlePermissionGate
 import com.rideflux.hud.storage.HudMacStore
 import com.rideflux.data.preferences.AppLanguage
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.FileDescriptor
+import java.io.PrintWriter
 import java.util.Locale
 import javax.inject.Inject
 
@@ -136,9 +139,25 @@ class HudActivity : ComponentActivity() {
         return super.dispatchKeyEvent(event)
     }
 
+    /**
+     * `adb shell dumpsys activity top --rideflux-diag` prints the diagnostic log. The glasses have
+     * no root and release builds refuse `run-as`, so this is the one way to read the log without
+     * putting it on shared storage or exposing a provider: only the shell (DUMP permission) can
+     * trigger a dump.
+     */
+    override fun dump(prefix: String, fd: FileDescriptor?, writer: PrintWriter, args: Array<out String>?) {
+        super.dump(prefix, fd, writer, args)
+        if (args?.contains(DUMP_DIAGNOSTICS) == true) {
+            writer.println("$prefix--- RideFlux diagnostic log ---")
+            writer.print(DiagnosticLogs.snapshot())
+        }
+    }
+
     companion object {
         /** Intent extra key for the target wheel's BLE MAC address. */
         const val EXTRA_MAC: String = "mac"
+
+        private const val DUMP_DIAGNOSTICS = "--rideflux-diag"
 
         private val RING_TOGGLE_KEYS = setOf(
             KeyEvent.KEYCODE_ENTER,

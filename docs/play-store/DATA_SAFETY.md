@@ -24,6 +24,7 @@ Last checked against the code on 2026-10-07 (0.1.10 plus everything merged after
 | Bluetooth addresses and pairing tokens | Reconnecting to the wheel, scooter, glasses and ring. | No. |
 | **Scooter pairing keys** (Xiaomi Mi token, Ninebot app random) | Reconnecting to a scooter without pairing again. | Only if the user exports a **`.rfbond`** file: passphrase-encrypted (AES-256-GCM, PBKDF2-HMAC-SHA256, passphrase of at least 10 characters), preceded by a biometric / screen-lock check. |
 | Settings | Preferences. | Only inside the user's own trip/settings backup. |
+| **Diagnostic log** (bridge state changes and reasons, glasses connect/leave events; addresses cut to their last two bytes; no keys, tokens or location) | Finding out afterwards why the HUD stopped. Capped at about 256 KB. | Only if the user saves it as a text file from Settings. |
 
 ## Permissions worth explaining if Play asks
 

@@ -382,4 +382,9 @@
     <string name="bond_delete_message">Após excluir esta chave, talvez seja necessário parear a scooter novamente. A conexão atual será encerrada.</string>
     <string name="bond_delete_failed">Não foi possível excluir a chave. Tente novamente.</string>
     <string name="bond_hex_hint">Formato hexadecimal: %1$d bytes</string>
+
+    <string name="settings_diag_title">Registro de diagnóstico</string>
+    <string name="settings_diag_subtitle">Eventos recentes da ponte e dos óculos, armazenados apenas neste telefone. Não contém chaves nem tokens. Salve-o para compartilhar quando algo der errado.</string>
+    <string name="settings_diag_saved">Registro de diagnóstico salvo.</string>
+    <string name="settings_diag_error">Não foi possível salvar o registro de diagnóstico: %1$s</string>
 </resources>

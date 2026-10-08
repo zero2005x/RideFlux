@@ -458,10 +458,12 @@ class BridgeServer(
             advertiseStarted.set(true)
             advertiseAttempts = 0
             Log.i(TAG, "advertise start ok: $settingsInEffect")
+            DiagnosticLogs.record(DIAG, "advertise ok mode=${settingsInEffect?.mode}")
         }
         override fun onStartFailure(errorCode: Int) {
             advertiseStarted.set(false)
             Log.e(TAG, "advertise start failed: $errorCode")
+            DiagnosticLogs.record(DIAG, "advertise failed code=$errorCode")
             scheduleAdvertiseRetry()
         }
     }
@@ -541,6 +543,7 @@ class BridgeServer(
 
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
             Log.i(TAG, "central ${device.address} status=$status newState=$newState")
+            DiagnosticLogs.record(DIAG, "central ${DiagnosticLogs.maskAddress(device.address)} status=$status newState=$newState")
             if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 subscribers.remove(device)
                 pendingSubscribers.remove(device)
@@ -726,6 +729,7 @@ class BridgeServer(
             Log.i(TAG, "telemetry subscription authorized for ${device.address}")
         } else {
             Log.i(TAG, "telemetry subscription pending authorization for ${device.address}")
+            DiagnosticLogs.record(DIAG, "subscription pending authorization ${DiagnosticLogs.maskAddress(device.address)}")
             enterPending(device, token)
         }
     }
@@ -733,6 +737,7 @@ class BridgeServer(
     private fun dispatchSubscriberState() {
         val connected = subscribers.isNotEmpty()
         if (subscriberConnected.getAndSet(connected) == connected) return
+        DiagnosticLogs.record(DIAG, "glasses stream ${if (connected) "up" else "down"} (subscribers=${subscribers.size})")
         runCatching { onSubscriberStateChanged(connected) }
             .onFailure { Log.w(TAG, "subscriber-state callback failed", it) }
     }
@@ -842,6 +847,7 @@ class BridgeServer(
         for (device in subscribers) {
             if (peerAuthorizer.isAuthorized(device, deviceHandshakeTokens[device])) continue
             Log.i(TAG, "approval withdrawn for ${device.address}; ending its stream")
+            DiagnosticLogs.record(DIAG, "approval withdrawn for ${DiagnosticLogs.maskAddress(device.address)}")
             subscribers.remove(device)
             notificationsInFlight.remove(device)
             lastSubmittedPayload.remove(device)
@@ -859,6 +865,7 @@ class BridgeServer(
 
     private companion object {
         const val TAG = "BridgeServer"
+        private const val DIAG = "glasses"
         const val ADVERTISE_RETRY_BASE_MILLIS = 2_000
         const val ADVERTISE_RETRY_MAX_MILLIS = 30_000
 

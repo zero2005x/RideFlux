@@ -378,4 +378,9 @@
     <string name="bond_delete_message">删除此密钥后可能需要重新配对车辆。当前的车辆连接将会关闭。</string>
     <string name="bond_delete_failed">无法删除密钥，请重试。</string>
     <string name="bond_hex_hint">十六进制：%1$d 字节</string>
+
+    <string name="settings_diag_title">诊断日志</string>
+    <string name="settings_diag_subtitle">最近的桥接与眼镜事件，仅保存在这部手机上，不含任何密钥或令牌。出现问题时可保存下来供参考。</string>
+    <string name="settings_diag_saved">诊断日志已保存。</string>
+    <string name="settings_diag_error">无法保存诊断日志：%1$s</string>
 </resources>

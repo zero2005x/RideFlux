@@ -381,4 +381,9 @@
     <string name="bond_delete_message">اس کلید کو حذف کرنے کے بعد اسکوٹر کو دوبارہ جوڑنا پڑ سکتا ہے۔ موجودہ کنکشن بند ہو جائے گا۔</string>
     <string name="bond_delete_failed">کلید حذف نہیں ہو سکی۔ دوبارہ کوشش کریں۔</string>
     <string name="bond_hex_hint">ہیکساڈیسیمل: %1$d بائٹس</string>
+
+    <string name="settings_diag_title">تشخیصی لاگ</string>
+    <string name="settings_diag_subtitle">حالیہ برج اور چشمے کے واقعات، صرف اسی فون پر محفوظ ہیں۔ اس میں کوئی کلید یا ٹوکن نہیں ہے۔ مسئلہ ہونے پر شیئر کرنے کے لیے محفوظ کریں۔</string>
+    <string name="settings_diag_saved">تشخیصی لاگ محفوظ ہو گیا۔</string>
+    <string name="settings_diag_error">تشخیصی لاگ محفوظ نہیں ہو سکا: %1$s</string>
 </resources>

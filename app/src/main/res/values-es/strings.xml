@@ -382,4 +382,9 @@
     <string name="bond_delete_message">Si eliminas esta clave, puede que tengas que volver a vincular el patinete. Se cerrará su conexión actual.</string>
     <string name="bond_delete_failed">No se pudo eliminar la clave. Inténtalo de nuevo.</string>
     <string name="bond_hex_hint">Formato hexadecimal: %1$d bytes</string>
+
+    <string name="settings_diag_title">Registro de diagnóstico</string>
+    <string name="settings_diag_subtitle">Eventos recientes del puente y las gafas, guardados solo en este teléfono. No contiene claves ni tokens. Guárdalo para compartirlo cuando algo falle.</string>
+    <string name="settings_diag_saved">Registro de diagnóstico guardado.</string>
+    <string name="settings_diag_error">No se pudo guardar el registro de diagnóstico: %1$s</string>
 </resources>

@@ -13,10 +13,15 @@ import com.rideflux.app.bridge.ApprovedGlasses
 import com.rideflux.app.bridge.ApprovedGlassesStore
 import com.rideflux.app.bridge.BridgePairingStore
 import com.rideflux.app.bridge.BridgeService
+import com.rideflux.app.bridge.DiagnosticExporter
+import com.rideflux.app.bridge.DiagnosticReport
+import com.rideflux.app.BuildConfig
+import com.rideflux.data.bridge.DiagnosticLogs
 import com.rideflux.domain.settings.AppSettings
 import com.rideflux.domain.settings.HudLayoutProfile
 import com.rideflux.domain.settings.SettingsRepository
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import com.rideflux.app.backup.TripBackupManager
 import com.rideflux.domain.ride.ImportResult
@@ -31,6 +36,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 
 sealed interface BackupUiEvent {
@@ -38,6 +45,8 @@ sealed interface BackupUiEvent {
     data class ExportError(val message: String) : BackupUiEvent
     data class ImportSuccess(val result: ImportResult) : BackupUiEvent
     data class ImportError(val message: String) : BackupUiEvent
+    data object DiagnosticsSaved : BackupUiEvent
+    data class DiagnosticsError(val message: String) : BackupUiEvent
 }
 
 @HiltViewModel
@@ -141,6 +150,28 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Export failed", e)
                 _backupEvent.emit(BackupUiEvent.ExportError(e.localizedMessage ?: "Export failed"))
+            }
+        }
+    }
+
+    /** Saves the on-device diagnostic ring log, with a short header, to a file the rider chose. */
+    fun exportDiagnostics(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                DiagnosticExporter(appContext.contentResolver).save(uri) {
+                    DiagnosticReport.build(
+                        appVersion = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                        androidRelease = Build.VERSION.RELEASE,
+                        device = "${Build.MANUFACTURER} ${Build.MODEL}",
+                        now = Instant.now(),
+                        zone = ZoneId.systemDefault(),
+                        log = DiagnosticLogs.snapshot(),
+                    )
+                }
+                _backupEvent.emit(BackupUiEvent.DiagnosticsSaved)
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Diagnostic export failed", e)
+                _backupEvent.emit(BackupUiEvent.DiagnosticsError(e.localizedMessage ?: "Export failed"))
             }
         }
     }

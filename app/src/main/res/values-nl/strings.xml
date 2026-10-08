@@ -380,4 +380,9 @@
     <string name="bond_delete_message">Na het verwijderen van deze sleutel moet je de scooter mogelijk opnieuw koppelen. De huidige verbinding wordt verbroken.</string>
     <string name="bond_delete_failed">De sleutel kon niet worden verwijderd. Probeer het opnieuw.</string>
     <string name="bond_hex_hint">Hexadecimaal: %1$d bytes</string>
+
+    <string name="settings_diag_title">Diagnoselogboek</string>
+    <string name="settings_diag_subtitle">Recente gebeurtenissen van de brug en de bril, alleen op deze telefoon bewaard. Het bevat geen sleutels of tokens. Sla het op om te delen als er iets misgaat.</string>
+    <string name="settings_diag_saved">Diagnoselogboek opgeslagen.</string>
+    <string name="settings_diag_error">Kan het diagnoselogboek niet opslaan: %1$s</string>
 </resources>

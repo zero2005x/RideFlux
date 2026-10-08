@@ -27,6 +27,7 @@ import androidx.core.content.ContextCompat
 import com.rideflux.app.MainActivity
 import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.BridgePairingToken
+import com.rideflux.data.bridge.DiagnosticLogs
 import com.rideflux.data.bridge.SignalLevel
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
@@ -135,6 +136,7 @@ class BridgeService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        DiagnosticLogs.record(DIAG, "service created")
         _linkMode.value = GlassesLinkPreferences.read(this)
         ContextCompat.registerReceiver(
             this,
@@ -158,6 +160,7 @@ class BridgeService : Service() {
                 _activeMac.value = selected.mac
                 setBridgeState(BridgeState.ATTACHING)
                 Log.i(TAG, "wheel target set: ${selected.mac} family=${selected.family}")
+                DiagnosticLogs.record(DIAG, "target set ${DiagnosticLogs.maskAddress(selected.mac)} family=${selected.family}")
             }
             ACTION_CLEAR_TARGET -> {
                 target.value = null
@@ -167,6 +170,7 @@ class BridgeService : Service() {
                 // does idleFrames() set STANDBY. ScannerRoute waits for that
                 // state so it never scans while the wheel is still connected.
                 Log.i(TAG, "wheel target clearing; waiting for GATT teardown")
+                DiagnosticLogs.record(DIAG, "target cleared")
             }
             ACTION_SET_LINK_MODE -> readLinkMode(intent)?.let(::switchPublisher)
             ACTION_APPROVE_PEER -> {
@@ -240,6 +244,7 @@ class BridgeService : Service() {
             initialDelayMillis = if (previous == null) 0L else PUBLISHER_SWITCH_SETTLE_MILLIS,
         )
         Log.i(TAG, "glasses link mode changed to $mode")
+        DiagnosticLogs.record(DIAG, "link mode $mode")
     }
 
     private fun onBluetoothStateChanged(adapterState: Int) {
@@ -268,6 +273,7 @@ class BridgeService : Service() {
         cancelAuthorizationNotification()
         setBridgeState(BridgeState.DEGRADED)
         Log.i(TAG, "Bluetooth went down; bridge publisher released until it is back")
+        DiagnosticLogs.record(DIAG, "bluetooth down: publisher released")
     }
 
     /** Opens the server with an infinite capped retry; callers never own this job. */
@@ -322,6 +328,7 @@ class BridgeService : Service() {
                         consecutiveCxrFailures = 0
                         if (target.value == null) setBridgeState(BridgeState.STANDBY)
                         Log.i(TAG, "bridge publisher started: $openingMode")
+                        DiagnosticLogs.record(DIAG, "publisher started $openingMode")
                         return@launch
                     }
                     opening.stop()
@@ -354,6 +361,7 @@ class BridgeService : Service() {
                     }
                     val waitMs = reconnectBackoffMillis(attempt++)
                     Log.w(TAG, "bridge publisher open failed; retrying in ${waitMs}ms")
+                    DiagnosticLogs.record(DIAG, "publisher open failed ($openingMode); retry in ${waitMs}ms")
                     delay(waitMs)
                 }
             } finally {
@@ -384,6 +392,7 @@ class BridgeService : Service() {
     }.catch { error ->
         if (error is CancellationException) throw error
         Log.e(TAG, "bridge frame pipeline failed; falling back to standby", error)
+        DiagnosticLogs.record(DIAG, "pipeline failed: ${error.javaClass.simpleName}: ${error.message}")
         setBridgeState(BridgeState.DEGRADED)
         emitAll(idleFrames())
     }
@@ -428,6 +437,7 @@ class BridgeService : Service() {
                 throw e
             } catch (e: Throwable) {
                 Log.w(TAG, "wheel link ${selected.mac} ended: ${e.message}")
+                DiagnosticLogs.record(DIAG, "wheel link ${DiagnosticLogs.maskAddress(selected.mac)} ended: ${e.javaClass.simpleName} ${e.message}")
             } finally {
                 withContext(NonCancellable) {
                     try { closeLink?.invoke() } catch (_: Throwable) { /* best-effort */ }
@@ -569,6 +579,7 @@ class BridgeService : Service() {
         _pendingAuthorization.value = null
         scope.cancel()
         Log.i(TAG, "bridge stopped")
+        DiagnosticLogs.record(DIAG, "service destroyed")
         super.onDestroy()
     }
 
@@ -676,6 +687,7 @@ class BridgeService : Service() {
 
     private fun setBridgeState(value: BridgeState) {
         if (_state.value == value) return
+        DiagnosticLogs.record(DIAG, "state ${_state.value} -> $value")
         _state.value = value
         applyAdvertiseMode()
         val canPostNotification = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -741,6 +753,7 @@ class BridgeService : Service() {
 
     companion object {
         private const val TAG = "BridgeService"
+        private const val DIAG = "bridge"
         internal const val CHANNEL_ID = "rideflux_bridge"
         private const val NOTIF_ID = 7421
 
@@ -816,12 +829,11 @@ class BridgeService : Service() {
 
         /** Show or blank the HUD; takes effect on the next frame, which is immediate. */
         fun setHudVisible(visible: Boolean) {
+            if (_hudVisible.value != visible) DiagnosticLogs.record(DIAG, "hud visible=$visible")
             _hudVisible.value = visible
         }
 
-        fun toggleHudVisible() {
-            _hudVisible.value = !_hudVisible.value
-        }
+        fun toggleHudVisible() = setHudVisible(!_hudVisible.value)
 
         fun startStandby(context: Context) {
             launch(context, Intent(context, BridgeService::class.java).apply { action = ACTION_START })
