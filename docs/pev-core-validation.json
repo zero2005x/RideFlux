@@ -1,0 +1,74 @@
+{
+  "domain": {
+    "tests": 123,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "protocol": {
+    "tests": 395,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "core": {
+    "tests": 166,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "protocolCoverage": {
+    "INSTRUCTION": {
+      "missed": 5841,
+      "covered": 25399
+    },
+    "BRANCH": {
+      "missed": 959,
+      "covered": 1754
+    },
+    "LINE": {
+      "missed": 667,
+      "covered": 3122
+    },
+    "COMPLEXITY": {
+      "missed": 941,
+      "covered": 1565
+    },
+    "METHOD": {
+      "missed": 242,
+      "covered": 893
+    },
+    "CLASS": {
+      "missed": 24,
+      "covered": 202
+    }
+  },
+  "m365Coverage": {
+    "INSTRUCTION": {
+      "missed": 16,
+      "covered": 310
+    },
+    "BRANCH": {
+      "missed": 4,
+      "covered": 58
+    },
+    "LINE": {
+      "missed": 0,
+      "covered": 24
+    },
+    "COMPLEXITY": {
+      "missed": 4,
+      "covered": 35
+    },
+    "METHOD": {
+      "missed": 0,
+      "covered": 8
+    },
+    "CLASS": {
+      "missed": 0,
+      "covered": 1
+    }
+  },
+  "coreJarSha256": "7e5144a48a717c0e5824e74dd4bfed5ebbd3a9f8a4d65183c78310d2e4d3776c",
+  "physicalVerification": false
+}

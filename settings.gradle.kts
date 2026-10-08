@@ -39,6 +39,22 @@ dependencyResolutionManagement {
 
 rootProject.name = "RideFlux"
 
+// Consume the one authoritative MIT core; never copy its codecs into this GPL tree.
+val pevCoreDir = providers.gradleProperty("pevCoreDir")
+    .orElse(providers.environmentVariable("PEV_CORE_DIR"))
+    .getOrElse("../M365-Rokid-HUD")
+val pevCoreSource = file(pevCoreDir)
+require(pevCoreSource.resolve("pev-protocol-core/build.gradle.kts").isFile) {
+    "PEV core source missing at $pevCoreSource. Set -PpevCoreDir=<HUD repository root> or PEV_CORE_DIR."
+}
+includeBuild("build-logic/pev-core-consumer") {
+    name = "pev-core-source"
+    dependencySubstitution {
+        substitute(module("io.github.zero2005x.pev:pev-protocol-core"))
+            .using(project(":pev-protocol-core"))
+    }
+}
+
 // -- App --
 include(":app")
 include(":hud-app")

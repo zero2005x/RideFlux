@@ -6,6 +6,8 @@
 # ============================================================================
 
 [versions]
+pevProtocolCore        = "0.1.0-SNAPSHOT"
+pevKover               = "0.9.9"
 # --- Build tools ---
 # AGP 9 needs Gradle >= 9.1 (9.4 needs 9.6) and brings Kotlin support built in:
 # modules must NOT apply org.jetbrains.kotlin.android. The `kotlin` version
@@ -72,6 +74,7 @@ sonarqube              = "7.5.0.8588"
 
 # ============================================================================
 [libraries]
+pev-protocol-core      = { module = "io.github.zero2005x.pev:pev-protocol-core", version.ref = "pevProtocolCore" }
 # --- AndroidX Core ---
 androidx-core-ktx                = { group = "androidx.core",       name = "core-ktx",              version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx   = { group = "androidx.lifecycle",   name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
@@ -139,6 +142,7 @@ mockk                       = { group = "io.mockk",            name = "mockk",  
 
 # ============================================================================
 [plugins]
+pev-kover              = { id = "org.jetbrains.kotlinx.kover", version.ref = "pevKover" }
 androidApplication  = { id = "com.android.application",                version.ref = "agp" }
 androidLibrary      = { id = "com.android.library",                    version.ref = "agp" }
 kotlinJvm           = { id = "org.jetbrains.kotlin.jvm",               version.ref = "kotlin" }

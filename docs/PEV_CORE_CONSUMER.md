@@ -1,0 +1,117 @@
+# Shared MIT core consumer
+
+This isolated RideFlux change consumes `io.github.zero2005x.pev:pev-protocol-core:0.1.0-SNAPSHOT`
+from the authoritative `M365-Rokid-HUD` source tree through Gradle dependency substitution.
+No core source or captured fixture is copied into RideFlux. The dependency flows from the GPL
+consumer to the MIT library; RideFlux code remains GPL and is not a source for the MIT library.
+
+## Configure and validate
+
+The default source is the sibling `../M365-Rokid-HUD` directory. A thin included build under
+`build-logic/pev-core-consumer` points its module project directory at the external core and reuses
+the authoritative module build script. It configures only Kotlin/JVM and Kover, avoiding the HUD's
+Android/Rust applications. Build outputs stay inside the consumer build directory. Override the source with
+`-PpevCoreDir=<absolute HUD repository root>` or `PEV_CORE_DIR`. The path must contain
+`pev-protocol-core/build.gradle.kts`. Missing source fails early with an actionable error.
+The unreleased snapshot is not fetched from an untrusted Maven mirror.
+
+```sh
+./gradlew -PpevCoreDir=/path/to/M365-Rokid-HUD :domain:test :data:protocol:test
+./gradlew -PpevCoreDir=/path/to/M365-Rokid-HUD :data:protocol:dependencyInsight --dependency pev-protocol-core --configuration testRuntimeClasspath
+```
+
+CI must supply the matching core source checkout before configuring this consumer. The current
+core is an unreleased local snapshot; this branch does not claim a remotely published artifact or
+an already passing remote pipeline. Record both consumer and core revisions when reproducing a run.
+
+## Actual consumption and limits
+
+The M365 polling/authenticated UART path already uses `M365Codec.decodeB0`. That function now
+delegates SOC validation, unsigned total distance and frame-temperature decoding to
+`XiaomiMotorInfoDecoder`. Read requests obtain the logical PDU from `XiaomiPdu`; RideFlux retains
+its existing retail envelope/checksum and authentication. Exact 32-byte reply requirements,
+invalid-SOC rejection and existing DTO/UI behavior are retained.
+
+RideFlux's legacy speed display interprets the raw word as signed LE16 and takes its magnitude,
+so very slow reverse motion still revokes the stationary permit. The shared core uses a forward/wrap
+threshold at `0xC000`, which conflicts with the RideFlux display contract at `0x8001..0xBFFF`.
+This consumer retains the current display policy and adds a test documenting the disagreement;
+it does not call the disagreement physically verified. The legacy B9 trip projection is also retained
+only for DTO compatibility; the core does not resolve that field's physical meaning. Those two
+policies need separate evidence/review before a complete physical-telemetry migration.
+
+The ES2 diagnostic B0 implementation is independent in `NinebotRetailCodec`, because its previous
+reuse of the M365 function must not inherit M365-specific provenance. Its existing word positions,
+unknown-speed guard and write permissions remain unchanged. No Ninebot hardware support is newly
+asserted. Begode physical telemetry is not changed or promoted by this consumer change.
+
+## Source and worktree baseline
+
+The selected committed baseline is `9bd9eaa82e55efaa936afa5d332e7ef2c752b7b8` on the isolated
+`codex/pev-core-consumer` worktree. Its source repository is
+`https://github.com/zero2005x/RideFlux`; the license is GPL-3.0-or-later. The external MIT core source is
+`https://github.com/zero2005x/M365-Rokid-HUD`, whose `pev-protocol-core/SOURCE_PROVENANCE.md`
+records original sources and captures. Consumer contract fixtures here are synthetic, not captures.
+
+At initial inspection the original checkout had advanced to `b7a51ad` (`chore/bump-0.1.11`) with modified
+`app/build.gradle.kts`, `hud-app/build.gradle.kts` and an untracked
+`GEMINI_NOSFET_F18_V11_REMEDIATION_PROMPT.md`. The owner subsequently committed the two version files
+as `ee23b875f0c72fee1d0bcb6ff30e6c582b3653db` (0.1.11/versionCode 12); the untracked file remains.
+All owner changes are preserved. Four main commits newer than the selected baseline add pairing-key
+privacy text and remove glasses pairing-token logging (`c963fc2`, `992f9ff`, `ee45588`, `b7a51ad`);
+their files do not overlap this protocol/build integration. This selected baseline predates those
+privacy fixes. Before release, integrate this patch with current main and retain those newer fixes
+and the owner's version changes. No push, merge, release or vehicle write is authorized by this work.
+
+## Dependency verification
+
+Strict Gradle SHA256 verification remains enabled. The 16 new public Kover/instrumentation
+artifact checksums were compared with freshly fetched bytes from their exact Maven Central
+coordinates; every existing trusted checksum was preserved. The coordinate/hash/source log is
+[`pev-core-artifact-verification.json`](pev-core-artifact-verification.json). No verification mode
+was weakened. The snapshot itself resolves to a local project, not a downloaded binary.
+
+Kotlin is Apache-2.0, JUnit4 is test-only EPL-1.0, and Kover 0.9.9 is build/test-only Apache-2.0;
+the external core's `SOURCE_PROVENANCE.md` records upstream license links and instrumentation
+dependencies. Those tools retain their own licenses. Their inclusion does not change the MIT
+core or GPL consumer licenses.
+
+## Isolated validation (2026-10-08)
+
+The external module snapshot uses these SHA256 hashes (file bytes, including existing line endings):
+
+| File under `pev-protocol-core` | SHA256 |
+|---|---|
+| `src/main/kotlin/io/github/zero2005x/pev/core/codec/xiaomi/XiaomiMotorInfoDecoder.kt` | `bb2150aebd8fe5a7559b1d18b464d4b39251255fde186b5c4f13a3c4a9aad4c0` |
+| `src/main/kotlin/io/github/zero2005x/pev/core/codec/xiaomi/XiaomiPdu.kt` | `603a7d9cf6515710f7bca71451091907215fb6e8a5a1eca6e23b703e16dd73a8` |
+| `src/main/kotlin/io/github/zero2005x/pev/core/codec/xiaomi/XiaomiBmsDecoder.kt` | `a3fb244bdbe4fdb1bcec531e0e97a4d4ca510d56be2c66afee2f1cb28a6b582a` |
+| `build.gradle.kts` | `c44c0252188e9e8f54ad9136017aaf6f5c0b15acfff69d04defd5b17f59678f0` |
+
+The source snapshot was staged independently under `/home/kali/build/rideflux-pev-core-source`;
+consumer output stayed under `/home/kali/build/rideflux-pev-consumer-stage`. The live owner
+checkout and HUD source were not modified. A later HUD decoder comment correction does not
+alter these validated wire operations; use the hashes above to reproduce the exact snapshot.
+
+The final locked run used Gradle 9.6.0, Java 21, Kotlin 2.3.21, JVM target 17 and
+`--offline`, without writing verification metadata:
+
+```sh
+./gradlew --no-daemon --offline -PpevCoreDir=/home/kali/build/rideflux-pev-core-source \
+  :domain:test :data:protocol:test :data:protocol:jacocoTestReport \
+  :pev-core-source:pev-protocol-core:test \
+  :data:protocol:dependencyInsight --dependency pev-protocol-core --configuration testRuntimeClasspath
+```
+
+Result: **BUILD SUCCESSFUL**. Domain 123 tests, protocol 395 tests (including six new synthetic
+consumer tests), and core 166 tests passed with zero failures, errors or skips. Gradle reports
+`io.github.zero2005x.pev:pev-protocol-core:0.1.0-SNAPSHOT -> project ':pev-core-source:pev-protocol-core'`
+with a JVM 17 runtime variant. The generated core JAR SHA256 was
+`7e5144a48a717c0e5824e74dd4bfed5ebbd3a9f8a4d65183c78310d2e4d3776c`.
+
+JaCoCo for the `M365Codec` class reports 24/24 lines and 58/62 branches covered. The module
+report includes existing unrelated codecs (3122/3789 lines, 1754/2713 branches); no repository-wide
+coverage gate, Android APK, hardware run or remote CI result is claimed. The remaining M365
+branches include core-null guards that cannot be reached by a complete currently supported B0
+layout. Exact test and coverage counters are in [`pev-core-validation.json`](pev-core-validation.json).
+An independent read-only review found no new correctness blocker in the consumer wiring,
+framing, SOC/odometer/temperature delegation or retained legacy behavior.
