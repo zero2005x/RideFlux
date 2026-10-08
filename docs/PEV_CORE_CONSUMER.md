@@ -76,6 +76,25 @@ the external core's `SOURCE_PROVENANCE.md` records upstream license links and in
 dependencies. Those tools retain their own licenses. Their inclusion does not change the MIT
 core or GPL consumer licenses.
 
+The new artifact identities were also audited by reading their exact versioned primary-repository
+POM license declarations and inspecting the verified JAR contents. All nine coordinate identities
+declare Apache-2.0: Kover plugin marker/plugin/features/agent 0.9.9; IntelliJ coverage agent/reporter
+1.0.765 and report 1.0.25; FreeMarker 2.3.32; and Apache parent POM 17 (metadata only).
+FreeMarker's JAR additionally includes the Apache license at `META-INF/LICENSE`.
+The coordinate-specific POM URLs/hashes and inspected JAR hashes are recorded in
+[`pev-core-license-audit.json`](pev-core-license-audit.json).
+
+Both the IntelliJ agent and repackaged Kover agent contain 64 shaded ASM classes under
+`org/jetbrains/coverage/org/objectweb/asm`. ASM retains its separate
+[BSD-3-Clause license](https://asm.ow2.io/license.html); the outer Apache declaration does not
+relicense those classes. These are build/test instrumentation, with upstream
+[Kover 0.9.9 license](https://github.com/Kotlin/kotlinx-kover/blob/v0.9.9/LICENSE.TXT) and
+[IntelliJ coverage license](https://github.com/JetBrains/intellij-coverage/blob/master/LICENSE).
+No instrumentation tool was added as an application runtime dependency, and the two generated
+debug APKs contain the shared MIT M365 core class without the coverage-agent class namespace.
+No new runtime SDK was introduced. Existing proprietary Rokid/native SDK licensing was not
+re-audited or relabeled by this change.
+
 ## Isolated validation (2026-10-08)
 
 The external module snapshot uses these SHA256 hashes (file bytes, including existing line endings):
@@ -110,8 +129,41 @@ with a JVM 17 runtime variant. The generated core JAR SHA256 was
 
 JaCoCo for the `M365Codec` class reports 24/24 lines and 58/62 branches covered. The module
 report includes existing unrelated codecs (3122/3789 lines, 1754/2713 branches); no repository-wide
-coverage gate, Android APK, hardware run or remote CI result is claimed. The remaining M365
+coverage gate, hardware run or remote CI result is claimed. The remaining M365
 branches include core-null guards that cannot be reached by a complete currently supported B0
 layout. Exact test and coverage counters are in [`pev-core-validation.json`](pev-core-validation.json).
 An independent read-only review found no new correctness blocker in the consumer wiring,
 framing, SOC/odometer/temperature delegation or retained legacy behavior.
+
+## Android validation (2026-10-08)
+
+The applicable build documentation requires Java 17/21, API 36 and Build-Tools 36.0.0;
+those packages were present in the isolated SDK. No lint baseline was configured and no new
+exclusion, suppression, credential embedding or verification exception was added. The actual
+related-module tasks were run with strict checksum verification:
+
+```sh
+./gradlew --no-daemon --offline --continue -PpevCoreDir=/home/kali/build/rideflux-pev-core-source \
+  :app:lintDebug :hud-app:lintDebug :app:assembleDebug :hud-app:assembleDebug
+```
+
+Result: **BUILD SUCCESSFUL**, 314 actionable tasks, in 6m 46s. Both lint tasks passed with zero
+errors/fatal issues. Phone lint reports 37 warnings; HUD lint reports 13 warnings, including three
+`Aligned16KB` warnings for existing SDK native binaries. The build also reported existing native
+libraries packaged without symbol stripping and a D8 `Companion` warning in Play Services Location
+21.3.0. These were not suppressed; native hardware behavior and SDK alignment remain unverified.
+
+Both debug APKs assembled from consumer commit `eb941870c583bed86072f304cd5e0e2cbddffc1a`:
+
+| Artifact | Bytes | SHA256 |
+|---|---:|---|
+| `app/build/outputs/apk/debug/app-debug.apk` | 68257266 | `562b7b4d1b32167cbaf71b87d180e52b5e46636b33762ff0a75e3f8e68277517` |
+| `hud-app/build/outputs/apk/debug/hud-app-debug.apk` | 62729188 | `1c146642561e300e849226a56c59a8c977930e64cea784b448b0c0006b43f0d3` |
+
+Each APK contains the shared `XiaomiMotorInfoDecoder` class in DEX. They retain the selected
+baseline version 0.1.10/versionCode 11; the owner's newer 0.1.11/versionCode 12 commit is preserved
+in the original checkout and has not been merged into this isolated branch. Exact lint issue
+counts, report hashes, APK paths/hashes and class-presence checks are in
+[`pev-core-android-validation.json`](pev-core-android-validation.json). No missing package,
+credential, compilation or lint error blocked this run. No remote CI, installation or vehicle
+hardware verification was performed.
