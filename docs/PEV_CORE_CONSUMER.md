@@ -167,3 +167,43 @@ counts, report hashes, APK paths/hashes and class-presence checks are in
 [`pev-core-android-validation.json`](pev-core-android-validation.json). No missing package,
 credential, compilation or lint error blocked this run. No remote CI, installation or vehicle
 hardware verification was performed.
+
+
+## Latest authoritative core validation (2026-10-08)
+
+The earlier results above are historical snapshots. The external core was refreshed from HUD
+code revision `bd3913d9c917f2eeccc60db0428b81fb6cdae4cc`; every main Kotlin source file was
+byte-compared with the authoritative source before recording results. Consumer code stayed at
+`c984f52fb7415e8d376b3a4ba45b89dbd86358e3`, on the explicit older base `9bd9eaa`.
+
+```sh
+./gradlew --no-daemon --offline --max-workers=2 \
+  -PpevCoreDir=/home/kali/build/rideflux-pev-core-source \
+  :domain:test :data:protocol:test :data:protocol:jacocoTestReport \
+  :pev-core-source:pev-protocol-core:test :pev-core-source:pev-protocol-core:koverXmlReport \
+  :app:lintDebug :hud-app:lintDebug :app:assembleDebug :hud-app:assembleDebug
+```
+
+Result: BUILD SUCCESSFUL in 4m 27s, 326 tasks (36 executed / 290 up-to-date), with strict dependency
+verification and no new dependencies. Domain 123 + protocol 395 + core 182 = **700 tests**, zero
+failures/errors/skips. Core Kover: LINE 930/932 (99.79%), BRANCH 959/1013 (94.67%), both above 90%.
+M365Codec remains 24/24 lines and 58/62 branches. Both lint tasks report zero errors/fatal issues,
+with phone 37 / HUD 13 warnings. Both debug APKs assembled:
+
+| Artifact | Bytes | SHA256 |
+|---|---:|---|
+| Phone | 68460100 | `eb51b2505bda5300f191bd2850bed49c618ca678bc7989f8018a70d2015c131f` |
+| HUD | 62932019 | `351e3bed6b28cfc6b111ca562cd93974de74f7fa4bfa37bcb2b7362c5c56d6a7` |
+
+Actual DEX class definitions contain both XiaomiMotorInfoDecoder and InmotionI1Codec in both APKs;
+neither APK defines Kover/JetBrains coverage-agent classes. Packaging the I1 class does not wire
+Inmotion selection, physical telemetry or settings into RideFlux. This new decoder provides raw
+receive framing only. Consumer version remains 0.1.10/code 11; preserve newer owner version,
+privacy, token-log and diagnostic-log commits when integrating. No owner checkout modification,
+merge, push, install, vehicle write, remote CI, external Sonar or hardware acceptance occurred.
+
+Exact source/JAR/APK/log hashes, counters and task names are in
+[`pev-core-latest-validation.json`](pev-core-latest-validation.json). Copied local artifacts/reports
+remain ignored under `build/pev-core-validation/`. The core JAR uses the consumer's Kotlin 2.3.21
+toolchain with JVM target 17; HUD independently validates the same source using Kotlin 2.2.10.
+The previous checksum/license audits remain applicable; no dependency trust exception was added.
