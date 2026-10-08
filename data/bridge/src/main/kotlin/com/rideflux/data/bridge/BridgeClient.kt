@@ -132,6 +132,7 @@ class BridgeClient(
         val mtuResolved = AtomicBoolean(false)
         val mtuFallbackJob = AtomicReference<Job?>(null)
         val connectRetriesUsed = AtomicInteger(0)
+        val subscribeWatch = SubscribeWatch(SystemClock::elapsedRealtime)
         lateinit var gattCallback: BluetoothGattCallback
 
         // Single funnel for service discovery so every code path (MTU
@@ -233,6 +234,7 @@ class BridgeClient(
                 Log.i(TAG, "conn status=$status newState=$newState")
                 DiagnosticLogs.record(DIAG, "gatt status=$status newState=$newState")
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    subscribeWatch.linkUp()
                     connectRetriesUsed.set(0)
                     runCatching { g.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH) }
                         .onFailure { Log.w(TAG, "requestConnectionPriority failed", it) }
@@ -258,6 +260,7 @@ class BridgeClient(
                         // so arm a short fallback that forces discovery
                         // rather than hanging until the subscribe
                         // watchdog tears the whole attempt down.
+                        subscribeWatch.step("mtu requested")
                         mtuFallbackJob.set(launch {
                             delay(MTU_FALLBACK_MILLIS)
                             if (!mtuResolved.getAndSet(true)) {
@@ -271,6 +274,7 @@ class BridgeClient(
                         })
                     }
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    subscribeWatch.linkDown()
                     val retrying = status == GATT_ERROR_133 &&
                         connectRetriesUsed.get() < MAX_CONNECT_RETRIES &&
                         !subscribed.get()
@@ -293,6 +297,7 @@ class BridgeClient(
 
             override fun onMtuChanged(g: BluetoothGatt, mtu: Int, status: Int) {
                 Log.i(TAG, "mtu=$mtu status=$status")
+                subscribeWatch.step("mtu $mtu status $status")
                 if (!mtuResolved.getAndSet(true)) {
                     // Even a failed MTU exchange must not block the
                     // connect path: v2 frames are sized for the default
@@ -307,6 +312,7 @@ class BridgeClient(
             }
 
             override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
+                subscribeWatch.step("services discovered status $status")
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     close(IllegalStateException("discoverServices status=$status"))
                     return
@@ -333,6 +339,7 @@ class BridgeClient(
                         TAG,
                         "writing handshake token ${BridgePairingToken.shortCode(clientToken)}…",
                     )
+                    subscribeWatch.step("handshake written")
                     if (!writeHandshakeToken(g, handshakeChar, clientToken)) {
                         Log.w(TAG, "failed to submit handshake token write; subscribing directly")
                         subscribeToTelemetry(g, ch)
@@ -377,6 +384,7 @@ class BridgeClient(
                     close(IllegalStateException("CCCD write failed status=$status"))
                 } else {
                     subscribed.set(true)
+                    subscribeWatch.step("subscribed")
                     val profileChar = g.getService(BridgeProtocol.SERVICE_UUID)
                         ?.getCharacteristic(BridgeProtocol.HUD_PROFILE_CHAR_UUID)
                     if (profileChar != null && profilePollStarted.compareAndSet(false, true)) {
@@ -561,13 +569,13 @@ class BridgeClient(
                 close(IllegalStateException("bridge scan timeout"))
                 return@launch
             }
-            val subscribeDeadline = SystemClock.elapsedRealtime() + SUBSCRIBE_TIMEOUT_MILLIS
-            while (!subscribed.get() && SystemClock.elapsedRealtime() < subscribeDeadline) {
+            subscribeWatch.begin()
+            while (!subscribed.get() && !subscribeWatch.expired()) {
                 delay(WATCHDOG_POLL_MILLIS)
             }
             if (!subscribed.get()) {
                 Log.w(TAG, "GATT subscribe timeout; restarting")
-                DiagnosticLogs.record(DIAG, "subscribe timeout; restarting")
+                DiagnosticLogs.record(DIAG, "subscribe timeout; restarting: ${subscribeWatch.describeExpiry()}")
                 close(IllegalStateException("bridge subscribe timeout"))
             }
         }
@@ -620,7 +628,6 @@ class BridgeClient(
          * than the budget is wrong.
          */
         const val SCAN_START_TIMEOUT_MILLIS = BleScanThrottle.WINDOW_MILLIS + 5_000L
-        const val SUBSCRIBE_TIMEOUT_MILLIS = 10_000L
         const val WATCHDOG_POLL_MILLIS = 250L
         const val MTU_FALLBACK_MILLIS = 1_500L
         const val GATT_ERROR_133 = 133

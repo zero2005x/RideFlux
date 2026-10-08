@@ -595,6 +595,7 @@ class BridgeServer(
                     "handshake token received from ${device.address}: " +
                         "${BridgePairingToken.shortCode(token)}…",
                 )
+                DiagnosticLogs.record(DIAG, "handshake from ${DiagnosticLogs.maskAddress(device.address)}")
                 handleHandshakeToken(device, token)
                 if (responseNeeded) {
                     gattServer?.sendResponse(
@@ -727,6 +728,7 @@ class BridgeServer(
             cancelPendingTimeout(device)
             dispatchSubscriberState()
             Log.i(TAG, "telemetry subscription authorized for ${device.address}")
+            DiagnosticLogs.record(DIAG, "subscription authorized ${DiagnosticLogs.maskAddress(device.address)}")
         } else {
             Log.i(TAG, "telemetry subscription pending authorization for ${device.address}")
             DiagnosticLogs.record(DIAG, "subscription pending authorization ${DiagnosticLogs.maskAddress(device.address)}")
