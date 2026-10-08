@@ -378,4 +378,9 @@
     <string name="bond_delete_message">刪除此金鑰後可能需要重新配對車輛。目前的車輛連線將會關閉。</string>
     <string name="bond_delete_failed">無法刪除金鑰，請重試。</string>
     <string name="bond_hex_hint">十六進位：%1$d 位元組</string>
+
+    <string name="settings_diag_title">診斷日誌</string>
+    <string name="settings_diag_subtitle">最近的橋接與眼鏡事件，只保存在這支手機上，不含任何金鑰或權杖。出狀況時可儲存下來提供參考。</string>
+    <string name="settings_diag_saved">診斷日誌已儲存。</string>
+    <string name="settings_diag_error">無法儲存診斷日誌：%1$s</string>
 </resources>

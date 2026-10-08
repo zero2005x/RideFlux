@@ -384,4 +384,9 @@
     <string name="bond_delete_message">Після видалення цього ключа може знадобитися повторне сполучення із самокатом. Поточне з’єднання буде закрито.</string>
     <string name="bond_delete_failed">Не вдалося видалити ключ. Спробуйте ще раз.</string>
     <string name="bond_hex_hint">Шістнадцятковий формат: %1$d байт</string>
+
+    <string name="settings_diag_title">Журнал діагностики</string>
+    <string name="settings_diag_subtitle">Нещодавні події мосту й окулярів, що зберігаються лише на цьому телефоні. Журнал не містить ключів і токенів. Збережіть його, щоб поділитися, якщо щось піде не так.</string>
+    <string name="settings_diag_saved">Журнал діагностики збережено.</string>
+    <string name="settings_diag_error">Не вдалося зберегти журнал діагностики: %1$s</string>
 </resources>

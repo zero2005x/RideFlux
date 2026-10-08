@@ -231,6 +231,7 @@ class BridgeClient(
         gattCallback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
                 Log.i(TAG, "conn status=$status newState=$newState")
+                DiagnosticLogs.record(DIAG, "gatt status=$status newState=$newState")
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     connectRetriesUsed.set(0)
                     runCatching { g.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH) }
@@ -351,6 +352,7 @@ class BridgeClient(
                         Log.w(TAG, "handshake characteristic write failed status=$status; subscribing anyway")
                     } else {
                         Log.i(TAG, "handshake token confirmed by phone")
+                        DiagnosticLogs.record(DIAG, "handshake confirmed")
                     }
                     val svc = g.getService(BridgeProtocol.SERVICE_UUID)
                     val ch = svc?.getCharacteristic(BridgeProtocol.TELEMETRY_CHAR_UUID)
@@ -490,6 +492,7 @@ class BridgeClient(
                 if (!peerFilter.accepts(device, result.bridgePairingToken())) return
                 if (!connectStarted.compareAndSet(false, true)) return
                 Log.i(TAG, "scan hit: ${device.address} rssi=${result.rssi}")
+                DiagnosticLogs.record(DIAG, "scan hit ${DiagnosticLogs.maskAddress(device.address)} rssi=${result.rssi}")
                 // Stop scanning immediately and connect.
                 try {
                     scanner.stopScan(this)
@@ -554,6 +557,7 @@ class BridgeClient(
             }
             if (!connectStarted.get()) {
                 Log.w(TAG, "scan timeout; restarting")
+                DiagnosticLogs.record(DIAG, "scan timeout; restarting")
                 close(IllegalStateException("bridge scan timeout"))
                 return@launch
             }
@@ -563,6 +567,7 @@ class BridgeClient(
             }
             if (!subscribed.get()) {
                 Log.w(TAG, "GATT subscribe timeout; restarting")
+                DiagnosticLogs.record(DIAG, "subscribe timeout; restarting")
                 close(IllegalStateException("bridge subscribe timeout"))
             }
         }
@@ -605,6 +610,7 @@ class BridgeClient(
 
     private companion object {
         const val TAG = "BridgeClient"
+        private const val DIAG = "phone-link"
         const val SCAN_TIMEOUT_MILLIS = 12_000L
 
         /**

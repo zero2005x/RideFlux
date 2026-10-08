@@ -380,4 +380,9 @@
     <string name="bond_delete_message">Setelah kunci ini dihapus, skuter mungkin perlu disandingkan kembali. Koneksi saat ini akan ditutup.</string>
     <string name="bond_delete_failed">Kunci tidak dapat dihapus. Coba lagi.</string>
     <string name="bond_hex_hint">Heksadesimal: %1$d byte</string>
+
+    <string name="settings_diag_title">Log diagnostik</string>
+    <string name="settings_diag_subtitle">Peristiwa terbaru jembatan dan kacamata, hanya disimpan di ponsel ini. Tidak berisi kunci atau token. Simpan untuk dibagikan saat terjadi masalah.</string>
+    <string name="settings_diag_saved">Log diagnostik disimpan.</string>
+    <string name="settings_diag_error">Tidak dapat menyimpan log diagnostik: %1$s</string>
 </resources>

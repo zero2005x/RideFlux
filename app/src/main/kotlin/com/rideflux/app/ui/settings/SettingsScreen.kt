@@ -90,6 +90,9 @@ fun SettingsRoute(
                     )
                 is BackupUiEvent.ImportError ->
                     context.getString(R.string.settings_backup_import_error, event.message)
+                BackupUiEvent.DiagnosticsSaved -> context.getString(R.string.settings_diag_saved)
+                is BackupUiEvent.DiagnosticsError ->
+                    context.getString(R.string.settings_diag_error, event.message)
             }
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
@@ -115,6 +118,7 @@ fun SettingsRoute(
         onOpenBondBackup = onOpenBondBackup,
         onExportBackup = viewModel::exportBackup,
         onImportBackup = viewModel::importBackup,
+        onExportDiagnostics = viewModel::exportDiagnostics,
         onSpeedLimit = viewModel::setSpeedLimit,
         onTemperatureLimit = viewModel::setTemperatureLimit,
         onLowBattery = viewModel::setLowBattery,
@@ -160,6 +164,7 @@ fun SettingsScreen(
     onOpenBondBackup: () -> Unit = {},
     onExportBackup: (Uri) -> Unit = {},
     onImportBackup: (Uri, Boolean) -> Unit = { _, _ -> },
+    onExportDiagnostics: (Uri) -> Unit = {},
     onSpeedLimit: (Float) -> Unit,
     onTemperatureLimit: (Float) -> Unit,
     onLowBattery: (Float) -> Unit,
@@ -221,6 +226,12 @@ fun SettingsScreen(
         ActivityResultContracts.CreateDocument("application/zip"),
     ) { uri ->
         if (uri != null) onExportBackup(uri)
+    }
+
+    val diagnosticsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain"),
+    ) { uri ->
+        if (uri != null) onExportDiagnostics(uri)
     }
 
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
@@ -564,6 +575,20 @@ fun SettingsScreen(
                 trailingContent = {
                     TextButton(onClick = onOpenBondBackup) {
                         Text(stringResource(R.string.action_open))
+                    }
+                },
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_diag_title)) },
+                supportingContent = { Text(stringResource(R.string.settings_diag_subtitle)) },
+                trailingContent = {
+                    TextButton(
+                        onClick = {
+                            val dateStr = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                            diagnosticsLauncher.launch("rideflux_diagnostics_$dateStr.txt")
+                        },
+                    ) {
+                        Text(stringResource(R.string.action_export))
                     }
                 },
             )

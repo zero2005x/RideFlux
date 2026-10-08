@@ -1,6 +1,6 @@
 # RideFlux Privacy Policy / 隱私權政策
 
-Effective date / 生效日期: 2026-10-07
+Effective date / 生效日期: 2026-10-08
 
 This policy covers the RideFlux phone app (`com.rideflux.app`) distributed on Google Play.
 本政策適用於在 Google Play 上架的 RideFlux 手機應用程式（`com.rideflux.app`）。
@@ -27,6 +27,7 @@ no user accounts. Everything it records stays on your phone unless you choose to
 | **Bluetooth device identifiers** (addresses of your wheel, scooter, AR glasses, and control ring) and pairing tokens | To reconnect to the devices you paired. | Stored on your phone. |
 | **Scooter pairing keys** (the authentication value a Xiaomi or Ninebot scooter gives the app when you pair, one per scooter) | To reconnect to a scooter without pairing it again. | Stored on your phone in app-private storage, encrypted with a non-exportable key in the Android Keystore. |
 | **App settings** (alert thresholds, units, display options) | To remember your preferences. | Stored on your phone. |
+| **Diagnostic log** (when the HUD link changed state and why, when the glasses connected or left, with Bluetooth addresses shortened to their last two bytes; never keys, tokens or location) | To find out why the HUD stopped working after the fact. | A small capped file (about 256 KB at most) on your phone, and on your AR glasses for the HUD app. Never sent anywhere. |
 
 ### Location
 
@@ -61,6 +62,10 @@ check. The file never contains the pairing token used between the phone and AR g
 Anyone who has both the file and its passphrase can connect to those scooters, so keep it
 somewhere safe. Importing works the same way: you open a `.rfbond` file and enter its
 passphrase. You can also type a pairing key in by hand.
+
+**Diagnostic log.** Settings has a "Diagnostic log" row that saves this log as a text file to a
+location you choose, so you can attach it when you report a problem. RideFlux never uploads it.
+The file starts with the app version, Android version and phone model, followed by the events.
 
 Android cloud backup is disabled for this app, so its data is not copied to your Google
 account.
@@ -104,6 +109,7 @@ RideFlux 不會收集、傳輸、出售或分享任何個人資料。本 App 沒
 | **藍牙裝置識別碼**（您的車輛、滑板車、AR 眼鏡與控制指環的位址）及配對權杖 | 重新連接您已配對的裝置。 | 儲存在您的手機中。 |
 | **滑板車配對金鑰**（小米或 Ninebot 滑板車在配對時交給 App 的驗證值，每台一把） | 不必重新配對即可再次連接滑板車。 | 存放在手機的 App 專用儲存空間，並以 Android Keystore 中不可匯出的金鑰加密。 |
 | **App 設定**（警示門檻、單位、顯示選項） | 記住您的偏好設定。 | 儲存在您的手機中。 |
+| **診斷日誌**（HUD 連線何時改變狀態與原因、眼鏡何時連上或離開；藍牙位址只保留最後兩個位元組；絕不含金鑰、權杖或位置） | 在事後找出 HUD 為什麼停止運作。 | 手機上一個有大小上限的小檔案（最多約 256 KB），HUD 應用程式則存在 AR 眼鏡上。絕不傳送到任何地方。 |
 
 ### 位置資訊
 
@@ -129,6 +135,9 @@ PBKDF2-HMAC-SHA256 推導），匯出前 RideFlux 會請 Android 以指紋、臉
 RideFlux 不會讀取或儲存任何生物辨識資料，驗證由 Android 執行。檔案絕不包含手機與 AR 眼鏡之間
 使用的配對權杖。任何同時取得檔案與密語的人都能連上這些滑板車，請妥善保管。匯入的方式相同：
 開啟 `.rfbond` 檔並輸入它的密語。您也可以手動輸入配對金鑰。
+
+**診斷日誌。** 設定頁有一列「診斷日誌」，可把這份日誌存成文字檔放到您指定的位置，方便您回報問題時附上。
+RideFlux 不會上傳它。檔案開頭是 App 版本、Android 版本與手機型號，後面才是事件記錄。
 
 本 App 已停用 Android 雲端備份，因此資料不會複製到您的 Google 帳戶。
 

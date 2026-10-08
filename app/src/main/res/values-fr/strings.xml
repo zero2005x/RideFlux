@@ -382,4 +382,9 @@
     <string name="bond_delete_message">Après la suppression de cette clé, vous devrez peut-être appairer à nouveau la trottinette. Sa connexion actuelle sera fermée.</string>
     <string name="bond_delete_failed">Impossible de supprimer la clé. Réessayez.</string>
     <string name="bond_hex_hint">Hexadécimal : %1$d octets</string>
+
+    <string name="settings_diag_title">Journal de diagnostic</string>
+    <string name="settings_diag_subtitle">Événements récents du pont et des lunettes, conservés uniquement sur ce téléphone. Aucune clé ni aucun jeton n’y figure. Enregistrez-le pour le partager en cas de problème.</string>
+    <string name="settings_diag_saved">Journal de diagnostic enregistré.</string>
+    <string name="settings_diag_error">Impossible d’enregistrer le journal de diagnostic : %1$s</string>
 </resources>
