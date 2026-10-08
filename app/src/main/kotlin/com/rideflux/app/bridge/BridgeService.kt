@@ -136,6 +136,8 @@ class BridgeService : Service() {
     override fun onCreate() {
         super.onCreate()
         DiagnosticLogs.record(DIAG, "service created")
+        // The flag outlives the service for as long as the process does; a new service is a new ride.
+        showHudForNewSession("service created")
         _linkMode.value = GlassesLinkPreferences.read(this)
         ContextCompat.registerReceiver(
             this,
@@ -720,7 +722,20 @@ class BridgeService : Service() {
     }
 
     private fun setLinkState(value: GlassesLinkState) {
+        // A blanked HUD is a choice made for one stretch of riding. The glasses restarting or
+        // coming back are a new session, and a display that stays blank across it, with nothing
+        // on the phone to explain why, looks like a dead link. (A blank that is still wanted is one
+        // ring press away.) Staying CONNECTED, or dropping to READY, keeps the rider's choice.
+        if (value == GlassesLinkState.CONNECTED && _linkState.value != GlassesLinkState.CONNECTED) {
+            showHudForNewSession("glasses connected")
+        }
         _linkState.value = value
+    }
+
+    private fun showHudForNewSession(reason: String) {
+        if (_hudVisible.value) return
+        DiagnosticLogs.record(DIAG, "hud shown again: $reason")
+        setHudVisible(true)
     }
 
     private fun startForegroundCompat() {
@@ -838,7 +853,10 @@ class BridgeService : Service() {
          * Deliberately *not* persisted: a hidden HUD is a momentary
          * choice made mid-ride, and starting a later ride with a
          * blank display the rider does not remember switching off is
-         * worse than making them press the ring again.
+         * worse than making them press the ring again. For the same
+         * reason it is put back to "shown" whenever the service starts
+         * and whenever glasses connect afresh (see [setLinkState]), so a
+         * blank cannot silently outlive the session it was chosen in.
          */
         val hudVisible: StateFlow<Boolean> = _hudVisible.asStateFlow()
 
