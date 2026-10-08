@@ -13,6 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.shadows.ShadowLog
 
 @RunWith(RobolectricTestRunner::class)
 class ApprovedGlassesStoreTest {
@@ -48,6 +49,21 @@ class ApprovedGlassesStoreTest {
         resetStore() // Simulate process restart: reload the durable allowlist.
         assertEquals(listOf(replacement), ApprovedGlassesStore.getAll(context))
         assertTrue(ApprovedGlassesStore.isApproved(context, "0102030405060708", null))
+    }
+
+    @Test
+    fun logsNeverContainThePairingToken() {
+        val token = "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+        ShadowLog.clear()
+        ApprovedGlassesStore.add(context, ApprovedGlasses(token, "AA:BB:CC:DD:EE:FF", "A1B2", 1L))
+        ApprovedGlassesStore.remove(context, ApprovedGlasses(token, "AA:BB:CC:DD:EE:FF", "A1B2", 1L))
+
+        val logged = ShadowLog.getLogs().filter { it.tag == "ApprovedGlassesStore" }
+        assertTrue("expected the store to log the add and the remove", logged.size >= 2)
+        logged.forEach { entry ->
+            assertFalse("log line leaks the token: ${entry.msg}", entry.msg.contains(token, ignoreCase = true))
+        }
+        assertTrue(logged.any { it.msg.contains("A1B2") })
     }
 
     @Test

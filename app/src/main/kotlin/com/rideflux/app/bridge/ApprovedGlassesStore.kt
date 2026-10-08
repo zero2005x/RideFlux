@@ -96,7 +96,8 @@ internal object ApprovedGlassesStore {
             current.add(0, glasses)
             save(context, current)
             _itemsFlow.value = current
-            Log.i(TAG, "added approved glasses: ${glasses.shortCode} token=${glasses.tokenHex} mac=${glasses.mac}")
+            // The token authenticates the glasses to the phone: log only its short code.
+            Log.i(TAG, "added approved glasses: ${glasses.shortCode} mac=${glasses.mac}")
         }
     }
 
