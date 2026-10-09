@@ -30,20 +30,20 @@ internal object BridgePairingStore {
     /**
      * This phone's token, minting and persisting one on first call.
      * Safe to call from any thread.
+     *
+     * Lint suggests the KTX `edit` extension for the write below, but that
+     * helper returns Unit and this call site branches on commit()'s result to
+     * log a failed persist, so the suggestion does not apply.
      */
     @Synchronized
+    @Suppress("UseKtx")
     fun readOrCreate(context: Context): ByteArray {
         val prefs = context.applicationContext
             .getSharedPreferences(BRIDGE_PREFS_NAME, Context.MODE_PRIVATE)
         BridgePairingToken.fromHex(prefs.getString(KEY_TOKEN, null))?.let { return it }
 
         val minted = BridgePairingToken.generate()
-        // Lint suggests the KTX `edit` extension here, but that helper returns
-        // Unit, and this call site branches on commit()'s result to log a
-        // failed persist. Keeping the result is the behaviour.
-        @Suppress("UseKtx")
-        val committed = prefs.edit().putString(KEY_TOKEN, BridgePairingToken.toHex(minted)).commit()
-        if (!committed) {
+        if (!prefs.edit().putString(KEY_TOKEN, BridgePairingToken.toHex(minted)).commit()) {
             // The token still works for this process, but the glasses
             // would have to re-pair after a restart. Worth a loud log.
             Log.w(TAG, "pairing token commit returned false; pairing may not survive a restart")
