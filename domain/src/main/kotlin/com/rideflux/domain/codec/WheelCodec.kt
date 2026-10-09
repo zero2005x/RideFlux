@@ -6,6 +6,7 @@
 package com.rideflux.domain.codec
 
 import com.rideflux.domain.command.WheelCommand
+import com.rideflux.domain.telemetry.BmsFrame
 import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.wheel.WheelCapabilities
@@ -30,6 +31,9 @@ sealed class DecodeEvent {
      * The connection merges this delta into its `StateFlow`.
      */
     data class TelemetryUpdate(val snapshot: WheelTelemetry) : DecodeEvent()
+
+    /** Uninterpreted BMS bytes; never a fresh speed reading or identification evidence. */
+    data class RawBmsFrame(val frame: BmsFrame.Raw) : DecodeEvent()
 
     /** The codec detected an asynchronous alert record. */
     data class Alert(val alert: WheelAlert) : DecodeEvent()

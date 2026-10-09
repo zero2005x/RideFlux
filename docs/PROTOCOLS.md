@@ -94,6 +94,20 @@ probe such as VESC `GetPkgInfo`), and **no probe is sent today**.
 
 ---
 
+### 6. T03: passive Begode BMS evidence (Experimental)
+
+Packets 1/2/3/5/6 are preserved as complete `BmsFrame.Raw` frames, including byte 19,
+through `DecodeEvent.RawBmsFrame` into nullable `WheelTelemetry.bmsFrame`. Their physical
+fields remain null: type 1 has conflicting vendor layouts; cell pages have no established
+scaling/count in the available evidence. No BMS request bytes are sent. Raw evidence does
+not refresh telemetry timestamps, count as stationary speed samples, or identify a wheel.
+CAP-A contains type 1 unsolicited in the 0/1/4/7 cycle, but no cell pages. See the
+[T03 evidence table and capture gaps](agent-tasks/reports/T03-begode-bms.md).
+
+封包 1/2/3/5/6 以完整 `BmsFrame.Raw` 保留至 nullable 遙測欄位，標示 Experimental。
+欄位語意有衝突或尺度未知時，實體量維持 null；不送出 BMS 請求，不新增 UI。
+Raw 幀不更新遙測時間、不提供靜止速度樣本，也不作為辨識依據。
+
 ## 繁體中文
 
 RideFlux 解碼哪些車輛家族（電動獨輪車、電動滑板車與智慧 BMS）、如何透過 GATT 連上它們，以及協定知識的來源。各車款的驗證狀態請見 [README](../README.zh-TW.md#支援的車款)。
