@@ -60,6 +60,33 @@ Electric scooters are modeled as peers under `ScooterDevice` and connected throu
 
 A UUID-only guess is never authoritative — the true family/dialect is confirmed by the bootstrap handshake after connect.
 
+### 5. GATT signature detection and its confidence levels
+
+After connect, the discovered service/characteristic table is matched against a small table of
+**GATT signatures** (`FamilyDetector`, `WheelFamilySignatures`). A signature requires specific
+services, specific characteristics on each, and may require a characteristic to be *absent*; matching
+is composite and negative, so one shared UUID (`FFE0` alone) never decides a family.
+
+| Confidence | Meaning | What the resolver does |
+|---|---|---|
+| `EXACT` | Exactly one family matched | Uses it |
+| `PROBABLE` | Several matched, and the device name names one of them | Uses the named one, and records that the GATT evidence alone did not decide |
+| `AMBIGUOUS` | Several matched with nothing to separate them, **or** nothing matched | **Falls back** to the name/UUID inference and logs which signatures tied |
+
+**An `AMBIGUOUS` detection is never auto-selected**: picking one of several tied families would be a
+guess, and a wrong guess routes a wheel to the wrong codec.
+
+The seeded table is deliberately small and **non-discriminating today**: Begode, KingSong and Veteran
+all advertise `FFE0`+`FFE1`, and no source in this project ties a *second* service or an exclusion to
+any of them at L2+. A `FFE0`/`FFE1` wheel is therefore reported `AMBIGUOUS` (candidates named in the
+log) and resolves exactly as it did before the detector existed. Rows enter the table only when a note
+states them at **L2+** or when the **owner's own capture** shows them; everything else stays out with a
+`TODO(T08): probe` marker, because a wrong signature mis-routes a wheel while "unknown" does not.
+
+Families that share the Nordic UART topology (Inmotion `I2`, Ninebot Z `N2`, VESC) cannot be separated
+by any passive signature — that is what the `ProbeStrategy` interface is for (an active, read-only
+probe such as VESC `GetPkgInfo`), and **no probe is sent today**.
+
 ---
 
 ## 繁體中文
@@ -117,3 +144,28 @@ RideFlux 解碼哪些車輛家族（電動獨輪車、電動滑板車與智慧 B
 | `SERVICE_FE95` | `0000fe95-0000-1000-8000-00805f9b34fb` | 小米／九號滑板車專屬廣播識別服務 UUID |
 
 僅憑 UUID 的推測永遠不是定論——真正的家族要等連線後的啟動握手才會確認。
+
+### 5. GATT 指紋辨識與信心等級
+
+連線後，實際解析到的服務／特徵值表會與一組 **GATT 指紋**比對（`FamilyDetector`、
+`WheelFamilySignatures`）。一個指紋要求特定服務、每個服務上的特定特徵值，也可以要求某個特徵值
+**必須不存在**；比對同時具備「組合」與「排除」兩性質，因此單一共享 UUID（只看到 `FFE0`）永遠
+不足以決定家族。
+
+| 信心等級 | 意義 | 解析器的行為 |
+|---|---|---|
+| `EXACT` | 恰好只有一個家族符合 | 直接採用 |
+| `PROBABLE` | 有多個符合，而裝置名稱指向其中一個 | 採用名稱所指者，並記錄「單憑 GATT 證據未能決定」 |
+| `AMBIGUOUS` | 有多個符合且無從區分，**或**完全沒有符合者 | **退回**原有的名稱／UUID 推測，並記錄是哪幾個指紋並列 |
+
+**`AMBIGUOUS` 絕不自動選邊**：在多個並列家族中挑一個就是猜測，而猜錯會把車輛導向錯誤的解碼器。
+
+目前種入的指紋表刻意很小、且**尚無區辨力**：Begode、KingSong 與 Veteran 都廣播 `FFE0`+`FFE1`，
+而本專案沒有任何來源能以 L2+ 佐證第二個服務或排除條件。因此 `FFE0`/`FFE1` 的車輛會回報
+`AMBIGUOUS`（並列者寫入日誌），最終解析結果與偵測器存在前完全相同。只有註記達到 **L2+** 或由
+**擁有者自己的擷取**佐證的資料列才能進入表中；其餘一律留在表外並標記 `TODO(T08): probe`——錯誤的
+指紋會把車輛導錯，而「未知」不會。
+
+共用 Nordic UART 拓撲的家族（Inmotion `I2`、Ninebot Z `N2`、VESC）無法用任何被動指紋區分，這正是
+`ProbeStrategy` 介面存在的理由（主動但唯讀的探測，例如 VESC `GetPkgInfo`）；**目前不會送出任何
+探測**。

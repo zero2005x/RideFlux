@@ -9,6 +9,9 @@ import com.rideflux.domain.codec.WheelCodec
 import com.rideflux.domain.codec.WheelCodecFactory
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelNameClassifier
+import com.rideflux.domain.wheel.gatt.Detection
+import com.rideflux.domain.wheel.gatt.DetectionConfidence
+import com.rideflux.domain.wheel.gatt.FamilyDetector
 import com.rideflux.protocol.familyg.BegodeWheelCodec
 import com.rideflux.protocol.familyi1.InmotionI1WheelCodec
 import com.rideflux.protocol.familyi2.InmotionI2WheelCodec
@@ -51,8 +54,29 @@ import java.util.UUID
  * Ninebot One (N1), and Veteran / Nosfet (V) (see `GATT_V_FAMILY_BEGODE_COLLISION.md`).
  * UUID inference alone cannot distinguish them; name classification and explicit
  * family routing should be preferred where available.
+ *
+ * ### `inferFromGattTable`
+ * The post-connect resolver first asks [FamilyDetector] to match the discovered
+ * service/characteristic table against [WheelFamilySignatures]. A detection that
+ * is `EXACT` or `PROBABLE` decides the family; an `AMBIGUOUS` one (a tie, or no
+ * match at all) falls back to the inference this class has always used, so every
+ * result is unchanged from before the detector existed. `docs/PROTOCOLS.md`
+ * describes the confidence levels.
  */
 class WheelCodecFactoryImpl(
+    /**
+     * Signature table used by the post-connect resolver. Defaults to the seeded
+     * table in [WheelFamilySignatures]; tests inject their own.
+     */
+    private val familyDetector: FamilyDetector = FamilyDetector(WheelFamilySignatures.SEEDED),
+    /**
+     * Called when a GATT signature tie (or a no-match) forced the resolver back
+     * to the pre-existing inference, with the ids of every signature that
+     * matched. Wired to the diagnostic log in `:app`'s DI module; default is a
+     * no-op so this class stays free of `android.util.Log` and unit-testable
+     * without Robolectric.
+     */
+    private val onAmbiguousDetection: (Detection) -> Unit = {},
     /**
      * Cells in series of the battery of the wheel at `address`, as stated by the
      * rider, or `null` while unknown. Consulted on every frame by codecs whose
@@ -147,6 +171,41 @@ class WheelCodecFactoryImpl(
     }
 
     override fun inferFromGattTable(
+        services: Map<UUID, List<UUID>>,
+        name: String?,
+    ): WheelFamily? = detectGattTable(services, name).family ?: legacyGattTableInference(services, name)
+
+    /**
+     * The post-connect GATT signature match, with its confidence and the ids of
+     * every signature that matched.
+     *
+     * The signature table is seeded only with rows backed by L2+ notes or by the
+     * owner's A2 capture ([WheelFamilySignatures]), and every seeded row is
+     * `FFE0`/`FFE1` — so today this returns
+     * [com.rideflux.domain.wheel.gatt.DetectionConfidence.AMBIGUOUS] for a
+     * single-characteristic wheel and the caller falls back. That is the point:
+     * the tie is named (and [onAmbiguousDetection] logs it) instead of being
+     * resolved silently to family G, and a proven discriminator becomes one new
+     * row rather than a new code path.
+     */
+    fun detectGattTable(
+        services: Map<UUID, List<UUID>>,
+        name: String?,
+    ): Detection {
+        val discovered = services.mapValues { (_, characteristics) -> characteristics.toSet() }
+        val detection = familyDetector.detect(discovered, WheelNameClassifier.classify(name))
+        if (detection.confidence == DetectionConfidence.AMBIGUOUS) {
+            onAmbiguousDetection(detection)
+        }
+        return detection
+    }
+
+    /**
+     * The pre-T02 inference, kept verbatim as the fallback: a GATT signature
+     * that ties or does not match must resolve exactly as it did before the
+     * detector existed.
+     */
+    private fun legacyGattTableInference(
         services: Map<UUID, List<UUID>>,
         name: String?,
     ): WheelFamily? {

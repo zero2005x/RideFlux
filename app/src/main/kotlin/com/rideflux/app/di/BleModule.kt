@@ -80,6 +80,18 @@ object BleModule {
     @Singleton
     fun provideWheelCodecFactoryImpl(packs: WheelBatteryPackStore): WheelCodecFactoryImpl =
         WheelCodecFactoryImpl(
+            // The signature table is still non-discriminating for FFE0/FFE1 (the
+            // folded evidence supports no more), so this logs which signatures
+            // tied every time the resolver falls back. Without it, a wheel that
+            // is mis-typed by the UUID path leaves no trace in a bug report.
+            onAmbiguousDetection = { detection ->
+                Log.i(
+                    "BleModule",
+                    "GATT signatures did not decide the family " +
+                        "(candidates=${detection.candidates.ifEmpty { listOf("none") }}); " +
+                        "falling back to the name/UUID inference",
+                )
+            },
             seriesCellsFor = { address -> packs.seriesCells.value[WheelBatteryPackStore.key(address)] },
         )
 
