@@ -150,7 +150,13 @@ internal object ApprovedGlassesStore {
             arr.put(obj)
         }
         val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        if (!prefs.edit().putString(KEY_ITEMS, arr.toString()).commit()) {
+        // Lint suggests the KTX `edit` extension here, but that helper returns
+        // Unit, and this call site branches on commit()'s result to log a
+        // failed save. Keeping the result is the behaviour, so the suggestion
+        // does not apply.
+        @Suppress("UseKtx")
+        val committed = prefs.edit().putString(KEY_ITEMS, arr.toString()).commit()
+        if (!committed) {
             Log.w(TAG, "save approved glasses commit returned false")
         }
     }
