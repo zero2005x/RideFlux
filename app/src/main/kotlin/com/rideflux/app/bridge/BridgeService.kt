@@ -1034,9 +1034,14 @@ internal fun reconnectBackoffMillis(attempt: Long): Long =
 
 private class WheelLinkEnded(detail: String) : RuntimeException("wheel link ended ($detail)")
 
+// Release builds rename these classes, so diagnostic names must not use reflection.
 internal fun describeConnectionState(state: ConnectionState): String = when (state) {
+    ConnectionState.Disconnected -> "Disconnected"
+    ConnectionState.Connecting -> "Connecting"
+    is ConnectionState.Handshaking -> "Handshaking"
+    ConnectionState.ScooterHandshaking -> "ScooterHandshaking"
+    ConnectionState.Ready -> "Ready"
     is ConnectionState.Failed -> "Failed(${state.reason}${state.message?.let { ": $it" }.orEmpty()})"
-    else -> state.javaClass.simpleName
 }
 
 /**
