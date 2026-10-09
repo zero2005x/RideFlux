@@ -38,7 +38,12 @@ internal object BridgePairingStore {
         BridgePairingToken.fromHex(prefs.getString(KEY_TOKEN, null))?.let { return it }
 
         val minted = BridgePairingToken.generate()
-        if (!prefs.edit().putString(KEY_TOKEN, BridgePairingToken.toHex(minted)).commit()) {
+        // Lint suggests the KTX `edit` extension here, but that helper returns
+        // Unit, and this call site branches on commit()'s result to log a
+        // failed persist. Keeping the result is the behaviour.
+        @Suppress("UseKtx")
+        val committed = prefs.edit().putString(KEY_TOKEN, BridgePairingToken.toHex(minted)).commit()
+        if (!committed) {
             // The token still works for this process, but the glasses
             // would have to re-pair after a restart. Worth a loud log.
             Log.w(TAG, "pairing token commit returned false; pairing may not survive a restart")
