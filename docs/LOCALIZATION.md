@@ -45,6 +45,13 @@ render at 40 sp.
    punctuation — those are deliberately not duplicated per locale, and the test skips them.
 4. Run `./gradlew test`.
 
+**Terminology** lives in the [glossary](GLOSSARY.md): it fixes the translation of every protocol and
+safety term (PWM, tilt-back, cutoff, regen, cell, calibrate, power off, zero speed, …) in all 18
+locales, and marks the ones where a mistranslation could change what a rider does (`SAFETY`, needing a
+native-speaker check). The coverage test above enforces *which keys exist*; the glossary is what keeps
+the *words* from drifting between locales. Check it before translating anything protocol- or
+safety-related.
+
 **Adding a language** additionally means appending the qualifier to
 `SUPPORTED_LOCALE_QUALIFIERS` in both apps' `i18n/StringResources.kt`, which is what the
 coverage test iterates.
@@ -93,6 +100,11 @@ APK stores its own choice and applies it before its Activity starts.
 3. 若屬品牌名稱、SI 單位或純標點，請改標記 `translatable="false"`——這類字串刻意不逐語系
    複製，測試也會略過它們。
 4. 執行 `./gradlew test`。
+
+**術語**見[術語表](GLOSSARY.md)：它固定了所有協定與安全術語（PWM、回正提醒、斷電、動能回收、
+電芯、校準、關閉電源、零速…）在 18 種語系的譯法，並標出誤譯可能改變騎士行為的術語（`SAFETY`，
+需母語者複核）。上面的覆蓋率測試只管*鍵是否存在*；用詞不漂移靠的是術語表。翻譯任何協定或安全
+相關字串前，請先查閱。
 
 **新增語言**還需要把該限定符加進兩個 app 的 `i18n/StringResources.kt` 中的
 `SUPPORTED_LOCALE_QUALIFIERS`，覆蓋率測試正是依此列表逐一檢查。
