@@ -76,6 +76,11 @@ is composite and negative, so one shared UUID (`FFE0` alone) never decides a fam
 **An `AMBIGUOUS` detection is never auto-selected**: picking one of several tied families would be a
 guess, and a wrong guess routes a wheel to the wrong codec.
 
+The detector is only asked *after* the two older branches: a table carrying the I1 split profile
+resolves to `I1`, and a table with both Nordic UART characteristics resolves to `I2`/`N2`, before any
+signature is consulted — because those branches ran first before the detector existed, and a `PROBABLE`
+single-char answer must not bypass them.
+
 The seeded table is deliberately small and **non-discriminating today**: Begode, KingSong and Veteran
 all advertise `FFE0`+`FFE1`, and no source in this project ties a *second* service or an exclusion to
 any of them at L2+. A `FFE0`/`FFE1` wheel is therefore reported `AMBIGUOUS` (candidates named in the
@@ -159,6 +164,10 @@ RideFlux 解碼哪些車輛家族（電動獨輪車、電動滑板車與智慧 B
 | `AMBIGUOUS` | 有多個符合且無從區分，**或**完全沒有符合者 | **退回**原有的名稱／UUID 推測，並記錄是哪幾個指紋並列 |
 
 **`AMBIGUOUS` 絕不自動選邊**：在多個並列家族中挑一個就是猜測，而猜錯會把車輛導向錯誤的解碼器。
+
+偵測器只在兩個舊分支之後才介入：帶 I1 分割組合的表先判為 `I1`，RX/TX 齊全的 Nordic UART 表先判為
+`I2`/`N2`，都不符合才問指紋——因為這兩個分支在偵測器出現前本就排在前面，不能讓 `PROBABLE`
+的單字元答案繞過它們。
 
 目前種入的指紋表刻意很小、且**尚無區辨力**：Begode、KingSong 與 Veteran 都廣播 `FFE0`+`FFE1`，
 而本專案沒有任何來源能以 L2+ 佐證第二個服務或排除條件。因此 `FFE0`/`FFE1` 的車輛會回報
