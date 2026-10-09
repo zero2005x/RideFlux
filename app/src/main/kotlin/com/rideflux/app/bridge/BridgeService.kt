@@ -249,6 +249,7 @@ class BridgeService : Service() {
     }
 
     private fun onBluetoothStateChanged(adapterState: Int) {
+        DiagnosticLogs.record(DIAG, "bluetooth adapter state $adapterState -> ${bluetoothStateAction(adapterState)}")
         when (bluetoothStateAction(adapterState)) {
             BluetoothStateAction.RELEASE_PUBLISHER -> releasePublisher()
             BluetoothStateAction.REOPEN_PUBLISHER -> ensureBridgeOpen()
@@ -428,6 +429,7 @@ class BridgeService : Service() {
                 closeLink = link.close
                 var reachedActiveState = false
                 link.snapshots.collect { snapshot ->
+                    noteLeavingRelaying(snapshot)
                     when (snapshot.connectionState) {
                         ConnectionState.Ready -> {
                             reachedActiveState = true
@@ -449,9 +451,9 @@ class BridgeService : Service() {
                     emit(snapshot.frame)
                     val terminal = snapshot.connectionState is ConnectionState.Failed ||
                         (snapshot.connectionState == ConnectionState.Disconnected && reachedActiveState)
-                    if (terminal) throw WheelLinkEnded()
+                    if (terminal) throw WheelLinkEnded("last state ${describeConnectionState(snapshot.connectionState)}")
                 }
-                throw WheelLinkEnded()
+                throw WheelLinkEnded("snapshot flow completed")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -468,6 +470,23 @@ class BridgeService : Service() {
             attempt = if (reachedReady) 0L else attempt + 1L
             emitStandbyFor(waitMs)
         }
+    }
+
+    /**
+     * The "state RELAYING -> X" line says that the bridge left RELAYING but not why. Leaving it
+     * because the wheel stopped sending (still Ready, frame stale) and because the link dropped
+     * (Disconnected / Failed) look identical there, so say which, once, just before the change.
+     */
+    private fun noteLeavingRelaying(snapshot: WheelSnapshot) {
+        if (_state.value != BridgeState.RELAYING) return
+        val frame = snapshot.frame
+        val reason = relayingExitReason(
+            snapshot.connectionState,
+            frameReady = frame.ready,
+            frameStale = frame.stale,
+            frameAgeMillis = System.currentTimeMillis() - frame.timestampMillis,
+        ) ?: return
+        DiagnosticLogs.record(DIAG, "leaving RELAYING: $reason")
     }
 
     /**
@@ -729,6 +748,9 @@ class BridgeService : Service() {
         if (value == GlassesLinkState.CONNECTED && _linkState.value != GlassesLinkState.CONNECTED) {
             showHudForNewSession("glasses connected")
         }
+        // The phone can stay RELAYING for a wheel while the glasses link is long gone, so the
+        // glasses side has to be in the same log to tell the two apart.
+        if (_linkState.value != value) DiagnosticLogs.record(DIAG, "glasses link ${_linkState.value} -> $value")
         _linkState.value = value
     }
 
@@ -1010,4 +1032,23 @@ internal fun bluetoothStateAction(adapterState: Int): BluetoothStateAction = whe
 internal fun reconnectBackoffMillis(attempt: Long): Long =
     (1_000L * (1L shl attempt.coerceIn(0L, 4L).toInt())).coerceAtMost(15_000L)
 
-private class WheelLinkEnded : RuntimeException("wheel link ended")
+private class WheelLinkEnded(detail: String) : RuntimeException("wheel link ended ($detail)")
+
+internal fun describeConnectionState(state: ConnectionState): String = when (state) {
+    is ConnectionState.Failed -> "Failed(${state.reason}${state.message?.let { ": $it" }.orEmpty()})"
+    else -> state.javaClass.simpleName
+}
+
+/**
+ * Why a snapshot takes the bridge out of RELAYING, or null while it keeps it there (the wheel is
+ * Ready and its telemetry is fresh). Pure so the wording the diagnostic log relies on is pinned.
+ */
+internal fun relayingExitReason(
+    connection: ConnectionState,
+    frameReady: Boolean,
+    frameStale: Boolean,
+    frameAgeMillis: Long,
+): String? {
+    if (connection == ConnectionState.Ready && frameReady) return null
+    return "conn=${describeConnectionState(connection)} ready=$frameReady stale=$frameStale frameAgeMs=$frameAgeMillis"
+}
