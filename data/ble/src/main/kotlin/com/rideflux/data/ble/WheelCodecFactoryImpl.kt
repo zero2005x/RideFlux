@@ -56,12 +56,15 @@ import java.util.UUID
  * family routing should be preferred where available.
  *
  * ### `inferFromGattTable`
- * The post-connect resolver first asks [FamilyDetector] to match the discovered
- * service/characteristic table against [WheelFamilySignatures]. A detection that
- * is `EXACT` or `PROBABLE` decides the family; an `AMBIGUOUS` one (a tie, or no
- * match at all) falls back to the inference this class has always used, so every
- * result is unchanged from before the detector existed. `docs/PROTOCOLS.md`
- * describes the confidence levels.
+ * The post-connect resolver keeps the pre-T02 precedence first: the I1
+ * split profile (`FFE4` on `FFE0` with `FFE9` on `FFE5`) and Nordic UART
+ * (both RX and TX present) are decided before [FamilyDetector] is asked,
+ * because those branches ran before the single-`FFE1` branch in the
+ * inference this class has always used. Only when neither matches does a
+ * detector result of `EXACT` or `PROBABLE` decide the family; an
+ * `AMBIGUOUS` one (a tie, or no match at all) falls back to the remaining
+ * single-`FFE1` branch, so every result is unchanged from before the
+ * detector existed. `docs/PROTOCOLS.md` describes the confidence levels.
  */
 class WheelCodecFactoryImpl(
     /**
@@ -173,7 +176,17 @@ class WheelCodecFactoryImpl(
     override fun inferFromGattTable(
         services: Map<UUID, List<UUID>>,
         name: String?,
-    ): WheelFamily? = detectGattTable(services, name).family ?: legacyGattTableInference(services, name)
+    ): WheelFamily? {
+        // Pre-T02 precedence first: the I1 split profile and Nordic UART
+        // branches ran before the single-FFE1 branch, and the detector only
+        // knows the single-FFE1 rows — asking it first would let a PROBABLE
+        // G/K/V answer bypass those earlier branches. Neither early return
+        // reports through onAmbiguousDetection: there is no tie to log.
+        val table = canonicalisedTable(services)
+        if (hasSplitI1(table)) return WheelFamily.I1
+        nusFamily(table, WheelNameClassifier.classify(name))?.let { return it }
+        return detectGattTable(services, name).family ?: legacyGattTableInference(services, name)
+    }
 
     /**
      * The post-connect GATT signature match, with its confidence and the ids of
@@ -204,27 +217,23 @@ class WheelCodecFactoryImpl(
      * The pre-T02 inference, kept verbatim as the fallback: a GATT signature
      * that ties or does not match must resolve exactly as it did before the
      * detector existed.
+     *
+     * The I1-split and Nordic UART branches below are the same helpers
+     * [inferFromGattTable] runs before asking the detector, so the early
+     * return and the fallback cannot disagree about them.
      */
     private fun legacyGattTableInference(
         services: Map<UUID, List<UUID>>,
         name: String?,
     ): WheelFamily? {
-        val table = services.mapKeys { canonicaliseUuid(it.key.toString()) }
-            .mapValues { (_, chars) -> chars.map { canonicaliseUuid(it.toString()) }.toSet() }
+        val table = canonicalisedTable(services)
         val nameHint = WheelNameClassifier.classify(name)
 
-        val ffe0Chars = table[FFE0].orEmpty()
-        val ffe5Chars = table[FFE5].orEmpty()
-        val hasSplitI1 = FFE4 in ffe0Chars && FFE9 in ffe5Chars
-        if (hasSplitI1) return WheelFamily.I1
+        if (hasSplitI1(table)) return WheelFamily.I1
 
-        val nusChars = table[NUS].orEmpty()
-        val hasNus = NUS_RX in nusChars && NUS_TX in nusChars
-        if (hasNus) {
-            return if (nameHint == WheelFamily.I2) WheelFamily.I2 else WheelFamily.N2
-        }
+        nusFamily(table, nameHint)?.let { return it }
 
-        val hasSingle = FFE1 in ffe0Chars
+        val hasSingle = FFE1 in table[FFE0].orEmpty()
         if (hasSingle) {
             return when (nameHint) {
                 WheelFamily.K -> WheelFamily.K
@@ -235,6 +244,29 @@ class WheelCodecFactoryImpl(
             }
         }
         return null
+    }
+
+    /**
+     * The discovered table with every UUID in canonical lower-case 128-bit
+     * string form, so short 16-/32-bit spellings compare equal to the
+     * constants below.
+     */
+    private fun canonicalisedTable(services: Map<UUID, List<UUID>>): Map<String, Set<String>> =
+        services.mapKeys { canonicaliseUuid(it.key.toString()) }
+            .mapValues { (_, chars) -> chars.map { canonicaliseUuid(it.toString()) }.toSet() }
+
+    /** `true` when the table carries the I1 split profile. */
+    private fun hasSplitI1(table: Map<String, Set<String>>): Boolean =
+        FFE4 in table[FFE0].orEmpty() && FFE9 in table[FFE5].orEmpty()
+
+    /**
+     * The Nordic UART branch: both RX and TX present resolves to I2 for an
+     * Inmotion name and N2 otherwise, or `null` when the UART is absent.
+     */
+    private fun nusFamily(table: Map<String, Set<String>>, nameHint: WheelFamily?): WheelFamily? {
+        val nusChars = table[NUS].orEmpty()
+        if (NUS_RX !in nusChars || NUS_TX !in nusChars) return null
+        return if (nameHint == WheelFamily.I2) WheelFamily.I2 else WheelFamily.N2
     }
 
     private companion object {
