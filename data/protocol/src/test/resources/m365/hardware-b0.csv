@@ -1,0 +1,10 @@
+# Source: scooter-apps/hardware-evidence/ (real Xiaomi M365 rear-wheel spin; no credentials).
+# Row 1: logcat-spin-raw.txt:34; phone-logs/m365_telemetry_20260920_142701.csv:315 (14:30:39.578/.580).
+# Row 2: logcat-spin-raw.txt:19169; phone-logs/m365_telemetry_20260920_143318.csv:34 (14:34:02.158/.162).
+# Row 3: logcat-spin-raw.txt:19316; same CSV:35 (14:34:02.970/.973).
+# Minimal decrypted B0 payloads and matching CSV fields only. Signed CSV speed is an observation,
+# not proof of physical reverse direction or of the near-FFxx sentinel hypothesis.
+payloadHex,loggedSpeedKmh,batteryPercent,frameTemperatureC,totalDistanceKm
+0000000000080000330000000000eb1a06000000eb0036010000000000000000,0.0,51,31.0,400.107
+0000000000080000330076ea0000101b06000000640036010000000000000000,-5.513999938964844,51,31.0,400.144
+0000000000080000330096000000101b06000000660036010000000000000000,0.15000000596046448,51,31.0,400.144

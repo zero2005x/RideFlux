@@ -83,7 +83,7 @@ How the bridge works, byte by byte: [docs/BRIDGE_PROTOCOL.md](docs/BRIDGE_PROTOC
 | Category | Brand / Lineage | Status |
 |---|---|---|
 | **Scooter** | **Ninebot Retail** (KickScooter ES2 is the reference model) | 🚧 In development — frame codec, pairing state machine and B0 telemetry are written from reverse-engineering notes. Never connected to a real scooter. Pairing and lock stay blocked in the app until a per-model stationary-speed source is verified |
-| **Scooter** | **Xiaomi M365** | 🚧 In development — BLE transport, FE95 authentication, registration consent flow, encrypted UART and B0 telemetry are implemented from reverse-engineering notes (L2). Lock and power writes remain blocked in the app. |
+| **Scooter** | **Xiaomi M365** | 🧪 **Experimental, read-only vehicle registers** — L2 written protocol/crypto specifications plus hardware-log regression fixtures. FE95 authentication and encrypted B0 telemetry already implemented; all 12 writable registers remain NotYetEnabled. The expanded community register inventory is L1 and requires explicit Experimental opt-in. See [T07 evidence and gaps](docs/T07_M365_READ_CRYPTO_REPORT.md). |
 | **Smart BMS** | **JBD / Xiaoxiang & Ant BMS** | 🧪 Packet decoders (read-only) |
 | **Controller** | **VESC** | 🧪 Telemetry decoder (read-only) |
 
