@@ -210,17 +210,12 @@ class BridgeClient(
         }
 
         fun connectGattLe(device: BluetoothDevice): BluetoothGatt? = try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                device.connectGatt(
-                    context,
-                    /* autoConnect = */ false,
-                    gattCallback,
-                    BluetoothDevice.TRANSPORT_LE,
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                device.connectGatt(context, false, gattCallback)
-            }
+            device.connectGatt(
+                context,
+                /* autoConnect = */ false,
+                gattCallback,
+                BluetoothDevice.TRANSPORT_LE,
+            )
         } catch (t: Throwable) {
             close(IllegalStateException("connectGatt failed: ${t.message}"))
             null

@@ -138,6 +138,11 @@ internal object ApprovedGlassesStore {
         return list
     }
 
+    // Lint suggests the KTX `edit` extension for the write below, but that
+    // helper returns Unit and this call site branches on commit()'s result to
+    // log a failed save. Keeping the result is the behaviour, so the
+    // suggestion does not apply.
+    @Suppress("UseKtx")
     private fun save(context: Context, items: List<ApprovedGlasses>) {
         val arr = JSONArray()
         for (item in items) {

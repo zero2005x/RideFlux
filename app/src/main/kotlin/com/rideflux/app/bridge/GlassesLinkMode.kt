@@ -6,6 +6,7 @@
 package com.rideflux.app.bridge
 
 import android.content.Context
+import androidx.core.content.edit
 
 /** Phone-to-glasses transport selected by the rider. */
 enum class GlassesLinkMode {
@@ -64,21 +65,20 @@ internal object GlassesLinkPreferences {
             migrated = prefs.getBoolean(KEY_MIGRATED_OFF_CXR, false),
         )
         if (resolved.persist) {
-            prefs.edit()
-                .putString(KEY_MODE, resolved.mode.name)
-                .putBoolean(KEY_MIGRATED_OFF_CXR, true)
-                .apply()
+            prefs.edit {
+                putString(KEY_MODE, resolved.mode.name)
+                putBoolean(KEY_MIGRATED_OFF_CXR, true)
+            }
         }
         return resolved.mode
     }
 
     fun write(context: Context, mode: GlassesLinkMode) {
-        context.getSharedPreferences(BRIDGE_PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_MODE, mode.name)
+        context.getSharedPreferences(BRIDGE_PREFS_NAME, Context.MODE_PRIVATE).edit {
+            putString(KEY_MODE, mode.name)
             // An explicit choice settles the migration either way: the
             // rider has now picked a transport, so never rewrite it.
-            .putBoolean(KEY_MIGRATED_OFF_CXR, true)
-            .apply()
+            putBoolean(KEY_MIGRATED_OFF_CXR, true)
+        }
     }
 }

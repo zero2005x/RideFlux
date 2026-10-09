@@ -327,7 +327,9 @@ class BridgeService : Service() {
                         publisher = opening
                         opening.attachSource(scope, frames())
                         candidate = null // Ownership transferred to publisher.
-                        consecutiveCxrFailures = 0
+                        // The retry loop is left by the return below, so the
+                        // CXR failure counter dies with this coroutine and
+                        // needs no reset here.
                         if (target.value == null) setBridgeState(BridgeState.STANDBY)
                         Log.i(TAG, "bridge publisher started: $openingMode")
                         DiagnosticLogs.record(DIAG, "publisher started $openingMode")
