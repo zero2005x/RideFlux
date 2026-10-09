@@ -146,3 +146,35 @@ Known remaining gaps (not changed, to stay within scope):
 `WheelLinkEnded`, a record call in `onBluetoothStateChanged`, a record call in `setLinkState` on
 change. `RelayingExitReasonTest` pins the wording of the pure helpers. No state, timing, recovery or
 publisher logic was touched.
+
+## PR #57 CI repair (2026-10-09)
+
+The original GitHub Actions run `37877126945` passed lint, build, unit tests and coverage
+generation. Its SonarCloud step failed because new-code coverage was **62.5%**, below the
+**80%** gate. This failure does not identify the cause of the 12:50 incident.
+
+`BridgeServiceFramesTest` now installs a temporary diagnostic log and exercises the service's
+frame collector across these transitions:
+
+- Ready/fresh -> another fresh sample: no exit diagnostic.
+- Ready/fresh -> missing telemetry -> fresh telemetry: exactly one stale-telemetry exit,
+  logged before the state change, then recovery without closing the healthy wheel link.
+- Ready -> Failed(BLE_LINK_LOST, status 8), and Ready -> Disconnected: last-state details
+  reach the loop's catch, the address remains masked and the connection closes once.
+- Glasses READY -> CONNECTED -> CONNECTED -> READY: only actual changes are logged,
+  and the wheel's RELAYING state is preserved.
+
+These tests supplement the four pure-helper tests; they do not change production behavior,
+recovery timing, protocol constants or coverage exclusions. The temporary diagnostic sink is
+removed after every test. The snapshot-flow completion line remains outside these scenarios.
+
+Targeted validation:
+
+```text
+.\gradlew.bat :app:testDebugUnitTest --tests '*RelayingExitReasonTest' --tests '*BridgeServiceFramesTest'
+BUILD SUCCESSFUL in 4m 13s
+132 actionable tasks: 132 executed
+```
+
+The reports contain 11 `BridgeServiceFramesTest` tests and four `RelayingExitReasonTest` tests,
+with zero failures or errors. Hardware behavior and the incident's root cause remain unverified.
