@@ -27,6 +27,8 @@ object M365Codec {
             batteryPercent = batteryPercent.toFloat(),
             totalDistanceMetres = totalDistanceMetres,
             tripDistanceMetres = tripDistanceMetres.toLong(),
+            // L3: scooter-apps/hardware-evidence/SPEED-FIELD-ANALYSIS.md:28-30, signed BB / 10.
+            frameTemperatureC = frameTemperatureRaw / 10f,
         )
     }
 

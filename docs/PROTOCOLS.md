@@ -38,6 +38,17 @@ Electric scooters are modeled as peers under `ScooterDevice` and connected throu
 
 ---
 
+M365 is **Experimental with read-only vehicle registers**: L2 written protocol/crypto specifications
+plus real hardware logs. T07 extends the existing codec/authentication rather than replacing pairing.
+The passive register map requires explicit `experimental = true`: 37 documented read addresses,
+12 writable addresses marked `NotYetEnabled` (including lock/unlock/power/KERS/cruise), no write encoder.
+SOC, speed, odometer and frame temperature use the B0 hardware fixtures; separate voltage reuses
+the existing 48 decoder. ESC 50 current stays raw with unknown sign/scale, so calculated V×I power
+stays absent until current is established. B9 units and reverse-speed interpretation remain disputed;
+the existing signed-magnitude speed and legacy trip conversion are preserved. The expanded inventory
+is L1 community evidence, not promoted to L2 by the crypto specifications. See
+[T07 inventory, provenance and gaps](T07_M365_READ_CRYPTO_REPORT.md).
+
 ### 3. Smart BMS & VESC Protocols
 
 | System | Protocol / Wire Spec | Telemetry Decoded |
@@ -141,6 +152,14 @@ RideFlux 解碼哪些車輛家族（電動獨輪車、電動滑板車與智慧 B
 | **Xiaomi Mi / M365** | M365 家族開發設定；車型相容性尚未完整驗證 | 邏輯 `55 AA` 封包總長為 `size + 6`（`payload + 8`）；認證後 UART `55 AB` 總長為 `size + 16`，使用 AES-CCM 與加總取反檢查碼。 | FE95 token 登入與明確同意後註冊；B5 按小端有號 16 位元解析，速度為 `abs(signedRaw) / 1000f`。倒退修正依車主回報推論，待實車複驗；鎖車、解鎖與電源寫入關閉。見 [Mi 認證](MI_AUTH.md#繁體中文) 與 [倒退速度修正](M365_REVERSE_SPEED_2026-10-07.md)。 |
 
 ---
+
+M365 為 **Experimental，車輛暫存器唯讀**，證據為 L2 協定／密碼學規格加真實硬體日誌。
+T07 延伸既有解碼與認證，不改版配對流程。被動暫存器地圖需明確設定 `experimental = true`：
+37 個文件記載的讀取地址；12 個可寫地址（含鎖車／解鎖／關機／KERS／定速）皆為
+`NotYetEnabled`，沒有寫入 encoder。SOC、速度、總里程、車架溫度以 B0 硬體夾具回歸；
+電壓沿用既有 48 解碼。ESC 50 電流符號／比例未定，保留原始值，V×I 功率亦不輸出。
+B9 單位與倒退速度解讀衝突保留在報告，現行有號速度取絕對值與舊行程換算維持不變。
+擴充清單仍是 L1 社群證據，密碼學規格不會將其提升至 L2。見 [T07 報告](T07_M365_READ_CRYPTO_REPORT.md)。
 
 ### 3. 智慧電池管理系統（Smart BMS）與 VESC 協定
 
