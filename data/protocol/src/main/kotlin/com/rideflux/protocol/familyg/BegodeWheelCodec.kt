@@ -72,7 +72,11 @@ class BegodeWheelCodec(
                 is BegodeFrame.LiveTelemetry -> onLiveTelemetry(s, frame, now, events)
                 is BegodeFrame.SettingsAndOdometer -> onSettingsAndOdometer(s, frame, now, events)
                 is BegodeFrame.Unknown -> {
-                    // Nothing to emit; forward-compatible per §12.
+                    val bms = BegodeBmsDecoder.decode(frameBytes)
+                    if (bms is BegodeBmsResult.Raw) {
+                        events.add(DecodeEvent.RawBmsFrame(bms.frame))
+                    }
+                    // Other unknown types remain silent; forward-compatible per §12.
                     // Identification is intentionally NOT emitted here:
                     // an Unknown frame with a valid header/footer but an
                     // unrecognised type code must not be treated as proof
