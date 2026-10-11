@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import com.rideflux.app.MainActivity
 import com.rideflux.app.R
 import com.rideflux.core.location.TripLocationSource
+import com.rideflux.data.bridge.DiagnosticLogs
 import com.rideflux.domain.repository.WheelRepository
 import com.rideflux.domain.ride.TripRepository
 import com.rideflux.domain.ride.TripSample
@@ -85,6 +86,7 @@ class RecordingService : Service() {
         try {
             RecordingSession(wheelRepository, tripRepository, locationSource, _state,
                 onError = { Log.e(TAG, "Recording failed", it) },
+                onEvent = { DiagnosticLogs.record("recording", it) },
             ).record(address, family)
         } finally {
             stopSelf()

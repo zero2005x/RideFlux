@@ -32,6 +32,8 @@ internal class RecordingSession(
     private val state: MutableStateFlow<RecordingUiState>,
     private val onError: (Throwable) -> Unit,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val elapsedClock: () -> Long = { System.nanoTime() / 1_000_000L },
+    private val onEvent: (String) -> Unit = {},
 ) {
     suspend fun record(address: String, family: WheelFamily?) = supervisorScope {
         var connection: WheelConnection? = null
@@ -40,6 +42,7 @@ internal class RecordingSession(
         val statistics = TripStatisticsAccumulator()
         val latestLocation = MutableStateFlow<TripLocation?>(null)
         var locationGranted = false
+        var stopReason = "cancelled"
         try {
             connection = wheels.connect(address, family)
             locationGranted = locations.hasPermission()
@@ -63,23 +66,37 @@ internal class RecordingSession(
             )
             trip = initial.copy(id = trips.createTrip(initial))
             state.value = RecordingUiState(true, trip.id, locationPermissionGranted = locationGranted)
+            event("started")
             var idleSeconds = 0
-            var reachedActiveState = false
+            var missingSince: Long? = null
             while (true) {
                 val connectionState = connection.state.value
-                if (connectionState is ConnectionState.Failed ||
-                    (connectionState == ConnectionState.Disconnected && reachedActiveState)) break
-                if (connectionState != ConnectionState.Disconnected) reachedActiveState = true
-                // connect() can return before its asynchronous startup leaves Disconnected.
-                if (connectionState != ConnectionState.Ready) {
-                    delay(SAMPLE_INTERVAL_MILLIS)
-                    continue
+                // Failed handles cannot recover without a new connection coordinator.
+                if (connectionState is ConnectionState.Failed) {
+                    stopReason = "connection_failed_${connectionState.reason}"
+                    break
                 }
                 val now = clock()
                 val telemetry = connection.telemetry.value
-                // A stalled GATT link must not keep adding its last speed to trip distance.
-                if (telemetry.timestampMillis <= 0L ||
-                    now - telemetry.timestampMillis !in 0L..TELEMETRY_MAX_AGE_MILLIS) break
+                val fresh = connectionState == ConnectionState.Ready && telemetry.timestampMillis > 0L &&
+                    now - telemetry.timestampMillis in 0L..TELEMETRY_MAX_AGE_MILLIS
+                if (!fresh) {
+                    val elapsed = elapsedClock()
+                    val since = missingSince ?: elapsed.also {
+                        missingSince = it
+                        event("paused_${if (connectionState == ConnectionState.Ready) "stale_telemetry" else "connection_not_ready"}")
+                    }
+                    statistics.breakInterval()
+                    idleSeconds = 0
+                    if (elapsed - since >= SILENCE_GRACE_MILLIS) {
+                        stopReason = "silence_timeout"
+                        break
+                    }
+                    delay(SAMPLE_INTERVAL_MILLIS)
+                    continue
+                }
+                if (missingSince != null) event("resumed")
+                missingSince = null
                 val location = latestLocation.value?.takeIf {
                     now - it.timestampMillis in 0L..LOCATION_MAX_AGE_MILLIS
                 }
@@ -101,15 +118,21 @@ internal class RecordingSession(
                     statistics = statistics.add(telemetry, now),
                     samples = (state.value.samples + sample).takeLast(LIVE_SAMPLE_LIMIT),
                 )
-                idleSeconds = if ((telemetry.speedKmh?.let(::abs) ?: 0f) < 1f) idleSeconds + 1 else 0
-                if (idleSeconds >= IDLE_STOP_SECONDS) break
+                val speed = telemetry.speedKmh?.takeIf(Float::isFinite)?.let(::abs)
+                idleSeconds = if (speed != null && speed < 1f) idleSeconds + 1 else 0
+                if (idleSeconds >= IDLE_STOP_SECONDS) {
+                    stopReason = "idle_timeout"
+                    break
+                }
                 delay(SAMPLE_INTERVAL_MILLIS)
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
+            stopReason = "session_error"
             onError(error)
         } finally {
+            event("ending_$stopReason")
             withContext(NonCancellable) {
                 try {
                     locationJob?.cancelAndJoin()
@@ -142,9 +165,15 @@ internal class RecordingSession(
         }
     }
 
+    private fun event(message: String) {
+        // Diagnostics must never prevent trip finalization or resource release.
+        runCatching { onEvent(message) }
+    }
+
     private companion object {
         const val SAMPLE_INTERVAL_MILLIS = 1_000L
         const val TELEMETRY_MAX_AGE_MILLIS = 3_000L
+        const val SILENCE_GRACE_MILLIS = 30_000L
         const val LOCATION_MAX_AGE_MILLIS = 10_000L
         const val IDLE_STOP_SECONDS = 120
         const val LIVE_SAMPLE_LIMIT = 10_800
