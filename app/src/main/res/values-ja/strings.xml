@@ -140,6 +140,7 @@
     <string name="metric_mos">MOS</string>
     <string name="metric_mos_temp">MOS 温度</string>
     <string name="metric_motor">モーター</string>
+    <string name="metric_imu">IMU</string>
     <string name="metric_battery_temp">バッテリー温度</string>
     <string name="metric_board">基板</string>
     <string name="metric_trip">走行距離</string>
@@ -320,6 +321,13 @@
     <string name="battery_pack_current">バッテリーパック: %1$dS</string>
     <string name="battery_pack_dialog_title">バッテリーパック</string>
     <string name="battery_pack_dialog_body">このバッテリーは直列で何セルですか？充電器のラベルに電圧が表示されています。67.2 V は 16S、84 V は 20S、100.8 V は 24S です。</string>
+    <string name="begode_profile_set">Set wheel layout</string>
+    <string name="begode_profile_current">Wheel layout: %1$s</string>
+    <string name="begode_profile_dialog_title">Wheel layout</string>
+    <string name="begode_profile_dialog_body">Choose the telemetry layout for this wheel. This is not detected automatically. Unknown hides disputed PWM and temperatures until you choose. Captured A2 uses packet 7 PWM and the MPU6050 IMU. Documented legacy uses the older PWM byte and MPU6500 temperatures.</string>
+    <string name="begode_profile_unknown">Unknown</string>
+    <string name="begode_profile_a2">Captured A2</string>
+    <string name="begode_profile_legacy">Documented legacy</string>
     <string name="settings_bond_title">ペアリングキーのバックアップ</string>
     <string name="settings_bond_subtitle">スクーターのペアリングキーを暗号化ファイルとして書き出し・読み込みします。</string>
     <string name="bond_title">ペアリングキー</string>

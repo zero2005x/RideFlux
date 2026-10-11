@@ -37,6 +37,7 @@ import com.rideflux.app.ui.dashboard.displaySpeed
 import com.rideflux.app.ui.dashboard.distanceUnit
 import com.rideflux.app.ui.dashboard.speedUnit
 import com.rideflux.domain.device.PlevCategory
+import com.rideflux.domain.wheel.BegodeProtocolProfile
 import com.rideflux.app.ui.dashboard.components.BatteryBar
 import com.rideflux.app.ui.dashboard.components.MetricCard
 import com.rideflux.app.ui.dashboard.components.MetricRow
@@ -66,11 +67,21 @@ import kotlin.math.roundToInt
  */
 data class BatteryPackUi(val cells: Int?, val onClick: () -> Unit)
 
+/**
+ * Explicit Begode layout for this wheel. [label] is already localised.
+ */
+data class BegodeProfileUi(
+    val profile: BegodeProtocolProfile,
+    val label: String,
+    val onClick: () -> Unit,
+)
+
 @Composable
 fun MainGaugePage(
     state: DashboardUiState,
     modifier: Modifier = Modifier,
     batteryPack: BatteryPackUi? = null,
+    begodeProfile: BegodeProfileUi? = null,
 ) {
     val dash = stringResource(R.string.value_unavailable)
     val volt = stringResource(R.string.unit_volt)
@@ -133,6 +144,17 @@ fun MainGaugePage(
                     )
                 }
             }
+            if (begodeProfile != null) {
+                TextButton(onClick = begodeProfile.onClick) {
+                    Text(
+                        text = if (begodeProfile.profile == BegodeProtocolProfile.UNKNOWN) {
+                            stringResource(R.string.begode_profile_set)
+                        } else {
+                            stringResource(R.string.begode_profile_current, begodeProfile.label)
+                        },
+                    )
+                }
+            }
         }
 
         if (state.deviceCategory == PlevCategory.SCOOTER) {
@@ -192,6 +214,31 @@ fun MainGaugePage(
                         value = state.mosTemperatureC,
                         warn = 60f,
                         danger = 75f,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            right = {
+                MetricCard(
+                    label = stringResource(R.string.metric_imu),
+                    icon = Icons.Filled.Thermostat,
+                    value = state.imuTemperatureC?.let { "%.0f".format(Locale.US, it) } ?: dash,
+                    unit = stringResource(R.string.unit_celsius),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+        )
+        MetricRow(
+            left = {
+                MetricCard(
+                    label = stringResource(R.string.metric_motor),
+                    icon = Icons.Filled.Thermostat,
+                    value = state.motorTemperatureC?.let { "%.0f".format(Locale.US, it) } ?: dash,
+                    unit = stringResource(R.string.unit_celsius),
+                    valueColor = stoplight(
+                        value = state.motorTemperatureC,
+                        warn = 70f,
+                        danger = 90f,
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )

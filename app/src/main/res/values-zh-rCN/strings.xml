@@ -140,6 +140,7 @@
     <string name="metric_mos">MOS</string>
     <string name="metric_mos_temp">MOS 温度</string>
     <string name="metric_motor">马达</string>
+    <string name="metric_imu">IMU</string>
     <string name="metric_battery_temp">电池温度</string>
     <string name="metric_board">主板</string>
     <string name="metric_trip">本次里程</string>
@@ -320,6 +321,13 @@
     <string name="battery_pack_current">电池组：%1$dS</string>
     <string name="battery_pack_dialog_title">电池组</string>
     <string name="battery_pack_dialog_body">这块电池有多少串（串联电芯数）？充电器标签上标有电压：67.2 V 是 16S，84 V 是 20S，100.8 V 是 24S。</string>
+    <string name="begode_profile_set">设置轮子布局</string>
+    <string name="begode_profile_current">轮子布局：%1$s</string>
+    <string name="begode_profile_dialog_title">轮子布局</string>
+    <string name="begode_profile_dialog_body">为此轮选择遥测布局。系统不会自动判断。未知会隐藏有争议的 PWM 与温度，直到你选择。采集的 A2 使用封包 7 的 PWM 与 MPU6050 IMU。文档记载的旧版使用较旧的 PWM 字节与 MPU6500 温度。</string>
+    <string name="begode_profile_unknown">未知</string>
+    <string name="begode_profile_a2">采集的 A2</string>
+    <string name="begode_profile_legacy">文档记载的旧版</string>
     <string name="settings_bond_title">配对密钥备份</string>
     <string name="settings_bond_subtitle">将滑板车配对密钥导出或导入为加密文件。</string>
     <string name="bond_title">配对密钥</string>

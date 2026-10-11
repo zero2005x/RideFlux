@@ -8,9 +8,11 @@ package com.rideflux.protocol.familyg
 import com.rideflux.domain.codec.DecodeEvent
 import com.rideflux.domain.codec.WheelCodec
 import com.rideflux.domain.command.WheelCommand
+import com.rideflux.domain.telemetry.TelemetryField
 import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.telemetry.WheelFault
 import com.rideflux.domain.telemetry.WheelTelemetry
+import com.rideflux.domain.wheel.BegodeProtocolProfile
 import com.rideflux.domain.wheel.WheelCapabilities
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelIdentity
@@ -32,6 +34,7 @@ import com.rideflux.domain.wheel.WheelIdentity
 class BegodeWheelCodec(
     private val deviceAddress: String = "",
     private val seriesCells: () -> Int? = { null },
+    private val profile: () -> BegodeProtocolProfile = { BegodeProtocolProfile.UNKNOWN },
 ) : WheelCodec {
 
     override val family: WheelFamily = WheelFamily.G
@@ -42,6 +45,9 @@ class BegodeWheelCodec(
         internal var identified: Boolean = false
         internal var hasLiveFrame: Boolean = false
         internal var previousFaults: Set<WheelFault> = emptySet()
+        internal var appliedProfile: BegodeProtocolProfile? = null
+        /** True only after this connection published an in-range packet-0x07 PWM. */
+        internal var pwmFromPacket7: Boolean = false
     }
 
     override fun newState(): WheelCodec.State = BegodeState()
@@ -70,6 +76,7 @@ class BegodeWheelCodec(
             val now = System.currentTimeMillis()
             when (frame) {
                 is BegodeFrame.LiveTelemetry -> onLiveTelemetry(s, frame, now, events)
+                is BegodeFrame.ExtendedTelemetry -> onExtendedTelemetry(s, frame, now, events)
                 is BegodeFrame.SettingsAndOdometer -> onSettingsAndOdometer(s, frame, now, events)
                 is BegodeFrame.Unknown -> {
                     val bms = BegodeBmsDecoder.decode(frameBytes)
@@ -94,33 +101,136 @@ class BegodeWheelCodec(
         events: MutableList<DecodeEvent>,
     ) {
         emitIdentifiedOnce(s, events)
-        // Family G frames carry a single current field (phase current) and
-        // a single temperature field (IMU/board); there is no separate
-        // battery current or MOS sensor in the §3.1.1 layout. Map them to
-        // the headline UI fields (`currentA`, `mosTemperatureC`) as well so
-        // the dashboard renders something useful, and derive battery
-        // percent from voltage via §7's refined curve.
+        val active = noteProfile(s)
+        // The live frame's current word is phase current, not measured battery
+        // current. Leave currentA unset so V × I is not presented as pack power.
         val phaseA = frame.phaseCurrentAmps.toFloat()
-        val tempC = BegodeTemperature
-            .celsiusMpu6500(frame.imuTempRaw).toFloat()
         val battery = seriesCells()
             ?.let { BegodeBatteryCurve.percentFor(frame.voltageHundredthsV, it) }
             ?.toFloat()
-        val merged = s.last.copy(
-            timestampMillis = now,
-            speedKmh = frame.speedKmh.toFloat(),
-            tripDistanceMetres = frame.tripMeters.toInt(),
-            voltageV = frame.voltageVolts.toFloat(),
-            currentA = phaseA,
-            phaseCurrentA = phaseA,
-            pwmPercent = frame.pwmPercent.toFloat(),
-            mosTemperatureC = tempC,
-            imuTemperatureC = tempC,
-            batteryPercent = battery,
+        val legacyTemp = BegodeTemperature.celsiusMpu6500(frame.imuTempRaw).toFloat()
+        val a2Imu = BegodeTemperature.celsiusMpu6050(frame.imuTempRaw).toFloat()
+        val invalidated = standingWithdrawals(active, s)
+        val pwm = when (active) {
+            BegodeProtocolProfile.LEGACY_DOCUMENTED -> frame.pwmPercent.toFloat()
+            else -> s.last.pwmPercent
+        }
+        val mos = if (active == BegodeProtocolProfile.LEGACY_DOCUMENTED) legacyTemp else s.last.mosTemperatureC
+        val imu = when (active) {
+            BegodeProtocolProfile.LEGACY_DOCUMENTED -> legacyTemp
+            BegodeProtocolProfile.A2_CAPTURED -> a2Imu
+            BegodeProtocolProfile.UNKNOWN -> s.last.imuTemperatureC
+        }
+        publish(
+            s,
+            s.last.copy(
+                timestampMillis = now,
+                speedKmh = frame.speedKmh.toFloat(),
+                tripDistanceMetres = frame.tripMeters.toInt(),
+                voltageV = frame.voltageVolts.toFloat(),
+                phaseCurrentA = phaseA,
+                pwmPercent = pwm,
+                mosTemperatureC = mos,
+                imuTemperatureC = imu,
+                batteryPercent = battery,
+            ),
+            invalidated,
+            events,
         )
-        s.last = merged
         s.hasLiveFrame = true
-        events.add(DecodeEvent.TelemetryUpdate(merged))
+    }
+
+    private fun onExtendedTelemetry(
+        s: BegodeState,
+        frame: BegodeFrame.ExtendedTelemetry,
+        now: Long,
+        events: MutableList<DecodeEvent>,
+    ) {
+        val active = noteProfile(s)
+        if (active != BegodeProtocolProfile.A2_CAPTURED) {
+            // Packet 0x07 is not evidence for any other layout. Still publish the
+            // standing withdrawals so a just-cleared profile cannot keep A2 fields.
+            publish(
+                s,
+                s.last.copy(timestampMillis = now),
+                standingWithdrawals(active, s),
+                events,
+            )
+            return
+        }
+        emitIdentifiedOnce(s, events)
+        val pwm = frame.pwmPercentOrNull
+        val motor = frame.motorTemperatureCOrNull
+        // An out-of-range word withdraws the previous in-range reading.
+        s.pwmFromPacket7 = pwm != null
+        val invalidated = standingWithdrawals(active, s).toMutableSet()
+        if (pwm == null) invalidated += TelemetryField.PWM
+        if (motor == null) invalidated += TelemetryField.MOTOR_TEMPERATURE
+        publish(
+            s,
+            s.last.copy(
+                timestampMillis = now,
+                pwmPercent = pwm ?: s.last.pwmPercent,
+                motorTemperatureC = motor ?: s.last.motorTemperatureC,
+            ),
+            invalidated,
+            events,
+        )
+    }
+
+    private fun standingWithdrawals(
+        active: BegodeProtocolProfile,
+        s: BegodeState,
+    ): Set<TelemetryField> = buildSet {
+        add(TelemetryField.CURRENT)
+        when (active) {
+            BegodeProtocolProfile.UNKNOWN -> {
+                add(TelemetryField.PWM)
+                add(TelemetryField.MOS_TEMPERATURE)
+                add(TelemetryField.IMU_TEMPERATURE)
+                add(TelemetryField.MOTOR_TEMPERATURE)
+            }
+            BegodeProtocolProfile.A2_CAPTURED -> {
+                add(TelemetryField.MOS_TEMPERATURE)
+                if (!s.pwmFromPacket7) add(TelemetryField.PWM)
+            }
+            // Packet 0x07 motor temperature is A2-only. Do not keep it under the
+            // documented live-frame mapping.
+            BegodeProtocolProfile.LEGACY_DOCUMENTED -> add(TelemetryField.MOTOR_TEMPERATURE)
+        }
+    }
+
+    private fun noteProfile(s: BegodeState): BegodeProtocolProfile {
+        val active = profile()
+        if (s.appliedProfile != active) {
+            s.appliedProfile = active
+            s.pwmFromPacket7 = false
+            s.last = s.last.copy(
+                pwmPercent = null,
+                mosTemperatureC = null,
+                imuTemperatureC = null,
+                motorTemperatureC = null,
+                currentA = null,
+            )
+        }
+        return active
+    }
+
+    private fun publish(
+        s: BegodeState,
+        snapshot: WheelTelemetry,
+        invalidated: Set<TelemetryField>,
+        events: MutableList<DecodeEvent>,
+    ) {
+        val cleared = snapshot.copy(
+            currentA = if (TelemetryField.CURRENT in invalidated) null else snapshot.currentA,
+            pwmPercent = if (TelemetryField.PWM in invalidated) null else snapshot.pwmPercent,
+            mosTemperatureC = if (TelemetryField.MOS_TEMPERATURE in invalidated) null else snapshot.mosTemperatureC,
+            motorTemperatureC = if (TelemetryField.MOTOR_TEMPERATURE in invalidated) null else snapshot.motorTemperatureC,
+            imuTemperatureC = if (TelemetryField.IMU_TEMPERATURE in invalidated) null else snapshot.imuTemperatureC,
+        )
+        s.last = cleared
+        events.add(DecodeEvent.TelemetryUpdate(cleared, invalidated))
     }
 
     private fun onSettingsAndOdometer(
@@ -131,13 +241,16 @@ class BegodeWheelCodec(
     ) {
         emitIdentifiedOnce(s, events)
         val faults = buildFaults(frame)
-        val merged = s.last.copy(
-            timestampMillis = now,
-            totalDistanceMetres = frame.totalDistanceMeters,
-            faults = faults,
+        publish(
+            s,
+            s.last.copy(
+                timestampMillis = now,
+                totalDistanceMetres = frame.totalDistanceMeters,
+                faults = faults,
+            ),
+            standingWithdrawals(noteProfile(s), s),
+            events,
         )
-        s.last = merged
-        events.add(DecodeEvent.TelemetryUpdate(merged))
 
         // Fault-set change alert.
         val added = faults - s.previousFaults

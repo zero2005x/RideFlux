@@ -25,9 +25,10 @@ import com.rideflux.protocol.bytes.ByteReader
  * Scope: only type codes `0x00` (live telemetry) and `0x04` (settings
  * & odometer) are decoded into typed frames. The remaining §3.1 codes
  * (`0x01` voltage reference / BMS summary, `0x02`/`0x03` smart-BMS
- * cell-voltage pages, `0x07` extended telemetry and `0xFF`) are
- * surfaced as [BegodeFrame.Unknown] so their bytes are preserved for
- * logging; they are NOT yet parsed into telemetry fields.
+ * cell-voltage pages and `0xFF`) are surfaced as [BegodeFrame.Unknown]
+ * so their bytes are preserved for logging. Type `0x07` is parsed into
+ * [BegodeFrame.ExtendedTelemetry]; the codec decides which of those words
+ * may be published for the active profile.
  */
 object BegodeDecoder {
 
@@ -54,6 +55,7 @@ object BegodeDecoder {
         return when (typeCode) {
             0x00 -> decodeLiveTelemetry(frame, subIndex)
             0x04 -> decodeSettingsAndOdometer(frame, subIndex)
+            0x07 -> decodeExtendedTelemetry(frame, subIndex)
             else -> BegodeFrame.Unknown(
                 typeCode = typeCode,
                 subIndex = subIndex,
@@ -71,6 +73,15 @@ object BegodeDecoder {
             imuTempRaw = ByteReader.s16BE(frame, 12),
             pwmTenthsPercent = ByteReader.s16BE(frame, 14),
             reservedFlags = ByteReader.u16BE(frame, 16),
+            subIndex = subIndex,
+        )
+
+    private fun decodeExtendedTelemetry(frame: ByteArray, subIndex: Int): BegodeFrame.ExtendedTelemetry =
+        BegodeFrame.ExtendedTelemetry(
+            phaseCurrentHundredthsA = ByteReader.s16BE(frame, 2),
+            advancedConfigRaw = ByteReader.u16BE(frame, 4),
+            motorTempRaw = ByteReader.s16BE(frame, 6),
+            pwmOutputRaw = ByteReader.s16BE(frame, 8),
             subIndex = subIndex,
         )
 

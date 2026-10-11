@@ -7,6 +7,7 @@ package com.rideflux.domain.codec
 
 import com.rideflux.domain.command.WheelCommand
 import com.rideflux.domain.telemetry.BmsFrame
+import com.rideflux.domain.telemetry.TelemetryField
 import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.wheel.WheelCapabilities
@@ -29,8 +30,14 @@ sealed class DecodeEvent {
     /**
      * The codec has produced a newer view of the telemetry snapshot.
      * The connection merges this delta into its `StateFlow`.
+     *
+     * Null fields in [snapshot] are partial updates. [invalidated] names fields
+     * whose previous value must be cleared because it is no longer evidence.
      */
-    data class TelemetryUpdate(val snapshot: WheelTelemetry) : DecodeEvent()
+    data class TelemetryUpdate(
+        val snapshot: WheelTelemetry,
+        val invalidated: Set<TelemetryField> = emptySet(),
+    ) : DecodeEvent()
 
     /** Uninterpreted BMS bytes; never a fresh speed reading or identification evidence. */
     data class RawBmsFrame(val frame: BmsFrame.Raw) : DecodeEvent()

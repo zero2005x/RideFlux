@@ -15,6 +15,7 @@ import com.rideflux.domain.safety.DangerTier
 import com.rideflux.domain.safety.MotionInterlock
 import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.telemetry.WheelTelemetry
+import com.rideflux.domain.telemetry.WheelTelemetryMerge
 import com.rideflux.domain.transport.BleTransport
 import com.rideflux.domain.wheel.WheelCapabilities
 import com.rideflux.domain.wheel.WheelIdentity
@@ -358,7 +359,14 @@ class WheelConnectionImpl(
                 is DecodeEvent.TelemetryUpdate -> {
                     // Only a fresh decoded speed frame counts; retained snapshot values do not.
                     event.snapshot.speedKmh?.let { motionInterlock.observe(it, clock()) }
-                    _telemetry.update { current -> merge(current, event.snapshot) }
+                    _telemetry.update { current ->
+                        WheelTelemetryMerge.merge(
+                            base = current,
+                            delta = event.snapshot,
+                            invalidated = event.invalidated,
+                            fallbackTimestampMillis = clock(),
+                        )
+                    }
                 }
                 is DecodeEvent.Alert -> {
                     _alerts.emit(event.alert)
@@ -520,38 +528,4 @@ class WheelConnectionImpl(
 
     // ---- Helpers -------------------------------------------------------
 
-    /**
-     * Merge [delta] into [base]: non-null fields on [delta] overwrite
-     * their counterparts on [base]; fields that the codec left at
-     * `null` inherit from [base]. [WheelTelemetry.faults] follows the
-     * same null-means-unchanged rule: a delta that omits the fault set
-     * preserves the previous one, and a codec that wants to report
-     * "no faults" must emit an explicit empty set.
-     */
-    private fun merge(base: WheelTelemetry, delta: WheelTelemetry): WheelTelemetry =
-        base.copy(
-            timestampMillis = maxOf(base.timestampMillis, delta.timestampMillis)
-                .takeIf { it > 0L } ?: clock(),
-            speedKmh = delta.speedKmh ?: base.speedKmh,
-            tripDistanceMetres = delta.tripDistanceMetres ?: base.tripDistanceMetres,
-            totalDistanceMetres = delta.totalDistanceMetres ?: base.totalDistanceMetres,
-            pitchAngleDegrees = delta.pitchAngleDegrees ?: base.pitchAngleDegrees,
-            rollAngleDegrees = delta.rollAngleDegrees ?: base.rollAngleDegrees,
-            voltageV = delta.voltageV ?: base.voltageV,
-            currentA = delta.currentA ?: base.currentA,
-            phaseCurrentA = delta.phaseCurrentA ?: base.phaseCurrentA,
-            pwmPercent = delta.pwmPercent ?: base.pwmPercent,
-            batteryPercent = delta.batteryPercent ?: base.batteryPercent,
-            batteryVoltageV = delta.batteryVoltageV ?: base.batteryVoltageV,
-            chargingState = delta.chargingState ?: base.chargingState,
-            mosTemperatureC = delta.mosTemperatureC ?: base.mosTemperatureC,
-            motorTemperatureC = delta.motorTemperatureC ?: base.motorTemperatureC,
-            boardTemperatureC = delta.boardTemperatureC ?: base.boardTemperatureC,
-            batteryTemperatureC = delta.batteryTemperatureC ?: base.batteryTemperatureC,
-            imuTemperatureC = delta.imuTemperatureC ?: base.imuTemperatureC,
-            rideMode = delta.rideMode ?: base.rideMode,
-            workMode = delta.workMode ?: base.workMode,
-            faults = delta.faults ?: base.faults,
-            bmsStatus = delta.bmsStatus ?: base.bmsStatus,
-        )
 }

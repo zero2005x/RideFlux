@@ -5,6 +5,8 @@
  */
 package com.rideflux.data.ble
 
+import com.rideflux.domain.codec.DecodeEvent
+import com.rideflux.domain.wheel.BegodeProtocolProfile
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.protocol.familyg.BegodeWheelCodec
 import com.rideflux.protocol.familyi1.InmotionI1WheelCodec
@@ -59,6 +61,30 @@ class WheelCodecFactoryImplTest {
         assertEquals(100f, percentOf(configured)) // a change applies to the running codec
         // The default factory has no answers at all.
         assertNull(percentOf(factory.forFamilyWithAddress(WheelFamily.G, "AA:BB:CC:DD:EE:FF")))
+    }
+
+    @Test
+    fun `an explicit Begode profile reaches the running codec`() {
+        val profiles = mutableMapOf<String, BegodeProtocolProfile>()
+        val factory = WheelCodecFactoryImpl(
+            begodeProfileFor = { address ->
+                profiles[address] ?: BegodeProtocolProfile.UNKNOWN
+            },
+        )
+        val codec = factory.forFamilyWithAddress(WheelFamily.G, "AA:BB:CC:DD:EE:FF")
+        val state = codec.newState()
+        val live = intArrayOf(
+            0x55, 0xAA, 0x19, 0xF0, 0, 0, 0, 0, 0, 0, 0x01, 0x2C, 0xFD, 0xCA, 0x00, 0x01,
+            0xFF, 0xF8, 0x00, 0x18, 0x5A, 0x5A, 0x5A, 0x5A,
+        ).map { it.toByte() }.toByteArray()
+
+        fun pwm(): Float? = codec.decode(state, live)
+            .filterIsInstance<DecodeEvent.TelemetryUpdate>()
+            .single().snapshot.pwmPercent
+
+        assertNull(pwm())
+        profiles["AA:BB:CC:DD:EE:FF"] = BegodeProtocolProfile.LEGACY_DOCUMENTED
+        assertEquals(0.1f, pwm())
     }
 
     @Test(expected = UnsupportedOperationException::class)

@@ -140,6 +140,7 @@
     <string name="metric_mos">MOS</string>
     <string name="metric_mos_temp">MOS तापमान</string>
     <string name="metric_motor">मोटर</string>
+    <string name="metric_imu">IMU</string>
     <string name="metric_battery_temp">बैटरी तापमान</string>
     <string name="metric_board">बोर्ड</string>
     <string name="metric_trip">ट्रिप</string>
@@ -320,6 +321,13 @@
     <string name="battery_pack_current">बैटरी पैक: %1$dS</string>
     <string name="battery_pack_dialog_title">बैटरी पैक</string>
     <string name="battery_pack_dialog_body">इस बैटरी में श्रृंखला (सीरीज़) में कितने सेल हैं? चार्जर के लेबल पर वोल्टेज लिखा होता है: 67.2 V का मतलब 16S, 84 V का 20S और 100.8 V का 24S है।</string>
+    <string name="begode_profile_set">Set wheel layout</string>
+    <string name="begode_profile_current">Wheel layout: %1$s</string>
+    <string name="begode_profile_dialog_title">Wheel layout</string>
+    <string name="begode_profile_dialog_body">Choose the telemetry layout for this wheel. This is not detected automatically. Unknown hides disputed PWM and temperatures until you choose. Captured A2 uses packet 7 PWM and the MPU6050 IMU. Documented legacy uses the older PWM byte and MPU6500 temperatures.</string>
+    <string name="begode_profile_unknown">Unknown</string>
+    <string name="begode_profile_a2">Captured A2</string>
+    <string name="begode_profile_legacy">Documented legacy</string>
     <string name="settings_bond_title">पेयरिंग कुंजी बैकअप</string>
     <string name="settings_bond_subtitle">स्कूटर की पेयरिंग कुंजियों को एन्क्रिप्टेड फ़ाइल के रूप में निर्यात या आयात करें।</string>
     <string name="bond_title">पेयरिंग कुंजियाँ</string>

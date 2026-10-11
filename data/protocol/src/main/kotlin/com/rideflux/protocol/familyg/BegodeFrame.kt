@@ -29,8 +29,10 @@ sealed class BegodeFrame {
      * sensor counts for IMU temperature) to avoid lossy conversions
      * at decode time. Convenience properties expose SI units.
      *
-     * PWM: test vector §1 locks in `raw=1 ⇒ 0.10 %`, so the field is
-     * stored as tenths of a percent.
+     * Offset 14 is stored as [pwmTenthsPercent] because the historical
+     * documented test vector treats `raw=1` as `0.10 %`. That name is the
+     * documented-layout reading only. The captured A2 profile uses the same
+     * word as packed mode/config, so publication is profile-gated in the codec.
      */
     data class LiveTelemetry(
         val voltageHundredthsV: Int,
@@ -50,8 +52,41 @@ sealed class BegodeFrame {
 
         val phaseCurrentAmps: Double get() = phaseCurrentHundredthsA / 100.0
 
-        /** PWM duty cycle in percent (0.0 .. ~100.0). */
+        /** Documented-layout reading of offset 14. Not an A2 PWM measurement. */
         val pwmPercent: Double get() = pwmTenthsPercent / 10.0
+
+        /** Raw word at offset 14, before any profile decides what it means. */
+        val offset14Raw: Int get() = pwmTenthsPercent
+    }
+
+    /**
+     * Type `0x07` extended telemetry.
+     *
+     * Offsets follow the captured A2 vendor layout: phase current at 2,
+     * advanced config at 4, motor temperature in °C at 6, PWM output at 8.
+     * Existence of those offsets is capture-backed for that A2 profile.
+     * Non-zero scaling was not confirmed under load.
+     */
+    data class ExtendedTelemetry(
+        val phaseCurrentHundredthsA: Int,
+        val advancedConfigRaw: Int,
+        val motorTempRaw: Int,
+        val pwmOutputRaw: Int,
+        override val subIndex: Int,
+    ) : BegodeFrame() {
+        /**
+         * Vendor scale is `abs(raw)` percent, accepted only inside 0..100.
+         * Out-of-range words are unavailable rather than clamped to 100.
+         */
+        val pwmPercentOrNull: Float?
+            get() {
+                val magnitude = kotlin.math.abs(pwmOutputRaw)
+                return if (magnitude in 0..100) magnitude.toFloat() else null
+            }
+
+        /** Direct °C when the word is inside a sane sensor span; otherwise unavailable. */
+        val motorTemperatureCOrNull: Float?
+            get() = motorTempRaw.toFloat().takeIf { it in -40f..200f }
     }
 
     /**
