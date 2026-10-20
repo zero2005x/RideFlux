@@ -9,10 +9,13 @@ import android.app.Application
 import com.rideflux.app.bridge.ApprovedGlassesStore
 import com.rideflux.app.bridge.BridgeService
 import com.rideflux.app.di.ApplicationScope
+import com.rideflux.data.bridge.DiagnosticLog
+import com.rideflux.data.bridge.DiagnosticLogs
 import com.rideflux.domain.ride.TripRepository
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 /**
@@ -38,6 +41,8 @@ class RideFluxApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        DiagnosticLogs.install(DiagnosticLog(File(filesDir, "diagnostics")))
+        DiagnosticLogs.record("app", "process start ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
         // Align the bridge's process-wide link-mode state with what is
         // on disk before any screen can observe it, so the transport
         // shown with the bridge stopped is the one that will actually

@@ -40,6 +40,8 @@ data class ScooterTelemetry(
     val throttlePercent: Float? = null,
     val brakePercent: Float? = null,
     val cruiseEnabled: Boolean? = null,
+    /** ESC frame temperature; unknown for profiles that do not report it. */
+    val frameTemperatureC: Float? = null,
 ) {
     init {
         require(speedKmh == null || speedKmh.isFinite() && speedKmh >= 0f)
@@ -48,5 +50,6 @@ data class ScooterTelemetry(
         require(tripDistanceMetres == null || tripDistanceMetres >= 0L)
         require(throttlePercent == null || throttlePercent.isFinite() && throttlePercent in 0f..100f)
         require(brakePercent == null || brakePercent.isFinite() && brakePercent in 0f..100f)
+        require(frameTemperatureC == null || frameTemperatureC.isFinite())
     }
 }

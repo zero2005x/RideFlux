@@ -22,6 +22,9 @@ fun signingCredential(name: String): String? =
             f.readLines().map { it.trim() }
                 .firstOrNull { it.startsWith("$name=") }
                 ?.substringAfter('=')
+                // local.properties escapes ':' (C\:/path), which Gradle's own reader undoes
+                // but this hand-rolled one did not; :app already does the same.
+                ?.replace("\\:", ":")
                 ?.takeIf { it.isNotBlank() }
         }
 
@@ -37,8 +40,8 @@ android {
         // Rokid's official glasses-side CXR bridge requires API 28.
         minSdk = 28
         targetSdk = 36
-        versionCode = 11
-        versionName = "0.1.10"
+        versionCode = 12
+        versionName = "0.1.11"
     }
 
     signingConfigs {

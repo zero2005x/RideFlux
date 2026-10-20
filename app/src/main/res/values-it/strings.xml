@@ -382,4 +382,9 @@
     <string name="bond_delete_message">Dopo aver eliminato questa chiave, potrebbe essere necessario associare di nuovo il monopattino. La connessione attuale verrà chiusa.</string>
     <string name="bond_delete_failed">Impossibile eliminare la chiave. Riprova.</string>
     <string name="bond_hex_hint">Esadecimale: %1$d byte</string>
+
+    <string name="settings_diag_title">Registro di diagnostica</string>
+    <string name="settings_diag_subtitle">Eventi recenti del bridge e degli occhiali, conservati solo su questo telefono. Non contiene chiavi né token. Salvalo per condividerlo quando qualcosa non va.</string>
+    <string name="settings_diag_saved">Registro di diagnostica salvato.</string>
+    <string name="settings_diag_error">Impossibile salvare il registro di diagnostica: %1$s</string>
 </resources>

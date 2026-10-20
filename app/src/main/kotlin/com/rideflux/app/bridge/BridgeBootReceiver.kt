@@ -71,14 +71,12 @@ class BridgeBootReceiver : BroadcastReceiver() {
             return
         }
         val channelId = BridgeService.CHANNEL_ID
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                context.getString(R.string.notification_channel_bridge),
-                NotificationManager.IMPORTANCE_LOW,
-            )
-            manager.createNotificationChannel(channel)
-        }
+        val channel = NotificationChannel(
+            channelId,
+            context.getString(R.string.notification_channel_bridge),
+            NotificationManager.IMPORTANCE_LOW,
+        )
+        manager.createNotificationChannel(channel)
         val launchIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }

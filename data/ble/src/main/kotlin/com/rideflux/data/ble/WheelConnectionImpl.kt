@@ -351,9 +351,9 @@ class WheelConnectionImpl(
             // republish stale telemetry — or flip the state back to
             // Ready — after close() already reset everything.
             if (closed || _state.value is ConnectionState.Failed) return
-            // Anything the codec could make sense of proves the wheel is
-            // talking, which is what the handshake watchdog waits for.
-            if (event !is DecodeEvent.Malformed) sawWheelData = true
+            // Interpreted events prove the wheel is talking to the handshake
+            // watchdog; uninterpreted BMS envelopes are not identification evidence.
+            if (event !is DecodeEvent.Malformed && event !is DecodeEvent.RawBmsFrame) sawWheelData = true
             when (event) {
                 is DecodeEvent.TelemetryUpdate -> {
                     // Only a fresh decoded speed frame counts; retained snapshot values do not.
@@ -370,6 +370,10 @@ class WheelConnectionImpl(
                     handshakeTimeoutJob?.cancel()
                 }
                 is DecodeEvent.Malformed -> motionInterlock.reset()
+                is DecodeEvent.RawBmsFrame -> {
+                    // Preserve evidence without refreshing telemetry or the stationary interlock.
+                    _telemetry.update { current -> current.copy(bmsFrame = event.frame) }
+                }
             }
         }
     }

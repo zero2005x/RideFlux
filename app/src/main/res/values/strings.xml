@@ -429,4 +429,10 @@
     <string name="bond_delete_failed">Could not delete the key. Try again.</string>
     <string name="bond_hex_hint">Hexadecimal · byte count: %1$d</string>
     <string name="bond_mac_example" translatable="false">AA:BB:CC:DD:EE:FF</string>
+
+    <!-- ===== Diagnostic log ========================================== -->
+    <string name="settings_diag_title">Diagnostic log</string>
+    <string name="settings_diag_subtitle">Recent bridge and glasses events, kept on this phone only. It contains no keys or tokens. Save it to share when something goes wrong.</string>
+    <string name="settings_diag_saved">Diagnostic log saved.</string>
+    <string name="settings_diag_error">Could not save the diagnostic log: %1$s</string>
 </resources>

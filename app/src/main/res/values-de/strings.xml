@@ -380,4 +380,9 @@
     <string name="bond_delete_message">Nach dem Löschen dieses Schlüssels muss der Roller möglicherweise erneut gekoppelt werden. Die aktuelle Verbindung wird getrennt.</string>
     <string name="bond_delete_failed">Der Schlüssel konnte nicht gelöscht werden. Bitte erneut versuchen.</string>
     <string name="bond_hex_hint">Hexadezimal: %1$d Bytes</string>
+
+    <string name="settings_diag_title">Diagnoseprotokoll</string>
+    <string name="settings_diag_subtitle">Aktuelle Ereignisse von Bridge und Brille, nur auf diesem Telefon gespeichert. Es enthält keine Schlüssel oder Token. Speichere es, um es bei Problemen weiterzugeben.</string>
+    <string name="settings_diag_saved">Diagnoseprotokoll gespeichert.</string>
+    <string name="settings_diag_error">Das Diagnoseprotokoll konnte nicht gespeichert werden: %1$s</string>
 </resources>

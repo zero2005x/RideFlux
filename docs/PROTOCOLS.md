@@ -38,6 +38,17 @@ Electric scooters are modeled as peers under `ScooterDevice` and connected throu
 
 ---
 
+M365 is **Experimental with read-only vehicle registers**: L2 written protocol/crypto specifications
+plus real hardware logs. T07 extends the existing codec/authentication rather than replacing pairing.
+The passive register map requires explicit `experimental = true`: 37 documented read addresses,
+12 writable addresses marked `NotYetEnabled` (including lock/unlock/power/KERS/cruise), no write encoder.
+SOC, speed, odometer and frame temperature use the B0 hardware fixtures; separate voltage reuses
+the existing 48 decoder. ESC 50 current stays raw with unknown sign/scale, so calculated V×I power
+stays absent until current is established. B9 units and reverse-speed interpretation remain disputed;
+the existing signed-magnitude speed and legacy trip conversion are preserved. The expanded inventory
+is L1 community evidence, not promoted to L2 by the crypto specifications. See
+[T07 inventory, provenance and gaps](T07_M365_READ_CRYPTO_REPORT.md).
+
 ### 3. Smart BMS & VESC Protocols
 
 | System | Protocol / Wire Spec | Telemetry Decoded |
@@ -60,7 +71,53 @@ Electric scooters are modeled as peers under `ScooterDevice` and connected throu
 
 A UUID-only guess is never authoritative — the true family/dialect is confirmed by the bootstrap handshake after connect.
 
+### 5. GATT signature detection and its confidence levels
+
+After connect, the discovered service/characteristic table is matched against a small table of
+**GATT signatures** (`FamilyDetector`, `WheelFamilySignatures`). A signature requires specific
+services, specific characteristics on each, and may require a characteristic to be *absent*; matching
+is composite and negative, so one shared UUID (`FFE0` alone) never decides a family.
+
+| Confidence | Meaning | What the resolver does |
+|---|---|---|
+| `EXACT` | Exactly one family matched | Uses it |
+| `PROBABLE` | Several matched, and the device name names one of them | Uses the named one, and records that the GATT evidence alone did not decide |
+| `AMBIGUOUS` | Several matched with nothing to separate them, **or** nothing matched | **Falls back** to the name/UUID inference and logs which signatures tied |
+
+**An `AMBIGUOUS` detection is never auto-selected**: picking one of several tied families would be a
+guess, and a wrong guess routes a wheel to the wrong codec.
+
+The detector is only asked *after* the two older branches: a table carrying the I1 split profile
+resolves to `I1`, and a table with both Nordic UART characteristics resolves to `I2`/`N2`, before any
+signature is consulted — because those branches ran first before the detector existed, and a `PROBABLE`
+single-char answer must not bypass them.
+
+The seeded table is deliberately small and **non-discriminating today**: Begode, KingSong and Veteran
+all advertise `FFE0`+`FFE1`, and no source in this project ties a *second* service or an exclusion to
+any of them at L2+. A `FFE0`/`FFE1` wheel is therefore reported `AMBIGUOUS` (candidates named in the
+log) and resolves exactly as it did before the detector existed. Rows enter the table only when a note
+states them at **L2+** or when the **owner's own capture** shows them; everything else stays out with a
+`TODO(T08): probe` marker, because a wrong signature mis-routes a wheel while "unknown" does not.
+
+Families that share the Nordic UART topology (Inmotion `I2`, Ninebot Z `N2`, VESC) cannot be separated
+by any passive signature — that is what the `ProbeStrategy` interface is for (an active, read-only
+probe such as VESC `GetPkgInfo`), and **no probe is sent today**.
+
 ---
+
+### 6. T03: passive Begode BMS evidence (Experimental)
+
+Packets 1/2/3/5/6 are preserved as complete `BmsFrame.Raw` frames, including byte 19,
+through `DecodeEvent.RawBmsFrame` into nullable `WheelTelemetry.bmsFrame`. Their physical
+fields remain null: type 1 has conflicting vendor layouts; cell pages have no established
+scaling/count in the available evidence. No BMS request bytes are sent. Raw evidence does
+not refresh telemetry timestamps, count as stationary speed samples, or identify a wheel.
+CAP-A contains type 1 unsolicited in the 0/1/4/7 cycle, but no cell pages. See the
+[T03 evidence table and capture gaps](agent-tasks/reports/T03-begode-bms.md).
+
+封包 1/2/3/5/6 以完整 `BmsFrame.Raw` 保留至 nullable 遙測欄位，標示 Experimental。
+欄位語意有衝突或尺度未知時，實體量維持 null；不送出 BMS 請求，不新增 UI。
+Raw 幀不更新遙測時間、不提供靜止速度樣本，也不作為辨識依據。
 
 ## 繁體中文
 
@@ -96,6 +153,14 @@ RideFlux 解碼哪些車輛家族（電動獨輪車、電動滑板車與智慧 B
 
 ---
 
+M365 為 **Experimental，車輛暫存器唯讀**，證據為 L2 協定／密碼學規格加真實硬體日誌。
+T07 延伸既有解碼與認證，不改版配對流程。被動暫存器地圖需明確設定 `experimental = true`：
+37 個文件記載的讀取地址；12 個可寫地址（含鎖車／解鎖／關機／KERS／定速）皆為
+`NotYetEnabled`，沒有寫入 encoder。SOC、速度、總里程、車架溫度以 B0 硬體夾具回歸；
+電壓沿用既有 48 解碼。ESC 50 電流符號／比例未定，保留原始值，V×I 功率亦不輸出。
+B9 單位與倒退速度解讀衝突保留在報告，現行有號速度取絕對值與舊行程換算維持不變。
+擴充清單仍是 L1 社群證據，密碼學規格不會將其提升至 L2。見 [T07 報告](T07_M365_READ_CRYPTO_REPORT.md)。
+
 ### 3. 智慧電池管理系統（Smart BMS）與 VESC 協定
 
 | 系統 | 協定與封包特徵 | 解碼遙測指標 |
@@ -117,3 +182,32 @@ RideFlux 解碼哪些車輛家族（電動獨輪車、電動滑板車與智慧 B
 | `SERVICE_FE95` | `0000fe95-0000-1000-8000-00805f9b34fb` | 小米／九號滑板車專屬廣播識別服務 UUID |
 
 僅憑 UUID 的推測永遠不是定論——真正的家族要等連線後的啟動握手才會確認。
+
+### 5. GATT 指紋辨識與信心等級
+
+連線後，實際解析到的服務／特徵值表會與一組 **GATT 指紋**比對（`FamilyDetector`、
+`WheelFamilySignatures`）。一個指紋要求特定服務、每個服務上的特定特徵值，也可以要求某個特徵值
+**必須不存在**；比對同時具備「組合」與「排除」兩性質，因此單一共享 UUID（只看到 `FFE0`）永遠
+不足以決定家族。
+
+| 信心等級 | 意義 | 解析器的行為 |
+|---|---|---|
+| `EXACT` | 恰好只有一個家族符合 | 直接採用 |
+| `PROBABLE` | 有多個符合，而裝置名稱指向其中一個 | 採用名稱所指者，並記錄「單憑 GATT 證據未能決定」 |
+| `AMBIGUOUS` | 有多個符合且無從區分，**或**完全沒有符合者 | **退回**原有的名稱／UUID 推測，並記錄是哪幾個指紋並列 |
+
+**`AMBIGUOUS` 絕不自動選邊**：在多個並列家族中挑一個就是猜測，而猜錯會把車輛導向錯誤的解碼器。
+
+偵測器只在兩個舊分支之後才介入：帶 I1 分割組合的表先判為 `I1`，RX/TX 齊全的 Nordic UART 表先判為
+`I2`/`N2`，都不符合才問指紋——因為這兩個分支在偵測器出現前本就排在前面，不能讓 `PROBABLE`
+的單字元答案繞過它們。
+
+目前種入的指紋表刻意很小、且**尚無區辨力**：Begode、KingSong 與 Veteran 都廣播 `FFE0`+`FFE1`，
+而本專案沒有任何來源能以 L2+ 佐證第二個服務或排除條件。因此 `FFE0`/`FFE1` 的車輛會回報
+`AMBIGUOUS`（並列者寫入日誌），最終解析結果與偵測器存在前完全相同。只有註記達到 **L2+** 或由
+**擁有者自己的擷取**佐證的資料列才能進入表中；其餘一律留在表外並標記 `TODO(T08): probe`——錯誤的
+指紋會把車輛導錯，而「未知」不會。
+
+共用 Nordic UART 拓撲的家族（Inmotion `I2`、Ninebot Z `N2`、VESC）無法用任何被動指紋區分，這正是
+`ProbeStrategy` 介面存在的理由（主動但唯讀的探測，例如 VESC `GetPkgInfo`）；**目前不會送出任何
+探測**。

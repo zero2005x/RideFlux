@@ -9,25 +9,37 @@ object MiCcm {
     class AuthenticationException : Exception("CCM authentication failed")
 
     fun encrypt(key: ByteArray, nonce: ByteArray, plaintext: ByteArray, aad: ByteArray = byteArrayOf()): ByteArray {
+        return encryptWithTag(key, nonce, plaintext, aad, 4)
+    }
+
+    // RFC 3610 section 2: even authentication lengths 4..16. Internal entry point lets
+    // official NIST CAVP VNT128.rsp Count=50 exercise this same core without adapting a KAT.
+    internal fun encryptWithTag(key: ByteArray, nonce: ByteArray, plaintext: ByteArray, aad: ByteArray, tagBytes: Int): ByteArray {
+        require(tagBytes in 4..16 && tagBytes % 2 == 0) { "Invalid CCM tag length" }
         validate(key, nonce, plaintext.size)
         val cipher = cipher(key)
-        val mac = authenticate(cipher, nonce, plaintext, aad)
+        val mac = authenticate(cipher, nonce, plaintext, aad, tagBytes)
         val mask = counterBlock(cipher, nonce, 0)
         return try {
             val output = crypt(cipher, nonce, plaintext)
-            output + ByteArray(4) { (mac[it].toInt() xor mask[it].toInt()).toByte() }
+            output + ByteArray(tagBytes) { (mac[it].toInt() xor mask[it].toInt()).toByte() }
         } finally { mac.fill(0); mask.fill(0) }
     }
 
     @Throws(AuthenticationException::class)
     fun decrypt(key: ByteArray, nonce: ByteArray, ciphertext: ByteArray, aad: ByteArray = byteArrayOf()): ByteArray {
-        require(ciphertext.size >= 4) { "Invalid CCM ciphertext length" }
-        validate(key, nonce, ciphertext.size - 4)
+        return decryptWithTag(key, nonce, ciphertext, aad, 4)
+    }
+
+    internal fun decryptWithTag(key: ByteArray, nonce: ByteArray, ciphertext: ByteArray, aad: ByteArray, tagBytes: Int): ByteArray {
+        require(tagBytes in 4..16 && tagBytes % 2 == 0) { "Invalid CCM tag length" }
+        require(ciphertext.size >= tagBytes) { "Invalid CCM ciphertext length" }
+        validate(key, nonce, ciphertext.size - tagBytes)
         val cipher = cipher(key)
-        val data = ciphertext.copyOfRange(0, ciphertext.size - 4)
+        val data = ciphertext.copyOfRange(0, ciphertext.size - tagBytes)
         val plaintext = try { crypt(cipher, nonce, data) } finally { data.fill(0) }
         try {
-            verify(cipher, nonce, plaintext, aad, ciphertext)
+            verify(cipher, nonce, plaintext, aad, ciphertext, tagBytes)
             return plaintext
         } catch (error: Exception) {
             plaintext.fill(0)
@@ -35,11 +47,11 @@ object MiCcm {
         }
     }
 
-    private fun verify(cipher: Cipher, nonce: ByteArray, plaintext: ByteArray, aad: ByteArray, ciphertext: ByteArray) {
-        val mac = authenticate(cipher, nonce, plaintext, aad)
+    private fun verify(cipher: Cipher, nonce: ByteArray, plaintext: ByteArray, aad: ByteArray, ciphertext: ByteArray, tagBytes: Int) {
+        val mac = authenticate(cipher, nonce, plaintext, aad, tagBytes)
         val mask = counterBlock(cipher, nonce, 0)
-        val expected = ByteArray(4) { (mac[it].toInt() xor mask[it].toInt()).toByte() }
-        val actual = ciphertext.copyOfRange(ciphertext.size - 4, ciphertext.size)
+        val expected = ByteArray(tagBytes) { (mac[it].toInt() xor mask[it].toInt()).toByte() }
+        val actual = ciphertext.copyOfRange(ciphertext.size - tagBytes, ciphertext.size)
         try {
             if (!MessageDigest.isEqual(expected, actual)) throw AuthenticationException()
         } finally { mac.fill(0); mask.fill(0); expected.fill(0); actual.fill(0) }
@@ -82,7 +94,7 @@ object MiCcm {
         return output
     }
 
-    private fun authenticate(cipher: Cipher, nonce: ByteArray, data: ByteArray, aad: ByteArray): ByteArray {
+    private fun authenticate(cipher: Cipher, nonce: ByteArray, data: ByteArray, aad: ByteArray, tagBytes: Int): ByteArray {
         var state = ByteArray(16)
         fun block(bytes: ByteArray) {
             val input = ByteArray(16) { (state[it].toInt() xor bytes[it].toInt()).toByte() }
@@ -91,7 +103,9 @@ object MiCcm {
             state = next
         }
         try {
-            val first = counter(nonce, data.size).apply { this[0] = (if (aad.isEmpty()) 0x0A else 0x4A).toByte() }
+            val first = counter(nonce, data.size).apply {
+                this[0] = ((if (aad.isEmpty()) 0 else 0x40) or (((tagBytes - 2) / 2) shl 3) or 2).toByte()
+            }
             try { block(first) } finally { first.fill(0) }
             if (aad.isNotEmpty()) authenticateAad(aad, ::block)
             for (start in data.indices step 16) {

@@ -30,8 +30,13 @@ internal object BridgePairingStore {
     /**
      * This phone's token, minting and persisting one on first call.
      * Safe to call from any thread.
+     *
+     * Lint suggests the KTX `edit` extension for the write below, but that
+     * helper returns Unit and this call site branches on commit()'s result to
+     * log a failed persist, so the suggestion does not apply.
      */
     @Synchronized
+    @Suppress("UseKtx")
     fun readOrCreate(context: Context): ByteArray {
         val prefs = context.applicationContext
             .getSharedPreferences(BRIDGE_PREFS_NAME, Context.MODE_PRIVATE)

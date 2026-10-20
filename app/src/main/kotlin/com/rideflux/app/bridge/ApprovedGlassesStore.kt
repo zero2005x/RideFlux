@@ -96,7 +96,8 @@ internal object ApprovedGlassesStore {
             current.add(0, glasses)
             save(context, current)
             _itemsFlow.value = current
-            Log.i(TAG, "added approved glasses: ${glasses.shortCode} token=${glasses.tokenHex} mac=${glasses.mac}")
+            // The token authenticates the glasses to the phone: log only its short code.
+            Log.i(TAG, "added approved glasses: ${glasses.shortCode} mac=${glasses.mac}")
         }
     }
 
@@ -137,6 +138,11 @@ internal object ApprovedGlassesStore {
         return list
     }
 
+    // Lint suggests the KTX `edit` extension for the write below, but that
+    // helper returns Unit and this call site branches on commit()'s result to
+    // log a failed save. Keeping the result is the behaviour, so the
+    // suggestion does not apply.
+    @Suppress("UseKtx")
     private fun save(context: Context, items: List<ApprovedGlasses>) {
         val arr = JSONArray()
         for (item in items) {

@@ -378,4 +378,9 @@
     <string name="bond_delete_message">이 키를 삭제하면 스쿠터를 다시 페어링해야 할 수 있습니다. 현재 연결은 종료됩니다.</string>
     <string name="bond_delete_failed">키를 삭제하지 못했습니다. 다시 시도하세요.</string>
     <string name="bond_hex_hint">16진수: %1$d바이트</string>
+
+    <string name="settings_diag_title">진단 로그</string>
+    <string name="settings_diag_subtitle">최근 브리지 및 글래스 이벤트를 이 휴대전화에만 보관합니다. 키나 토큰은 포함되지 않습니다. 문제가 생기면 저장해서 공유하세요.</string>
+    <string name="settings_diag_saved">진단 로그를 저장했습니다.</string>
+    <string name="settings_diag_error">진단 로그를 저장할 수 없습니다: %1$s</string>
 </resources>

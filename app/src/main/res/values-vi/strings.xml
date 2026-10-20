@@ -378,4 +378,9 @@
     <string name="bond_delete_message">Sau khi xóa khóa này, bạn có thể cần ghép nối lại xe. Kết nối hiện tại sẽ bị đóng.</string>
     <string name="bond_delete_failed">Không thể xóa khóa. Hãy thử lại.</string>
     <string name="bond_hex_hint">Hệ thập lục phân: %1$d byte</string>
+
+    <string name="settings_diag_title">Nhật ký chẩn đoán</string>
+    <string name="settings_diag_subtitle">Các sự kiện gần đây của cầu nối và kính, chỉ lưu trên điện thoại này. Không chứa khóa hay token. Hãy lưu lại để chia sẻ khi có sự cố.</string>
+    <string name="settings_diag_saved">Đã lưu nhật ký chẩn đoán.</string>
+    <string name="settings_diag_error">Không thể lưu nhật ký chẩn đoán: %1$s</string>
 </resources>

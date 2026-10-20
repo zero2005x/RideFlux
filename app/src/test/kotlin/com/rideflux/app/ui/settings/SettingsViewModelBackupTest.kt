@@ -9,6 +9,8 @@ import android.content.ContextWrapper
 import android.net.Uri
 import androidx.lifecycle.ViewModelStore
 import com.rideflux.app.backup.TripBackupManager
+import com.rideflux.data.bridge.DiagnosticLog
+import com.rideflux.data.bridge.DiagnosticLogs
 import com.rideflux.domain.ride.ImportResult
 import com.rideflux.domain.settings.AppSettings
 import com.rideflux.domain.settings.SettingsRepository
@@ -81,6 +83,33 @@ class SettingsViewModelBackupTest {
         val event = withTimeout(5_000) { error.await() }
         assertTrue(event is BackupUiEvent.ExportError)
         assertTrue((event as BackupUiEvent.ExportError).message.contains("storage unavailable"))
+    }
+
+    @Test
+    fun diagnosticsAreSavedWithHeaderAndLogAndFailuresAreReported() = runBlocking {
+        val dir = java.nio.file.Files.createTempDirectory("diag").toFile()
+        DiagnosticLogs.install(DiagnosticLog(dir))
+        try {
+            DiagnosticLogs.record("bridge", "state STANDBY -> RELAYING")
+            val output = ByteArrayOutputStream()
+            every { resolver.openOutputStream(uri) } returns output
+            val saved = async(start = CoroutineStart.UNDISPATCHED) { model.backupEvent.first() }
+            model.exportDiagnostics(uri)
+            assertEquals(BackupUiEvent.DiagnosticsSaved, withTimeout(5_000) { saved.await() })
+            val text = output.toString(Charsets.UTF_8)
+            assertTrue(text.startsWith("RideFlux diagnostic log"))
+            assertTrue(text.contains("[bridge] state STANDBY -> RELAYING"))
+
+            every { resolver.openOutputStream(uri) } throws IOException("storage unavailable")
+            val failed = async(start = CoroutineStart.UNDISPATCHED) { model.backupEvent.first() }
+            model.exportDiagnostics(uri)
+            val event = withTimeout(5_000) { failed.await() }
+            assertTrue(event is BackupUiEvent.DiagnosticsError)
+            assertTrue((event as BackupUiEvent.DiagnosticsError).message.contains("storage unavailable"))
+        } finally {
+            DiagnosticLogs.install(null)
+            dir.deleteRecursively()
+        }
     }
 
     @Test

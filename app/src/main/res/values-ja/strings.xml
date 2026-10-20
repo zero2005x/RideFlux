@@ -378,4 +378,9 @@
     <string name="bond_delete_message">このキーを削除すると、スクーターの再ペアリングが必要になる場合があります。現在の接続は切断されます。</string>
     <string name="bond_delete_failed">キーを削除できませんでした。もう一度お試しください。</string>
     <string name="bond_hex_hint">16進数：%1$d バイト</string>
+
+    <string name="settings_diag_title">診断ログ</string>
+    <string name="settings_diag_subtitle">直近のブリッジとグラスのイベントを、このスマートフォンにのみ保存します。キーやトークンは含まれません。不具合のときに保存して共有できます。</string>
+    <string name="settings_diag_saved">診断ログを保存しました。</string>
+    <string name="settings_diag_error">診断ログを保存できませんでした: %1$s</string>
 </resources>

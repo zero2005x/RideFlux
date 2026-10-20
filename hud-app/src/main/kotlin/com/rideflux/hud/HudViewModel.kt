@@ -10,6 +10,7 @@ import android.content.Context
 import android.os.BatteryManager
 import android.os.SystemClock
 import android.util.Log
+import com.rideflux.data.bridge.DiagnosticLogs
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -226,6 +227,7 @@ class HudViewModel @Inject constructor(
     /** Ring press on the glasses. Local, and never blocked by the phone's last request. */
     fun toggleHudVisible() {
         _hudVisible.value = !_hudVisible.value
+        DiagnosticLogs.record("hud", "visible=${_hudVisible.value} (ring on the glasses)")
     }
     private val _pairingCandidates = MutableStateFlow<List<BridgePeerCandidate>>(emptyList())
     val pairingCandidates: StateFlow<List<BridgePeerCandidate>> = _pairingCandidates.asStateFlow()
@@ -284,6 +286,7 @@ class HudViewModel @Inject constructor(
             if (hidden != lastPhoneRequestedHidden) {
                 lastPhoneRequestedHidden = hidden
                 _hudVisible.value = !hidden
+                DiagnosticLogs.record("hud", "visible=${!hidden} (phone asked)")
             }
         }
 

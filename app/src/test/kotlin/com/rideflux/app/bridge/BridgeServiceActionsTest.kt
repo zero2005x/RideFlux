@@ -66,9 +66,13 @@ class BridgeServiceActionsTest {
         BridgeService.setHudVisible(true)
         BridgeService.setLinkMode(app, GlassesLinkMode.ANDROID_BLE)
 
+        service = newService()
+    }
+
+    private fun newService(): BridgeService {
         val created = BridgeService()
         // Hilt's generated base class injects on onCreate(); there is no Hilt graph in this
-        // test, so mark it done and provide the two dependencies by hand.
+        // test, so mark it done and provide the dependencies by hand.
         created.javaClass.superclass.getDeclaredField("injected")
             .apply { isAccessible = true }
             .setBoolean(created, true)
@@ -78,7 +82,18 @@ class BridgeServiceActionsTest {
             every { it.settings } returns MutableStateFlow(AppSettings())
         }
         ServiceController.of(created, null).create()
-        service = created
+        return created
+    }
+
+    @Test
+    fun aNewServiceShowsAHudThatAnEarlierRideLeftBlank() {
+        BridgeService.setHudVisible(false)
+        assertFalse(BridgeService.hudVisible.value)
+
+        val restarted = newService()
+
+        assertTrue(BridgeService.hudVisible.value)
+        restarted.onDestroy()
     }
 
     @After

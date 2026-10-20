@@ -389,4 +389,9 @@
     <string name="bond_delete_message">قد يتطلب حذف هذا المفتاح إقران السكوتر مجددًا. سيتم إغلاق اتصاله الحالي.</string>
     <string name="bond_delete_failed">تعذر حذف المفتاح. حاول مجددًا.</string>
     <string name="bond_hex_hint">ست عشري: %1$d بايت</string>
+
+    <string name="settings_diag_title">سجل التشخيص</string>
+    <string name="settings_diag_subtitle">أحدث أحداث الجسر والنظارات، محفوظة على هذا الهاتف فقط. لا يحتوي على مفاتيح أو رموز. احفظه لمشاركته عند حدوث مشكلة.</string>
+    <string name="settings_diag_saved">تم حفظ سجل التشخيص.</string>
+    <string name="settings_diag_error">تعذّر حفظ سجل التشخيص: %1$s</string>
 </resources>

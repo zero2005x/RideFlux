@@ -380,4 +380,9 @@
     <string name="bond_delete_message">इस कुंजी को हटाने के बाद स्कूटर को फिर से पेयर करना पड़ सकता है। इसका मौजूदा कनेक्शन बंद हो जाएगा।</string>
     <string name="bond_delete_failed">कुंजी नहीं हटाई जा सकी। फिर से कोशिश करें।</string>
     <string name="bond_hex_hint">हेक्साडेसिमल: %1$d बाइट</string>
+
+    <string name="settings_diag_title">डायग्नोस्टिक लॉग</string>
+    <string name="settings_diag_subtitle">हाल की ब्रिज और चश्मे की घटनाएँ, केवल इस फ़ोन में रखी जाती हैं। इसमें कोई कुंजी या टोकन नहीं है। कुछ गड़बड़ होने पर साझा करने के लिए इसे सहेजें।</string>
+    <string name="settings_diag_saved">डायग्नोस्टिक लॉग सहेजा गया।</string>
+    <string name="settings_diag_error">डायग्नोस्टिक लॉग सहेजा नहीं जा सका: %1$s</string>
 </resources>

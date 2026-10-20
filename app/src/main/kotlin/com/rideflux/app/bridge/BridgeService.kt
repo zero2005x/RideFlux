@@ -27,6 +27,7 @@ import androidx.core.content.ContextCompat
 import com.rideflux.app.MainActivity
 import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.BridgePairingToken
+import com.rideflux.data.bridge.DiagnosticLogs
 import com.rideflux.data.bridge.SignalLevel
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
@@ -48,13 +49,12 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -135,6 +135,9 @@ class BridgeService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        DiagnosticLogs.record(DIAG, "service created")
+        // The flag outlives the service for as long as the process does; a new service is a new ride.
+        showHudForNewSession("service created")
         _linkMode.value = GlassesLinkPreferences.read(this)
         ContextCompat.registerReceiver(
             this,
@@ -158,6 +161,7 @@ class BridgeService : Service() {
                 _activeMac.value = selected.mac
                 setBridgeState(BridgeState.ATTACHING)
                 Log.i(TAG, "wheel target set: ${selected.mac} family=${selected.family}")
+                DiagnosticLogs.record(DIAG, "target set ${DiagnosticLogs.maskAddress(selected.mac)} family=${selected.family}")
             }
             ACTION_CLEAR_TARGET -> {
                 target.value = null
@@ -167,6 +171,7 @@ class BridgeService : Service() {
                 // does idleFrames() set STANDBY. ScannerRoute waits for that
                 // state so it never scans while the wheel is still connected.
                 Log.i(TAG, "wheel target clearing; waiting for GATT teardown")
+                DiagnosticLogs.record(DIAG, "target cleared")
             }
             ACTION_SET_LINK_MODE -> readLinkMode(intent)?.let(::switchPublisher)
             ACTION_APPROVE_PEER -> {
@@ -240,9 +245,11 @@ class BridgeService : Service() {
             initialDelayMillis = if (previous == null) 0L else PUBLISHER_SWITCH_SETTLE_MILLIS,
         )
         Log.i(TAG, "glasses link mode changed to $mode")
+        DiagnosticLogs.record(DIAG, "link mode $mode")
     }
 
     private fun onBluetoothStateChanged(adapterState: Int) {
+        DiagnosticLogs.record(DIAG, "bluetooth adapter state $adapterState -> ${bluetoothStateAction(adapterState)}")
         when (bluetoothStateAction(adapterState)) {
             BluetoothStateAction.RELEASE_PUBLISHER -> releasePublisher()
             BluetoothStateAction.REOPEN_PUBLISHER -> ensureBridgeOpen()
@@ -268,6 +275,7 @@ class BridgeService : Service() {
         cancelAuthorizationNotification()
         setBridgeState(BridgeState.DEGRADED)
         Log.i(TAG, "Bluetooth went down; bridge publisher released until it is back")
+        DiagnosticLogs.record(DIAG, "bluetooth down: publisher released")
     }
 
     /** Opens the server with an infinite capped retry; callers never own this job. */
@@ -319,9 +327,12 @@ class BridgeService : Service() {
                         publisher = opening
                         opening.attachSource(scope, frames())
                         candidate = null // Ownership transferred to publisher.
-                        consecutiveCxrFailures = 0
+                        // The retry loop is left by the return below, so the
+                        // CXR failure counter dies with this coroutine and
+                        // needs no reset here.
                         if (target.value == null) setBridgeState(BridgeState.STANDBY)
                         Log.i(TAG, "bridge publisher started: $openingMode")
+                        DiagnosticLogs.record(DIAG, "publisher started $openingMode")
                         return@launch
                     }
                     opening.stop()
@@ -354,6 +365,7 @@ class BridgeService : Service() {
                     }
                     val waitMs = reconnectBackoffMillis(attempt++)
                     Log.w(TAG, "bridge publisher open failed; retrying in ${waitMs}ms")
+                    DiagnosticLogs.record(DIAG, "publisher open failed ($openingMode); retry in ${waitMs}ms")
                     delay(waitMs)
                 }
             } finally {
@@ -364,8 +376,22 @@ class BridgeService : Service() {
         }
     }
 
+    private fun frames(): Flow<BridgeFrame> = framePipeline().restartingOnFailure(
+        backoffMillis = ::reconnectBackoffMillis,
+        healthyAfterMillis = PIPELINE_HEALTHY_MILLIS,
+        elapsedRealtime = SystemClock::elapsedRealtime,
+        onFailure = ::onPipelineFailed,
+        standbyFor = { waitMillis -> emitStandbyFor(waitMillis) },
+    )
+
+    private fun onPipelineFailed(error: Throwable) {
+        Log.e(TAG, "bridge frame pipeline failed; restarting it", error)
+        DiagnosticLogs.record(DIAG, "pipeline failed: ${error.javaClass.simpleName}: ${error.message}")
+        setBridgeState(BridgeState.DEGRADED)
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun frames(): Flow<BridgeFrame> = combine(
+    private fun framePipeline(): Flow<BridgeFrame> = combine(
         target.flatMapLatest { selected ->
             if (selected == null) {
                 setBridgeState(BridgeState.STANDBY)
@@ -381,11 +407,16 @@ class BridgeService : Service() {
         // reacts at once instead of at the next telemetry tick — which
         // in standby would be up to a second away.
         frame.copy(hudHidden = !visible)
-    }.catch { error ->
-        if (error is CancellationException) throw error
-        Log.e(TAG, "bridge frame pipeline failed; falling back to standby", error)
-        setBridgeState(BridgeState.DEGRADED)
-        emitAll(idleFrames())
+    }
+
+    /** Standby frames for [waitMillis], so the glasses see a live phone while a link comes back. */
+    private suspend fun FlowCollector<BridgeFrame>.emitStandbyFor(waitMillis: Long) {
+        val deadline = SystemClock.elapsedRealtime() + waitMillis
+        do {
+            emit(standbyFrame(phoneBatteryPercent = readPhoneBatteryPercent()).copy(hudHidden = !_hudVisible.value))
+            val remaining = deadline - SystemClock.elapsedRealtime()
+            if (remaining > 0L) delay(min(IDLE_HEARTBEAT_MILLIS, remaining))
+        } while (SystemClock.elapsedRealtime() < deadline)
     }
 
     /** Never completes unless its owning coroutine is cancelled. */
@@ -400,6 +431,7 @@ class BridgeService : Service() {
                 closeLink = link.close
                 var reachedActiveState = false
                 link.snapshots.collect { snapshot ->
+                    noteLeavingRelaying(snapshot)
                     when (snapshot.connectionState) {
                         ConnectionState.Ready -> {
                             reachedActiveState = true
@@ -421,13 +453,14 @@ class BridgeService : Service() {
                     emit(snapshot.frame)
                     val terminal = snapshot.connectionState is ConnectionState.Failed ||
                         (snapshot.connectionState == ConnectionState.Disconnected && reachedActiveState)
-                    if (terminal) throw WheelLinkEnded()
+                    if (terminal) throw WheelLinkEnded("last state ${describeConnectionState(snapshot.connectionState)}")
                 }
-                throw WheelLinkEnded()
+                throw WheelLinkEnded("snapshot flow completed")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
                 Log.w(TAG, "wheel link ${selected.mac} ended: ${e.message}")
+                DiagnosticLogs.record(DIAG, "wheel link ${DiagnosticLogs.maskAddress(selected.mac)} ended: ${e.javaClass.simpleName} ${e.message}")
             } finally {
                 withContext(NonCancellable) {
                     try { closeLink?.invoke() } catch (_: Throwable) { /* best-effort */ }
@@ -437,13 +470,25 @@ class BridgeService : Service() {
             setBridgeState(BridgeState.DEGRADED)
             val waitMs = reconnectBackoffMillis(if (reachedReady) 0L else attempt)
             attempt = if (reachedReady) 0L else attempt + 1L
-            val deadline = SystemClock.elapsedRealtime() + waitMs
-            do {
-                emit(standbyFrame(phoneBatteryPercent = readPhoneBatteryPercent()))
-                val remaining = deadline - SystemClock.elapsedRealtime()
-                if (remaining > 0L) delay(min(IDLE_HEARTBEAT_MILLIS, remaining))
-            } while (SystemClock.elapsedRealtime() < deadline)
+            emitStandbyFor(waitMs)
         }
+    }
+
+    /**
+     * The "state RELAYING -> X" line says that the bridge left RELAYING but not why. Leaving it
+     * because the wheel stopped sending (still Ready, frame stale) and because the link dropped
+     * (Disconnected / Failed) look identical there, so say which, once, just before the change.
+     */
+    private fun noteLeavingRelaying(snapshot: WheelSnapshot) {
+        if (_state.value != BridgeState.RELAYING) return
+        val frame = snapshot.frame
+        val reason = relayingExitReason(
+            snapshot.connectionState,
+            frameReady = frame.ready,
+            frameStale = frame.stale,
+            frameAgeMillis = System.currentTimeMillis() - frame.timestampMillis,
+        ) ?: return
+        DiagnosticLogs.record(DIAG, "leaving RELAYING: $reason")
     }
 
     /**
@@ -569,6 +614,7 @@ class BridgeService : Service() {
         _pendingAuthorization.value = null
         scope.cancel()
         Log.i(TAG, "bridge stopped")
+        DiagnosticLogs.record(DIAG, "service destroyed")
         super.onDestroy()
     }
 
@@ -676,6 +722,7 @@ class BridgeService : Service() {
 
     private fun setBridgeState(value: BridgeState) {
         if (_state.value == value) return
+        DiagnosticLogs.record(DIAG, "state ${_state.value} -> $value")
         _state.value = value
         applyAdvertiseMode()
         val canPostNotification = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -696,7 +743,23 @@ class BridgeService : Service() {
     }
 
     private fun setLinkState(value: GlassesLinkState) {
+        // A blanked HUD is a choice made for one stretch of riding. The glasses restarting or
+        // coming back are a new session, and a display that stays blank across it, with nothing
+        // on the phone to explain why, looks like a dead link. (A blank that is still wanted is one
+        // ring press away.) Staying CONNECTED, or dropping to READY, keeps the rider's choice.
+        if (value == GlassesLinkState.CONNECTED && _linkState.value != GlassesLinkState.CONNECTED) {
+            showHudForNewSession("glasses connected")
+        }
+        // The phone can stay RELAYING for a wheel while the glasses link is long gone, so the
+        // glasses side has to be in the same log to tell the two apart.
+        if (_linkState.value != value) DiagnosticLogs.record(DIAG, "glasses link ${_linkState.value} -> $value")
         _linkState.value = value
+    }
+
+    private fun showHudForNewSession(reason: String) {
+        if (_hudVisible.value) return
+        DiagnosticLogs.record(DIAG, "hud shown again: $reason")
+        setHudVisible(true)
     }
 
     private fun startForegroundCompat() {
@@ -741,6 +804,7 @@ class BridgeService : Service() {
 
     companion object {
         private const val TAG = "BridgeService"
+        private const val DIAG = "bridge"
         internal const val CHANNEL_ID = "rideflux_bridge"
         private const val NOTIF_ID = 7421
 
@@ -768,6 +832,9 @@ class BridgeService : Service() {
         private const val STALE_THRESHOLD_MILLIS = 3_000L
         private const val STALE_TICK_MILLIS = 1_000L
         private const val IDLE_HEARTBEAT_MILLIS = 1_000L
+
+        /** A pipeline that ran this long before failing has recovered; its retry delay starts over. */
+        private const val PIPELINE_HEALTHY_MILLIS = 30_000L
         private const val PHONE_BATTERY_POLL_MILLIS = 15_000L
         private const val PUBLISHER_SWITCH_SETTLE_MILLIS = 1_000L
 
@@ -810,18 +877,20 @@ class BridgeService : Service() {
          * Deliberately *not* persisted: a hidden HUD is a momentary
          * choice made mid-ride, and starting a later ride with a
          * blank display the rider does not remember switching off is
-         * worse than making them press the ring again.
+         * worse than making them press the ring again. For the same
+         * reason it is put back to "shown" whenever the service starts
+         * and whenever glasses connect afresh (see [setLinkState]), so a
+         * blank cannot silently outlive the session it was chosen in.
          */
         val hudVisible: StateFlow<Boolean> = _hudVisible.asStateFlow()
 
         /** Show or blank the HUD; takes effect on the next frame, which is immediate. */
         fun setHudVisible(visible: Boolean) {
+            if (_hudVisible.value != visible) DiagnosticLogs.record(DIAG, "hud visible=$visible")
             _hudVisible.value = visible
         }
 
-        fun toggleHudVisible() {
-            _hudVisible.value = !_hudVisible.value
-        }
+        fun toggleHudVisible() = setHudVisible(!_hudVisible.value)
 
         fun startStandby(context: Context) {
             launch(context, Intent(context, BridgeService::class.java).apply { action = ACTION_START })
@@ -965,4 +1034,28 @@ internal fun bluetoothStateAction(adapterState: Int): BluetoothStateAction = whe
 internal fun reconnectBackoffMillis(attempt: Long): Long =
     (1_000L * (1L shl attempt.coerceIn(0L, 4L).toInt())).coerceAtMost(15_000L)
 
-private class WheelLinkEnded : RuntimeException("wheel link ended")
+private class WheelLinkEnded(detail: String) : RuntimeException("wheel link ended ($detail)")
+
+// Release builds rename these classes, so diagnostic names must not use reflection.
+internal fun describeConnectionState(state: ConnectionState): String = when (state) {
+    ConnectionState.Disconnected -> "Disconnected"
+    ConnectionState.Connecting -> "Connecting"
+    is ConnectionState.Handshaking -> "Handshaking"
+    ConnectionState.ScooterHandshaking -> "ScooterHandshaking"
+    ConnectionState.Ready -> "Ready"
+    is ConnectionState.Failed -> "Failed(${state.reason}${state.message?.let { ": $it" }.orEmpty()})"
+}
+
+/**
+ * Why a snapshot takes the bridge out of RELAYING, or null while it keeps it there (the wheel is
+ * Ready and its telemetry is fresh). Pure so the wording the diagnostic log relies on is pinned.
+ */
+internal fun relayingExitReason(
+    connection: ConnectionState,
+    frameReady: Boolean,
+    frameStale: Boolean,
+    frameAgeMillis: Long,
+): String? {
+    if (connection == ConnectionState.Ready && frameReady) return null
+    return "conn=${describeConnectionState(connection)} ready=$frameReady stale=$frameStale frameAgeMs=$frameAgeMillis"
+}
