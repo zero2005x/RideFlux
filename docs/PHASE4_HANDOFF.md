@@ -16,4 +16,4 @@ The current pipeline handles plaintext `5A A5` Ninebot Retail frames. Encrypted 
 
 ## Verification
 
-Java 21 under WSL Kali: `./gradlew :domain:test :data:protocol:test --no-configuration-cache` — **304 tests, 0 failures, 0 errors** (75 domain, 229 protocol). The three new integration tests use only JVM coroutines and a fake `BleTransport`.
+Java 21 under WSL: `./gradlew :domain:test :data:protocol:test --no-configuration-cache` — **304 tests, 0 failures, 0 errors** (75 domain, 229 protocol). The three new integration tests use only JVM coroutines and a fake `BleTransport`.

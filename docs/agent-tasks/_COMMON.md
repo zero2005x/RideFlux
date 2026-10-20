@@ -21,8 +21,8 @@ Gradle). A gatekeeper reviews your PR. Follow these rules exactly; they come fro
 
 ## Evidence (read-only reference)
 
-Reverse-engineering notes live in WSL: `\\wsl.localhost\kali-linux\home\kali\PEVAppRE\euc-programme\findings\`
-(read with PowerShell `Get-Content -Encoding UTF8`, view-only). Key files are named in each task.
+Reverse-engineering notes live in the owner's protocol research notes (not published; the owner
+gives the location), under `euc-programme/findings/` (read with PowerShell `Get-Content -Encoding UTF8`, view-only). Key files are named in each task.
 Every note carries an evidence level: L0 string only, **L1 community/derived — a lead, not proof**,
 L2 spec-grade or multiple concordant sources, L3 observed on hardware, L4 repeatable on hardware.
 Rules:

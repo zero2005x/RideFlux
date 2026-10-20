@@ -10,7 +10,7 @@ implement real encoders, and states clearly what remains unknown.
 ## Allowed sources
 1. Open-source apps already in `euc-programme/upstream/` (WheelLog, WheelDash, EUC-free-app) —
    **read the protocol facts and re-derive; do not copy code or comments**.
-2. PEVAppRE findings: `CROSS_BRAND_COMMAND_REFERENCE.md`, `DOMAIN_COMMAND_COVERAGE.md`,
+2. The owner's research findings (not published): `CROSS_BRAND_COMMAND_REFERENCE.md`, `DOMAIN_COMMAND_COVERAGE.md`,
    `KINGSONG_COMMAND_VOCABULARY.md`, `KINGSONG_WRITE_COMMANDS.md`, `BEGODE_A2_ACTIONS.md`,
    `LEAPERKIM_PROTOCOL_GENERATIONS.md`, `DARKNESSBOT_COMMAND_ARCHITECTURE.md`, `SAFETY_GATING_ARCHITECTURE.md`,
    `M365_ROKID_HUD_CONNECTION_MODEL.md` (spec-grade M365 writes).
