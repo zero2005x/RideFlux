@@ -93,11 +93,14 @@ object BegodeDecoder {
         settingsBitfield = ByteReader.u16BE(frame, 6),
         autoPowerOffSeconds = ByteReader.u16BE(frame, 8),
         tiltbackSpeedKmh = ByteReader.u16BE(frame, 10),
-        ledMode = ByteReader.u8(frame, 14),
-        alertBitmap = ByteReader.u8(frame, 15),
-        // Per §3.1.4 only the low two bits of the light-mode byte at
-        // offset 17 are significant (off / on / strobe).
-        lightMode = ByteReader.u8(frame, 17) and 0x03,
+        // Bytes 14-15 are one big-endian word: state bits in the high byte
+        // (14), headlight mode in the low byte (15). Both Begode vendor apps
+        // and WheelLog read them this way; RideFlux used to read them swapped.
+        stateBits = ByteReader.u8(frame, 14),
+        headlightMode = ByteReader.u8(frame, 15),
+        // Bytes 16-17 are the vehicle/device type in both vendor apps (an A2
+        // reports 18), not a light mode.
+        deviceType = ByteReader.u16BE(frame, 16),
         subIndex = subIndex,
     )
 }

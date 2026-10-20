@@ -33,6 +33,12 @@ paths after "Taken from" are relative to app/src/ in the WheelLog repository.
    familyg/BegodeBatteryPackTest.kt
        Sample frame "A" from the same comment, with its voltage field changed.
 
+   familyg/BegodeStateBitsTest.kt
+       Sample frame "A" from the same comment, and real Begode frames from
+       the tests "decode with 2020 board data" and "decode with new board
+       data 2".
+       Taken from: test/java/com/cooper/wheellog/utils/GotwayAdapterTest.kt
+
    familyv/VeteranRealFrameTest.kt
    familyv/VeteranDecoderTest.kt
        Real Veteran frames: three in the first file; the second file uses one

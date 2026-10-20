@@ -93,17 +93,21 @@ sealed class BegodeFrame {
      * Type `0x04` odometer and device settings (§3.1.4).
      *
      * Raw `settingsBitfield` (U16BE) is kept as-is; sub-fields are
-     * exposed through derived properties. `lightMode` is masked with
-     * `0x03` per test vector §2.
+     * exposed through derived properties.
+     *
+     * @property stateBits byte 14: the wheel's fault/state bits (see the
+     *   `state*` properties).
+     * @property headlightMode byte 15: the headlight mode (0 = off).
+     * @property deviceType bytes 16-17 (U16BE): the vehicle/device type.
      */
     data class SettingsAndOdometer(
         val totalDistanceMeters: Long,
         val settingsBitfield: Int,
         val autoPowerOffSeconds: Int,
         val tiltbackSpeedKmh: Int,
-        val ledMode: Int,
-        val alertBitmap: Int,
-        val lightMode: Int,
+        val stateBits: Int,
+        val headlightMode: Int,
+        val deviceType: Int,
         override val subIndex: Int,
     ) : BegodeFrame() {
 
@@ -115,15 +119,20 @@ sealed class BegodeFrame {
         val rollAngleMode: Int get() = (settingsBitfield ushr 7) and 0x07
         val milesMode: Boolean get() = (settingsBitfield and 0x01) != 0
 
-        // Alert bitmap decomposition per §4.1.
-        val alertWheelAlarm: Boolean get() = (alertBitmap and 0x01) != 0
-        val alertSpeedLevel2: Boolean get() = (alertBitmap and 0x02) != 0
-        val alertSpeedLevel1: Boolean get() = (alertBitmap and 0x04) != 0
-        val alertLowVoltage: Boolean get() = (alertBitmap and 0x08) != 0
-        val alertOverVoltage: Boolean get() = (alertBitmap and 0x10) != 0
-        val alertOverTemperature: Boolean get() = (alertBitmap and 0x20) != 0
-        val alertHallSensor: Boolean get() = (alertBitmap and 0x40) != 0
-        val alertTransportMode: Boolean get() = (alertBitmap and 0x80) != 0
+        // State bits, named after both vendor apps (com.begode.app's
+        // Packet4Telemetry and com.zzcyi.monotroch's HomeFragment). Bits 1
+        // and 2 are a MOS and a gyro fault, not speed alarms; bit 7 is the
+        // lock state, not a fault.
+
+        /** Bit 0: high-power warning in the older vendor app; unnamed in the newer one. */
+        val stateHighPowerWarning: Boolean get() = (stateBits and 0x01) != 0
+        val stateMosFault: Boolean get() = (stateBits and 0x02) != 0
+        val stateGyroFault: Boolean get() = (stateBits and 0x04) != 0
+        val stateLowVoltage: Boolean get() = (stateBits and 0x08) != 0
+        val stateOverVoltage: Boolean get() = (stateBits and 0x10) != 0
+        val stateOverTemperature: Boolean get() = (stateBits and 0x20) != 0
+        val stateHallSensor: Boolean get() = (stateBits and 0x40) != 0
+        val stateLocked: Boolean get() = (stateBits and 0x80) != 0
     }
 
     /**
