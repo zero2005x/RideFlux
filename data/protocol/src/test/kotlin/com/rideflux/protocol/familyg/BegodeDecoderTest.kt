@@ -78,17 +78,21 @@ class BegodeDecoderTest {
         assertEquals(0x4800, decoded.settingsBitfield)
         assertEquals(7200, decoded.autoPowerOffSeconds)
         assertEquals(42, decoded.tiltbackSpeedKmh)
-        assertEquals(0, decoded.ledMode)
-        assertEquals(0x07, decoded.alertBitmap)
-        assertEquals(0, decoded.lightMode)   // raw 0x08 masked with 0x03
+        // Bytes 14-15 = 00 07: no state bits, headlight mode 7. Reading byte
+        // 15 as the fault byte would turn this parked wheel's headlight into
+        // three alarms.
+        assertEquals(0x00, decoded.stateBits)
+        assertEquals(0x07, decoded.headlightMode)
+        assertEquals(0x0008, decoded.deviceType)
 
-        // Alert bits per §4.1: 0x07 sets bits 0, 1, 2.
-        assertTrue(decoded.alertWheelAlarm)
-        assertTrue(decoded.alertSpeedLevel2)
-        assertTrue(decoded.alertSpeedLevel1)
-        assertFalse(decoded.alertLowVoltage)
-        assertFalse(decoded.alertOverVoltage)
-        assertFalse(decoded.alertOverTemperature)
+        assertFalse(decoded.stateHighPowerWarning)
+        assertFalse(decoded.stateMosFault)
+        assertFalse(decoded.stateGyroFault)
+        assertFalse(decoded.stateLowVoltage)
+        assertFalse(decoded.stateOverVoltage)
+        assertFalse(decoded.stateOverTemperature)
+        assertFalse(decoded.stateHallSensor)
+        assertFalse(decoded.stateLocked)
 
         // Miles-mode flag (bit 0 of settings bitfield) is clear.
         assertFalse(decoded.milesMode)

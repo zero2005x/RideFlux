@@ -166,7 +166,7 @@ class BegodeWheelCodec(
         now: Long,
         events: MutableList<DecodeEvent>,
     ) {
-        if (frame.alertOverTemperature && !previousBit(s, WheelFault.MosOverTemperature)) {
+        if (frame.stateOverTemperature && !previousBit(s, WheelFault.MosOverTemperature)) {
             events.add(
                 DecodeEvent.Alert(
                     WheelAlert.OverTemperature(
@@ -177,7 +177,7 @@ class BegodeWheelCodec(
                 ),
             )
         }
-        if (frame.alertLowVoltage && !previousBit(s, WheelFault.LowBattery)) {
+        if (frame.stateLowVoltage && !previousBit(s, WheelFault.LowBattery)) {
             events.add(
                 DecodeEvent.Alert(
                     WheelAlert.LowBattery(
@@ -187,19 +187,8 @@ class BegodeWheelCodec(
                 ),
             )
         }
-        if ((frame.alertSpeedLevel1 || frame.alertSpeedLevel2) &&
-            !previousBit(s, WheelFault.OverSpeed)
-        ) {
-            events.add(
-                DecodeEvent.Alert(
-                    WheelAlert.TiltBack(
-                        timestampMillis = now,
-                        speedKmh = s.last.speedKmh ?: 0f,
-                        limit = frame.tiltbackSpeedKmh.toFloat(),
-                    ),
-                ),
-            )
-        }
+        // No TiltBack alert: it used to fire on state bits 1/2, which are a
+        // MOS and a gyro fault, and no state bit is known to signal tilt-back.
     }
 
     private fun emitIdentifiedOnce(s: BegodeState, events: MutableList<DecodeEvent>) {
@@ -238,17 +227,26 @@ class BegodeWheelCodec(
     private fun previousBit(s: BegodeState, fault: WheelFault): Boolean =
         fault in s.previousFaults
 
+    /**
+     * Maps the byte-14 state bits to faults. Bit 0 (a high-power warning)
+     * and bit 7 (locked, a state the rider chose) are deliberately not faults.
+     */
     private fun buildFaults(f: BegodeFrame.SettingsAndOdometer): Set<WheelFault> {
         val set = LinkedHashSet<WheelFault>()
-        if (f.alertOverVoltage) set.add(WheelFault.OverVoltage)
-        if (f.alertLowVoltage) set.add(WheelFault.LowBattery)
-        if (f.alertOverTemperature) set.add(WheelFault.MosOverTemperature)
-        if (f.alertHallSensor) set.add(WheelFault.MotorHallSensor)
-        if (f.alertSpeedLevel1 || f.alertSpeedLevel2) set.add(WheelFault.OverSpeed)
+        if (f.stateOverVoltage) set.add(WheelFault.OverVoltage)
+        if (f.stateLowVoltage) set.add(WheelFault.LowBattery)
+        if (f.stateOverTemperature) set.add(WheelFault.MosOverTemperature)
+        if (f.stateHallSensor) set.add(WheelFault.MotorHallSensor)
+        if (f.stateGyroFault) set.add(WheelFault.ImuSensor)
+        // WheelFault has no MOS/driver-fault variant; OverCurrent would be a guess.
+        if (f.stateMosFault) set.add(MOS_FAULT)
         return set
     }
 
     companion object {
+        /** State bit 1: MOS/driver fault. */
+        val MOS_FAULT: WheelFault = WheelFault.Unknown(domain = "G.stateBit1.mosFault", code = 1)
+
         // Capabilities mirror exactly what encode() can emit. Ride modes,
         // tilt-back and pedal sensitivity are advertised as unsupported
         // until the corresponding command mappings are implemented, so a
