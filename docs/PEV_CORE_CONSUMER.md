@@ -20,9 +20,12 @@ The unreleased snapshot is not fetched from an untrusted Maven mirror.
 ./gradlew -PpevCoreDir=/path/to/M365-Rokid-HUD :data:protocol:dependencyInsight --dependency pev-protocol-core --configuration testRuntimeClasspath
 ```
 
-CI must supply the matching core source checkout before configuring this consumer. The current
-core is an unreleased local snapshot; this branch does not claim a remotely published artifact or
-an already passing remote pipeline. Record both consumer and core revisions when reproducing a run.
+CI supplies the core itself. The CI, release and verification-metadata workflows check out the public
+`zero2005x/M365-Rokid-HUD` repository into `.pev-core` (ignored by git), pinned to the validated
+revision `bd3913d9c917f2eeccc60db0428b81fb6cdae4cc`, and set `PEV_CORE_DIR=.pev-core`. To move to a
+newer core, update that `ref` in all three workflows together with the validation record below.
+The core is still an unreleased snapshot built from source, not a published artifact. Record both
+consumer and core revisions when reproducing a run.
 
 ## Actual consumption and limits
 
@@ -106,8 +109,8 @@ The external module snapshot uses these SHA256 hashes (file bytes, including exi
 | `src/main/kotlin/io/github/zero2005x/pev/core/codec/xiaomi/XiaomiBmsDecoder.kt` | `a3fb244bdbe4fdb1bcec531e0e97a4d4ca510d56be2c66afee2f1cb28a6b582a` |
 | `build.gradle.kts` | `c44c0252188e9e8f54ad9136017aaf6f5c0b15acfff69d04defd5b17f59678f0` |
 
-The source snapshot was staged independently under `/home/kali/build/rideflux-pev-core-source`;
-consumer output stayed under `/home/kali/build/rideflux-pev-consumer-stage`. The live owner
+The source snapshot was staged in a separate scratch directory (`<core-snapshot>` below), and
+consumer output stayed in another one. The live owner
 checkout and HUD source were not modified. A later HUD decoder comment correction does not
 alter these validated wire operations; use the hashes above to reproduce the exact snapshot.
 
@@ -115,7 +118,7 @@ The final locked run used Gradle 9.6.0, Java 21, Kotlin 2.3.21, JVM target 17 an
 `--offline`, without writing verification metadata:
 
 ```sh
-./gradlew --no-daemon --offline -PpevCoreDir=/home/kali/build/rideflux-pev-core-source \
+./gradlew --no-daemon --offline -PpevCoreDir=<core-snapshot> \
   :domain:test :data:protocol:test :data:protocol:jacocoTestReport \
   :pev-core-source:pev-protocol-core:test \
   :data:protocol:dependencyInsight --dependency pev-protocol-core --configuration testRuntimeClasspath
@@ -143,7 +146,7 @@ exclusion, suppression, credential embedding or verification exception was added
 related-module tasks were run with strict checksum verification:
 
 ```sh
-./gradlew --no-daemon --offline --continue -PpevCoreDir=/home/kali/build/rideflux-pev-core-source \
+./gradlew --no-daemon --offline --continue -PpevCoreDir=<core-snapshot> \
   :app:lintDebug :hud-app:lintDebug :app:assembleDebug :hud-app:assembleDebug
 ```
 
@@ -178,7 +181,7 @@ byte-compared with the authoritative source before recording results. Consumer c
 
 ```sh
 ./gradlew --no-daemon --offline --max-workers=2 \
-  -PpevCoreDir=/home/kali/build/rideflux-pev-core-source \
+  -PpevCoreDir=<core-snapshot> \
   :domain:test :data:protocol:test :data:protocol:jacocoTestReport \
   :pev-core-source:pev-protocol-core:test :pev-core-source:pev-protocol-core:koverXmlReport \
   :app:lintDebug :hud-app:lintDebug :app:assembleDebug :hud-app:assembleDebug

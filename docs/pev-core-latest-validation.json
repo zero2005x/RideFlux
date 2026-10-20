@@ -6,7 +6,7 @@
   "consumerHeadAtVerification": "c984f52fb7415e8d376b3a4ba45b89dbd86358e3",
   "consumerSelectedBase": "9bd9eaa82e55efaa936afa5d332e7ef2c752b7b8",
   "hudCoreCodeRevision": "bd3913d9c917f2eeccc60db0428b81fb6cdae4cc",
-  "sourceDirectory": "/home/kali/build/rideflux-pev-core-source",
+  "sourceDirectory": "<core-snapshot> (a scratch copy of zero2005x/M365-Rokid-HUD at hudCoreCodeRevision)",
   "tasks": [
     ":domain:test",
     ":data:protocol:test",
