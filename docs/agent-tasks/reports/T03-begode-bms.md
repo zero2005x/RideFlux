@@ -2,7 +2,7 @@
 
 Base: `f3c0543` (latest main, T02 merged). Date: 2026-10-10.
 No H1 files exist in `docs/agent-tasks/reports/` at implementation time.
-Sources below are the owner's read-only PEVAppRE `euc-programme/findings/` notes;
+Sources below are the owner's read-only research `euc-programme/findings/` notes (not published);
 only the minimal owner's CAP-A fixture was copied, not vendor application code.
 
 ## Packet evidence table

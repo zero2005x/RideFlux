@@ -5,8 +5,8 @@
 ## Context
 Only family with spec-grade registers: 40+ registers, `0xB0` offset, 12 writable. Session crypto
 is ECDH → HKDF → AES-CCM with **published known-answer tests (KATs)**. Real-vehicle evidence exists:
-Xiaomi M365 logcat and telemetry CSVs in `scooter-apps/hardware-evidence/` (read-only, in WSL
-`\\wsl.localhost\kali-linux\home\kali\PEVAppRE\scooter-apps\`).
+Xiaomi M365 logcat and telemetry CSVs in `scooter-apps/hardware-evidence/` (read-only, in the
+owner's protocol research notes, not published).
 
 Read: `M365_ROKID_HUD_CONNECTION_MODEL.md`, `NINEBOT_XIAOMI_UPSTREAM_REFERENCE.md`,
 `NINEBOT_ARCHITECTURE_MAP.md`, `docs/MI_AUTH.md`, `docs/M365_REVERSE_SPEED_2026-10-07.md`,

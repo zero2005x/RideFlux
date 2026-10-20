@@ -15,7 +15,7 @@ Phase 2 delivered read-only M365 and Ninebot retail structural codecs, KingSong 
 - Phase 1 changes are uncommitted. Do not discard them. They add `PlevDevice`, peer wheel/BMS/scooter telemetry, `MotionInterlock`, `ClosedLoopVerification`, read-only JBD/Ant/VESC codecs, and the Inmotion 31-model registry.
 - `WheelConnectionImpl.dispatch()` now checks three fresh zero-speed frames before critical commands and rejects `PowerOff` and `Raw` at the transport boundary. The old command types still exist for compatibility; do not describe them as unconstructible.
 - Verified before Phase 2: `:domain:test` 75 tests, `:data:protocol:test` 197 tests, no failures. `:data:ble:compileDebugKotlin` passed in a clean Linux copy. The BLE unit-test task could not run offline because Robolectric 4.17 and MockK 1.14.11 were absent from the WSL Gradle cache.
-- On Windows, Gradle currently fails to establish a loopback connection. WSL builds against `/home/kali/android-sdk` and `GRADLE_USER_HOME=/home/kali/ElectricUnicycleHacking/.gradle-home`. Building Android modules in the mounted Windows checkout can fail KSP with mixed Windows/Linux paths; use a clean Linux copy for Android compile checks.
+- On Windows, Gradle currently fails to establish a loopback connection. WSL builds against a Linux-side Android SDK and a Linux-side `GRADLE_USER_HOME` in the owner's research workspace. Building Android modules in the mounted Windows checkout can fail KSP with mixed Windows/Linux paths; use a clean Linux copy for Android compile checks.
 
 ## Phase 2 ownership (completed assignments)
 
@@ -30,7 +30,7 @@ The fourth agent added `Phase2WireInvariantTest.kt`, with independent literal ve
 
 ## Evidence and safety boundaries
 
-The authoritative research directory is `\\wsl.localhost\kali-linux\home\kali\ElectricUnicycleHacking`; consult `findings/` before implementing any disputed byte geometry or model parameter. `PLAN.md` says only Begode A2 has local wire-and-behaviour validation. Static or community-derived findings must not be presented as hardware-verified.
+The authoritative research directory is the owner's protocol research notes (not published); consult its `findings/` before implementing any disputed byte geometry or model parameter. `PLAN.md` says only Begode A2 has local wire-and-behaviour validation. Static or community-derived findings must not be presented as hardware-verified.
 
 - Ninebot retail registers `0x70` and `0x71` are lock/unlock and are **T-CRITICAL** because they reset the scooter. `0x78` reboot and `0x79` power-down are **T-FORBIDDEN**. The Phase 2 prompt labels `0x70`/`0x71` incorrectly.
 - Some retail length and checksum rules are in conflict in `NINEBOT_RETAIL_PROTOCOL_SPEC.md`. Unknown scaling or reply geometry should remain nullable or unsupported, never guessed into telemetry.

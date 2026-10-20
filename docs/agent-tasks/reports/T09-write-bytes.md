@@ -2,7 +2,7 @@
 
 **Task:** T09 (write-byte research, findings only). **No Kotlin changed by this task.**
 **Branch:** `docs/T09-write-bytes`. **Date:** 2026-10-09.
-**Sources:** the PEVAppRE findings tree (read-only) plus the open-source apps already vendored in
+**Sources:** the owner's research findings tree (read-only, not published) plus the open-source apps already vendored in
 `euc-programme/upstream/`. No device was touched, no BLE was transmitted, no write was performed.
 
 ---
@@ -633,7 +633,7 @@ identical bytes and only the mode tells them apart (`CROSS_BRAND_COMMAND_REFEREN
 
 ## 8. Sources, tooling, and what was not done
 
-### 8.1 Findings read (all under `/home/kali/PEVAppRE/euc-programme/findings/`, read-only)
+### 8.1 Findings read (all under `euc-programme/findings/` in the owner's research notes, read-only, not published)
 
 `CROSS_BRAND_COMMAND_REFERENCE.md` · `DOMAIN_COMMAND_COVERAGE.md` · `KINGSONG_COMMAND_VOCABULARY.md` ·
 `KINGSONG_WRITE_COMMANDS.md` · `BEGODE_A2_ACTIONS.md` · `LEAPERKIM_PROTOCOL_GENERATIONS.md` ·

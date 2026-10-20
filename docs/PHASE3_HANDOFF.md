@@ -20,7 +20,7 @@ Updated 2026-10-04 (Asia/Taipei). Phase 1 and Phase 2 changes remain uncommitted
 
 ## Verification
 
-WSL with Java 21 and `GRADLE_USER_HOME=/home/kali/ElectricUnicycleHacking/.gradle-home`:
+WSL with Java 21 and a Linux-side `GRADLE_USER_HOME`:
 
 `./gradlew :domain:test :data:protocol:test --no-configuration-cache`
 

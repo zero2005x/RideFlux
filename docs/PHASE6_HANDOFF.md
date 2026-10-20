@@ -15,9 +15,9 @@
 
 ## Evidence and safety boundary
 
-The captured B5 scale comes from one Xiaomi M365 in `/home/kali/ScooterHacking/artifacts/SPEED-FIELD-ANALYSIS.md`. It does not establish the scale for a Ninebot ES2. The capture also reports invalid B5 sentinel values while slowing and with a spinning wheel. Therefore a sentinel cannot mean a safe zero speed; it is unknown and fails the motion interlock. Values are not clamped to 60 km/h because that would hide an out-of-range observation.
+The captured B5 scale comes from one Xiaomi M365 in the owner's speed-field analysis (`SPEED-FIELD-ANALYSIS.md` in the owner's scooter research notes, not published). It does not establish the scale for a Ninebot ES2. The capture also reports invalid B5 sentinel values while slowing and with a spinning wheel. Therefore a sentinel cannot mean a safe zero speed; it is unknown and fails the motion interlock. Values are not clamped to 60 km/h because that would hide an out-of-range observation.
 
-The SHU AOT notes in `/home/kali/ScooterHacking/re/shu/notes-aot.md` show the `0x5D` payload copy. The lock/write layout is supported by the [Ninebot IAP write handler](https://github.com/scooterhacking/Ninebot_IAP_V1/blob/master/iap/IAP/IAP_Form.cs) and [command definitions](https://github.com/scooterhacking/Ninebot_IAP_V1/blob/master/iap/IAP/CmdDefine.cs). These sources do not prove successful lock operation on the user's ES2 or justify enabling lock writes for every model. The `lockProfileVerified` constructor flag must be enabled only after model-specific validation. A completed BLE transport write does not prove the scooter changed lock state.
+The owner's SHU AOT notes (not published) show the `0x5D` payload copy. The lock/write layout is supported by the [Ninebot IAP write handler](https://github.com/scooterhacking/Ninebot_IAP_V1/blob/master/iap/IAP/IAP_Form.cs) and [command definitions](https://github.com/scooterhacking/Ninebot_IAP_V1/blob/master/iap/IAP/CmdDefine.cs). These sources do not prove successful lock operation on the user's ES2 or justify enabling lock writes for every model. The `lockProfileVerified` constructor flag must be enabled only after model-specific validation. A completed BLE transport write does not prove the scooter changed lock state.
 
 ## Files and verification
 

@@ -56,7 +56,7 @@ phase. No production coverage exclusions or dependencies were added.
 ### Quality gates and coverage
 
 Final source snapshot copied into `/tmp/rideflux-mi-verification` and tested
-using Java 21 and `/home/kali/rideflux-android-sdk`. The wrapper uses Gradle
+using Java 21 and a Linux-side Android SDK. The wrapper uses Gradle
 9.6.0; the request's Gradle 8.13 description is older than this base.
 
 `./gradlew lintDebug assembleDebug jacocoTestReport --no-daemon
