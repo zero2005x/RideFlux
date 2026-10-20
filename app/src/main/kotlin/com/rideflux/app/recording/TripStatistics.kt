@@ -34,8 +34,8 @@ class TripStatisticsAccumulator {
     private var maxTemperature: Float? = null
 
     fun add(telemetry: WheelTelemetry, timestampMillis: Long): TripStatistics {
-        val speed = telemetry.speedKmh?.takeIf(Float::isFinite)?.let(::abs) ?: 0f
-        if (!rideStarted && speed > RIDE_THRESHOLD_KMH) rideStarted = true
+        val speed = telemetry.speedKmh?.takeIf(Float::isFinite)?.let(::abs)
+        if (!rideStarted && speed != null && speed > RIDE_THRESHOLD_KMH) rideStarted = true
         if (startBattery == null) startBattery = telemetry.batteryPercent
         telemetry.batteryPercent?.let { endBattery = it }
         telemetry.pwmPercent?.takeIf(Float::isFinite)?.let(::abs)?.let { value ->
@@ -44,11 +44,15 @@ class TripStatisticsAccumulator {
         telemetry.mosTemperatureC?.takeIf(Float::isFinite)?.let { value ->
             maxTemperature = max(maxTemperature ?: value, value)
         }
+        if (speed == null) {
+            breakInterval()
+            return snapshot()
+        }
         maxSpeed = max(maxSpeed ?: speed, speed)
 
         lastTimestampMillis?.let { previous ->
-            val dt = (timestampMillis - previous).coerceIn(0L, MAX_SAMPLE_GAP_MILLIS)
-            if (rideStarted && dt > 0L) {
+            val dt = timestampMillis - previous
+            if (rideStarted && dt in 1L..MAX_SAMPLE_GAP_MILLIS) {
                 distanceMetres += speed.toDouble() / 3.6 * dt / 1_000.0
                 averageWeightedKmhMillis += speed.toDouble() * dt
                 averageMillis += dt
@@ -57,6 +61,11 @@ class TripStatisticsAccumulator {
         }
         lastTimestampMillis = timestampMillis
         return snapshot()
+    }
+
+    /** Missing telemetry must not be integrated when sampling resumes. */
+    fun breakInterval() {
+        lastTimestampMillis = null
     }
 
     fun snapshot() = TripStatistics(
@@ -72,6 +81,6 @@ class TripStatisticsAccumulator {
 
     companion object {
         const val RIDE_THRESHOLD_KMH = 1f
-        const val MAX_SAMPLE_GAP_MILLIS = 5_000L
+        const val MAX_SAMPLE_GAP_MILLIS = 2_500L
     }
 }

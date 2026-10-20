@@ -91,6 +91,7 @@ import androidx.core.content.ContextCompat
 import com.rideflux.app.R
 import com.rideflux.app.ui.dashboard.components.RideFluxColors
 import com.rideflux.app.ui.dashboard.pages.BatteryPackUi
+import com.rideflux.app.ui.dashboard.pages.BegodeProfileUi
 import com.rideflux.app.ui.dashboard.pages.BmsPage
 import com.rideflux.app.ui.dashboard.pages.EventsPage
 import com.rideflux.app.ui.dashboard.pages.GraphPage
@@ -107,6 +108,7 @@ import com.rideflux.domain.connection.MiRegistrationState
 import com.rideflux.domain.device.PlevCategory
 import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelAlert
+import com.rideflux.domain.wheel.BegodeProtocolProfile
 import com.rideflux.domain.wheel.WheelBatteryPackStore
 import com.rideflux.domain.wheel.WheelFamily
 import kotlinx.coroutines.delay
@@ -132,6 +134,7 @@ fun DashboardRoute(
     val activeAlert by viewModel.activeAlert.collectAsStateWithLifecycle()
     val recordingState by RecordingService.state.collectAsStateWithLifecycle()
     val batteryPackCells by viewModel.batteryPackCells.collectAsStateWithLifecycle()
+    val begodeProfile by viewModel.begodeProfile.collectAsStateWithLifecycle()
     // Begode frames carry only a voltage, so the rider has to say how many cells the pack has.
     val family = viewModel.expectedFamily ?: uiState.identity?.family
     val asksForBatteryPack = family == WheelFamily.G || family == WheelFamily.GX
@@ -210,6 +213,8 @@ fun DashboardRoute(
         asksForBatteryPack = asksForBatteryPack,
         batteryPackCells = batteryPackCells,
         onSetBatteryPack = viewModel::setBatteryPackCells,
+        begodeProfile = begodeProfile,
+        onSetBegodeProfile = viewModel::setBegodeProfile,
     )
 }
 
@@ -264,6 +269,8 @@ fun DashboardScreen(
     asksForBatteryPack: Boolean = false,
     batteryPackCells: Int? = null,
     onSetBatteryPack: (Int) -> Unit = {},
+    begodeProfile: BegodeProtocolProfile = BegodeProtocolProfile.UNKNOWN,
+    onSetBegodeProfile: (BegodeProtocolProfile) -> Unit = {},
 ) {
     val localView = LocalView.current
     DisposableEffect(uiState.keepScreenOnDashboard) {
@@ -281,6 +288,7 @@ fun DashboardScreen(
     var showCalibrateDialog by remember { mutableStateOf(false) }
     var showSpeedLimitDialog by remember { mutableStateOf(false) }
     var showBatteryPackDialog by remember { mutableStateOf(false) }
+    var showBegodeProfileDialog by remember { mutableStateOf(false) }
 
     val isMoving = (uiState.speedKmh ?: 0f) > 0f
     val actionsPermitted = isVehicleActionPermitted(uiState.connectionState, uiState.speedKmh)
@@ -363,6 +371,34 @@ fun DashboardScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showBatteryPackDialog = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    if (showBegodeProfileDialog) {
+        AlertDialog(
+            onDismissRequest = { showBegodeProfileDialog = false },
+            title = { Text(stringResource(R.string.begode_profile_dialog_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.begode_profile_dialog_body))
+                    BegodeProtocolProfile.entries.forEach { profile ->
+                        FilterChip(
+                            selected = profile == begodeProfile,
+                            onClick = {
+                                showBegodeProfileDialog = false
+                                onSetBegodeProfile(profile)
+                            },
+                            label = { Text(begodeProfileLabel(profile)) },
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showBegodeProfileDialog = false }) {
                     Text(stringResource(R.string.action_cancel))
                 }
             },
@@ -556,6 +592,14 @@ fun DashboardScreen(
                             } else {
                                 null
                             },
+                            begodeProfile = if (asksForBatteryPack) {
+                                BegodeProfileUi(
+                                    profile = begodeProfile,
+                                    label = begodeProfileLabel(begodeProfile),
+                                ) { showBegodeProfileDialog = true }
+                            } else {
+                                null
+                            },
                         )
                         if (uiState.deviceCategory == PlevCategory.SCOOTER) {
                             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -600,6 +644,13 @@ fun DashboardScreen(
             }
         }
     }
+}
+
+@Composable
+private fun begodeProfileLabel(profile: BegodeProtocolProfile): String = when (profile) {
+    BegodeProtocolProfile.UNKNOWN -> stringResource(R.string.begode_profile_unknown)
+    BegodeProtocolProfile.A2_CAPTURED -> stringResource(R.string.begode_profile_a2)
+    BegodeProtocolProfile.LEGACY_DOCUMENTED -> stringResource(R.string.begode_profile_legacy)
 }
 
 // ---------------------------------------------------------------------

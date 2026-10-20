@@ -140,6 +140,7 @@
     <string name="metric_mos">MOS</string>
     <string name="metric_mos_temp">MOS 溫度</string>
     <string name="metric_motor">馬達</string>
+    <string name="metric_imu">IMU</string>
     <string name="metric_battery_temp">電池溫度</string>
     <string name="metric_board">主機板</string>
     <string name="metric_trip">本次里程</string>
@@ -320,6 +321,13 @@
     <string name="battery_pack_current">電池組：%1$dS</string>
     <string name="battery_pack_dialog_title">電池組</string>
     <string name="battery_pack_dialog_body">這顆電池是幾串（串聯電芯數）？充電器標籤上標有電壓：67.2 V 是 16S，84 V 是 20S，100.8 V 是 24S。</string>
+    <string name="begode_profile_set">設定輪子佈局</string>
+    <string name="begode_profile_current">輪子佈局：%1$s</string>
+    <string name="begode_profile_dialog_title">輪子佈局</string>
+    <string name="begode_profile_dialog_body">為此輪選擇遙測佈局。系統不會自動判斷。未知會隱藏有爭議的 PWM 與溫度，直到你選擇。擷取的 A2 使用封包 7 的 PWM 與 MPU6050 IMU。文件記載的舊版使用較舊的 PWM 位元組與 MPU6500 溫度。</string>
+    <string name="begode_profile_unknown">未知</string>
+    <string name="begode_profile_a2">擷取的 A2</string>
+    <string name="begode_profile_legacy">文件記載的舊版</string>
     <string name="settings_bond_title">配對金鑰備份</string>
     <string name="settings_bond_subtitle">將滑板車配對金鑰匯出或匯入為加密檔案。</string>
     <string name="bond_title">配對金鑰</string>

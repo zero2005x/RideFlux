@@ -16,10 +16,12 @@ import java.io.File
 import com.rideflux.core.location.TripLocationSource
 import com.rideflux.data.database.RideFluxDatabase
 import com.rideflux.data.database.RoomTripRepository
+import com.rideflux.data.preferences.DataStoreBegodeProfileStore
 import com.rideflux.data.preferences.DataStoreSettingsRepository
 import com.rideflux.data.preferences.DataStoreWheelBatteryPackStore
 import com.rideflux.domain.ride.TripRepository
 import com.rideflux.domain.settings.SettingsRepository
+import com.rideflux.domain.wheel.BegodeProfileStore
 import com.rideflux.domain.wheel.WheelBatteryPackStore
 import dagger.Module
 import dagger.Provides
@@ -55,6 +57,13 @@ object PersistenceModule {
         @ApplicationContext context: Context,
         @ApplicationScope scope: CoroutineScope,
     ): WheelBatteryPackStore = DataStoreWheelBatteryPackStore(context, scope)
+
+    @Provides
+    @Singleton
+    fun provideBegodeProfileStore(
+        @ApplicationContext context: Context,
+        @ApplicationScope scope: CoroutineScope,
+    ): BegodeProfileStore = DataStoreBegodeProfileStore(context, scope)
 
     @Provides
     @Singleton

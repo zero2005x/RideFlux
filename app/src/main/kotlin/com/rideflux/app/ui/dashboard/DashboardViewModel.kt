@@ -29,6 +29,8 @@ import com.rideflux.domain.settings.AlertThresholds
 import com.rideflux.domain.settings.SettingsRepository
 import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelAlert
+import com.rideflux.domain.wheel.BegodeProfileStore
+import com.rideflux.domain.wheel.BegodeProtocolProfile
 import com.rideflux.domain.wheel.WheelBatteryPackStore
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelIdentity
@@ -77,6 +79,7 @@ data class DashboardUiState(
     val phaseCurrentA: Float? = null,
     val pwmPercent: Float? = null,
     val mosTemperatureC: Float? = null,
+    val imuTemperatureC: Float? = null,
     val motorTemperatureC: Float? = null,
     val boardTemperatureC: Float? = null,
     val batteryTemperatureC: Float? = null,
@@ -212,6 +215,7 @@ class DashboardViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle,
     private val plevRepository: PlevRepository = com.rideflux.protocol.repository.PlevRepositoryImpl(wheelRepository),
+    private val begodeProfiles: BegodeProfileStore = BegodeProfileStore.empty(),
 ) : ViewModel() {
 
     /** MAC of the target device (e.g. `"AA:BB:CC:DD:EE:FF"`). Exposed so nav callers can re-route to the HUD. */
@@ -248,6 +252,19 @@ class DashboardViewModel @Inject constructor(
     /** Records the rider's answer for this wheel; the codec picks it up on the next frame. */
     fun setBatteryPackCells(cells: Int) {
         viewModelScope.launch { batteryPacks.setSeriesCells(address, cells) }
+    }
+
+    val begodeProfile: StateFlow<BegodeProtocolProfile> = begodeProfiles.profiles
+        .map { it[BegodeProfileStore.key(address)] ?: BegodeProtocolProfile.UNKNOWN }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000L),
+            begodeProfiles.profileFor(address),
+        )
+
+    /** Records the rider's explicit Begode layout. The codec reads it on the next frame. */
+    fun setBegodeProfile(profile: BegodeProtocolProfile) {
+        viewModelScope.launch { begodeProfiles.setProfile(address, profile) }
     }
 
     /**
@@ -709,6 +726,7 @@ class DashboardViewModel @Inject constructor(
                 phaseCurrentA = t.phaseCurrentA,
                 pwmPercent = t.pwmPercent,
                 mosTemperatureC = t.mosTemperatureC,
+                imuTemperatureC = t.imuTemperatureC,
                 motorTemperatureC = t.motorTemperatureC,
                 boardTemperatureC = t.boardTemperatureC,
                 batteryTemperatureC = t.batteryTemperatureC,

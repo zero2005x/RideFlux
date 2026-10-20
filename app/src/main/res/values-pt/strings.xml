@@ -140,6 +140,7 @@
     <string name="metric_mos">MOS</string>
     <string name="metric_mos_temp">Temp. MOS</string>
     <string name="metric_motor">Motor</string>
+    <string name="metric_imu">IMU</string>
     <string name="metric_battery_temp">Temp. bateria</string>
     <string name="metric_board">Placa</string>
     <string name="metric_trip">Percurso</string>
@@ -320,6 +321,13 @@
     <string name="battery_pack_current">Bateria: %1$dS</string>
     <string name="battery_pack_dialog_title">Pack de bateria</string>
     <string name="battery_pack_dialog_body">Quantas células em série esta bateria tem? A etiqueta do carregador mostra a tensão: 67,2 V é 16S, 84 V é 20S e 100,8 V é 24S.</string>
+    <string name="begode_profile_set">Set wheel layout</string>
+    <string name="begode_profile_current">Wheel layout: %1$s</string>
+    <string name="begode_profile_dialog_title">Wheel layout</string>
+    <string name="begode_profile_dialog_body">Choose the telemetry layout for this wheel. This is not detected automatically. Unknown hides disputed PWM and temperatures until you choose. Captured A2 uses packet 7 PWM and the MPU6050 IMU. Documented legacy uses the older PWM byte and MPU6500 temperatures.</string>
+    <string name="begode_profile_unknown">Unknown</string>
+    <string name="begode_profile_a2">Captured A2</string>
+    <string name="begode_profile_legacy">Documented legacy</string>
     <string name="settings_bond_title">Cópia das chaves de emparelhamento</string>
     <string name="settings_bond_subtitle">Exporte ou importe as chaves de emparelhamento do patinete como um ficheiro cifrado.</string>
     <string name="bond_title">Chaves de emparelhamento</string>

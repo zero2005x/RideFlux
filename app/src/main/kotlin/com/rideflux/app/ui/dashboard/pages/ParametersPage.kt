@@ -222,6 +222,16 @@ fun ParametersPage(state: DashboardUiState, modifier: Modifier = Modifier) {
             },
             right = {
                 MetricCard(
+                    label = stringResource(R.string.metric_imu),
+                    value = state.imuTemperatureC?.let { "%.0f".format(Locale.US, it) } ?: dash,
+                    unit = celsius,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+        )
+        MetricRow(
+            left = {
+                MetricCard(
                     label = stringResource(R.string.metric_board),
                     value = state.boardTemperatureC?.let { "%.0f".format(Locale.US, it) } ?: dash,
                     unit = celsius,

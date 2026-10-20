@@ -87,6 +87,46 @@ class ThresholdMonitorTest {
         }
     }
 
+    /**
+     * RC1 regression (family G, truth-table C3/C5).
+     *
+     * The Begode codec now withdraws `pwmPercent` and the profile-dependent
+     * temperatures instead of publishing values it cannot justify — the byte it
+     * used to read as PWM is a mode word, and the temperature formula is
+     * firmware-dependent. This test pins the property that makes that safe:
+     * an absent field must mean "no alert", never zero, never a stale value.
+     *
+     * The thresholds here are deliberately aggressive (1 % PWM, 5 C, 1 km/h) so
+     * that any accidental null-to-zero conversion would fire immediately.
+     */
+    @Test
+    fun `withdrawn fields stay silent even with aggressive thresholds`() = runTest {
+        val telemetry = MutableStateFlow(WheelTelemetry.EMPTY)
+        val thresholds = MutableStateFlow(
+            AlertThresholds(
+                speedLimitKmh = 1f,
+                temperatureLimitC = 5f,
+                pwmAlertPercent = 1f,
+            ),
+        )
+        val monitor = ThresholdMonitor(telemetry, thresholds, backgroundScope)
+        runCurrent()
+
+        monitor.alerts.test {
+            repeat(5) { index ->
+                telemetry.value = WheelTelemetry(
+                    timestampMillis = 100L + index,
+                    speedKmh = 0f,
+                    pwmPercent = null,
+                    mosTemperatureC = null,
+                )
+                runCurrent()
+            }
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private fun sample(speed: Float, timestamp: Long) =
         WheelTelemetry(timestampMillis = timestamp, speedKmh = speed)
 }

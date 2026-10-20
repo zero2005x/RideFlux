@@ -7,6 +7,7 @@ package com.rideflux.data.ble
 
 import com.rideflux.domain.codec.WheelCodec
 import com.rideflux.domain.codec.WheelCodecFactory
+import com.rideflux.domain.wheel.BegodeProtocolProfile
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelNameClassifier
 import com.rideflux.domain.wheel.gatt.Detection
@@ -81,6 +82,14 @@ class WheelCodecFactoryImpl(
      */
     private val onAmbiguousDetection: (Detection) -> Unit = {},
     /**
+     * Explicit Begode layout for `address`. Read on every frame. Missing or
+     * unrecognised choices stay [BegodeProtocolProfile.UNKNOWN]. This parameter
+     * is intentionally not last: callers still pass [seriesCellsFor] as a
+     * trailing lambda.
+     */
+    private val begodeProfileFor: (address: String) -> BegodeProtocolProfile =
+        { BegodeProtocolProfile.UNKNOWN },
+    /**
      * Cells in series of the battery of the wheel at `address`, as stated by the
      * rider, or `null` while unknown. Consulted on every frame by codecs whose
      * battery percentage depends on it (family G), so a change applies live.
@@ -110,6 +119,7 @@ class WheelCodecFactoryImpl(
             WheelFamily.G, WheelFamily.GX -> BegodeWheelCodec(
                 deviceAddress = address,
                 seriesCells = { seriesCellsFor(address) },
+                profile = { begodeProfileFor(address) },
             )
             WheelFamily.K -> KingSongWheelCodec(deviceAddress = address)
             WheelFamily.V -> VeteranWheelCodec(

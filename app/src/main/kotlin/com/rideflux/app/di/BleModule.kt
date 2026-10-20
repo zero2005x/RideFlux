@@ -17,6 +17,7 @@ import com.rideflux.domain.codec.WheelCodecFactory
 import com.rideflux.domain.repository.WheelRepository
 import com.rideflux.domain.repository.PlevRepository
 import com.rideflux.domain.repository.ScooterRepository
+import com.rideflux.domain.wheel.BegodeProfileStore
 import com.rideflux.domain.wheel.WheelBatteryPackStore
 import dagger.Module
 import dagger.Provides
@@ -78,7 +79,10 @@ object BleModule {
 
     @Provides
     @Singleton
-    fun provideWheelCodecFactoryImpl(packs: WheelBatteryPackStore): WheelCodecFactoryImpl =
+    fun provideWheelCodecFactoryImpl(
+        packs: WheelBatteryPackStore,
+        profiles: BegodeProfileStore = BegodeProfileStore.empty(),
+    ): WheelCodecFactoryImpl =
         WheelCodecFactoryImpl(
             // The signature table is still non-discriminating for FFE0/FFE1 (the
             // folded evidence supports no more), so this logs which signatures
@@ -92,6 +96,7 @@ object BleModule {
                         "falling back to the name/UUID inference",
                 )
             },
+            begodeProfileFor = { address -> profiles.profileFor(address) },
             seriesCellsFor = { address -> packs.seriesCells.value[WheelBatteryPackStore.key(address)] },
         )
 
