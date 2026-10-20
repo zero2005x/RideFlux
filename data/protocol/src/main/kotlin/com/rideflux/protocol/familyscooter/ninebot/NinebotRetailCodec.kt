@@ -84,12 +84,28 @@ object NinebotRetailCodec {
         return reply.payload
     }
 
-    /** ES2 B0..BB core shares word positions with M365; speed remains raw. */
-    fun decodeEs2B0(payload: ByteArray): M365Codec.B0Block? = M365Codec.decodeB0(payload)
+    /**
+     * Existing ES2 diagnostic mapping kept independent of the M365 core's model-specific evidence.
+     * Sharing the legacy DTO does not inherit M365 semantics, sign policy or vehicle verification.
+     */
+    fun decodeEs2B0(payload: ByteArray): M365Codec.B0Block? {
+        if (payload.size != 32) return null
+        fun word(offset: Int) = payload[offset].u() or (payload[offset + 1].u() shl 8)
+        val soc = word(8)
+        if (soc !in 0..100) return null
+        val odometer = (0..3).fold(0L) { value, index ->
+            value or (payload[14 + index].u().toLong() shl (index * 8))
+        }
+        return M365Codec.B0Block(
+            errorCode = word(0), warningCode = word(2), batteryPercent = soc,
+            speedRaw = word(10), totalDistanceMetres = odometer,
+            tripDistanceMetres = word(18) * 10, frameTemperatureRaw = word(22).toShort().toInt(),
+        )
+    }
 
     /** Diagnostic candidate only. ES2 sign/scale is unverified; retain its unknown-speed guard. */
     fun decodeSpeedKmh(bytes: ByteArray): Float? {
-        val raw = readReplyPayload(bytes, 0xb0, 32)?.let(M365Codec::decodeB0)?.speedRaw ?: return null
+        val raw = readReplyPayload(bytes, 0xb0, 32)?.let(::decodeEs2B0)?.speedRaw ?: return null
         return if (raw >= 0xff00) null else raw / 1_000f
     }
 

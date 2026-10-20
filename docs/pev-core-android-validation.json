@@ -1,0 +1,73 @@
+{
+  "status": "PASS",
+  "date": "2026-10-08",
+  "consumerRevision": "eb941870c583bed86072f304cd5e0e2cbddffc1a",
+  "tasks": [
+    ":app:lintDebug",
+    ":hud-app:lintDebug",
+    ":app:assembleDebug",
+    ":hud-app:assembleDebug"
+  ],
+  "strictVerification": true,
+  "offline": true,
+  "credentialsEmbedded": false,
+  "lintBaselineOrSuppressionsAdded": false,
+  "hardwareVerification": false,
+  "remoteCI": false,
+  "modules": {
+    "app": {
+      "lintSeverityCounts": {
+        "Warning": 37
+      },
+      "lintIssueCounts": {
+        "OldTargetApi": 1,
+        "UnusedAttribute": 2,
+        "VectorRaster": 1,
+        "GradleDependency": 15,
+        "PluralsCandidate": 5,
+        "DataExtractionRules": 1,
+        "ObsoleteSdkInt": 3,
+        "UnusedResources": 2,
+        "UseKtx": 5,
+        "ConstantLocale": 2
+      },
+      "lintXmlSha256": "95716d8005a725e2524850912ae662e9dec766f45b6808cd05801a08a2b64a2c",
+      "apkPath": "app/build/outputs/apk/debug/app-debug.apk",
+      "apkBytes": 68257266,
+      "apkSha256": "562b7b4d1b32167cbaf71b87d180e52b5e46636b33762ff0a75e3f8e68277517",
+      "applicationId": "com.rideflux.app",
+      "versionName": "0.1.10",
+      "versionCode": 11,
+      "sharedM365CoreClassPresentInDex": true,
+      "koverCoverageClassPresentInDex": false
+    },
+    "hud-app": {
+      "lintSeverityCounts": {
+        "Warning": 13
+      },
+      "lintIssueCounts": {
+        "OldTargetApi": 1,
+        "GradleDependency": 1,
+        "Aligned16KB": 3,
+        "DiscouragedApi": 1,
+        "DataExtractionRules": 1,
+        "ObsoleteSdkInt": 1,
+        "MonochromeLauncherIcon": 2,
+        "UseKtx": 3
+      },
+      "lintXmlSha256": "30e92b244f3a0734c768a1b4ba8f906e087b2f3cd2c2317fd2eb36ded3544be0",
+      "apkPath": "hud-app/build/outputs/apk/debug/hud-app-debug.apk",
+      "apkBytes": 62729188,
+      "apkSha256": "1c146642561e300e849226a56c59a8c977930e64cea784b448b0c0006b43f0d3",
+      "applicationId": "com.rideflux.hud",
+      "versionName": "0.1.10",
+      "versionCode": 11,
+      "sharedM365CoreClassPresentInDex": true,
+      "koverCoverageClassPresentInDex": false
+    }
+  },
+  "nonFatalBuildWarnings": [
+    "Existing native SDK libraries packaged without symbol stripping",
+    "D8 warning for existing play-services-location-21.3.0 Companion"
+  ]
+}

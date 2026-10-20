@@ -35,11 +35,23 @@ jobs:
     name: Build signed APK and AAB
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      # settings.gradle.kts builds the MIT pev-protocol-core from this checkout.
+      PEV_CORE_DIR: .pev-core
 
     steps:
       - name: Check out source
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
+
+      # Pinned to the core revision recorded in docs/pev-core-latest-validation.json.
+      - name: Check out the shared PEV protocol core
+        uses: actions/checkout@v7
+        with:
+          repository: zero2005x/M365-Rokid-HUD
+          ref: bd3913d9c917f2eeccc60db0428b81fb6cdae4cc
+          path: .pev-core
           persist-credentials: false
 
       # The project emits Java 17 bytecode but supports running Gradle on JDK 21.

@@ -9,6 +9,9 @@ captures/
 .externalNativeBuild/
 .cxx/
 
+# Checkout of the shared PEV protocol core used by CI (PEV_CORE_DIR)
+.pev-core/
+
 # Eclipse / Kotlin language-server output and metadata
 bin/
 .classpath

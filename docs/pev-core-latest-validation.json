@@ -1,0 +1,129 @@
+{
+  "date": "2026-10-08",
+  "status": "PASS",
+  "strictVerification": true,
+  "offline": true,
+  "consumerHeadAtVerification": "c984f52fb7415e8d376b3a4ba45b89dbd86358e3",
+  "consumerSelectedBase": "9bd9eaa82e55efaa936afa5d332e7ef2c752b7b8",
+  "hudCoreCodeRevision": "bd3913d9c917f2eeccc60db0428b81fb6cdae4cc",
+  "sourceDirectory": "<core-snapshot> (a scratch copy of zero2005x/M365-Rokid-HUD at hudCoreCodeRevision)",
+  "tasks": [
+    ":domain:test",
+    ":data:protocol:test",
+    ":data:protocol:jacocoTestReport",
+    ":pev-core-source:pev-protocol-core:test",
+    ":pev-core-source:pev-protocol-core:koverXmlReport",
+    ":app:lintDebug",
+    ":hud-app:lintDebug",
+    ":app:assembleDebug",
+    ":hud-app:assembleDebug"
+  ],
+  "hardwareAcceptance": false,
+  "remoteCI": false,
+  "externalSonar": "NOT_RUN",
+  "newDependencies": false,
+  "tests": {
+    "domain": {
+      "tests": 123,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "protocol": {
+      "tests": 395,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "core": {
+      "tests": 182,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "android": {
+    "app": {
+      "lint": {
+        "Warning": 37
+      },
+      "lintXmlSha256": "95716d8005a725e2524850912ae662e9dec766f45b6808cd05801a08a2b64a2c",
+      "apkBytes": 68460100,
+      "apkSha256": "eb51b2505bda5300f191bd2850bed49c618ca678bc7989f8018a70d2015c131f",
+      "versionName": "0.1.10",
+      "versionCode": 11,
+      "sharedM365CoreClassDefinedInDex": true,
+      "sharedI1CoreClassDefinedInDex": true,
+      "coverageAgentClassDefinedInDex": false
+    },
+    "hud-app": {
+      "lint": {
+        "Warning": 13
+      },
+      "lintXmlSha256": "30e92b244f3a0734c768a1b4ba8f906e087b2f3cd2c2317fd2eb36ded3544be0",
+      "apkBytes": 62932019,
+      "apkSha256": "351e3bed6b28cfc6b111ca562cd93974de74f7fa4bfa37bcb2b7362c5c56d6a7",
+      "versionName": "0.1.10",
+      "versionCode": 11,
+      "sharedM365CoreClassDefinedInDex": true,
+      "sharedI1CoreClassDefinedInDex": true,
+      "coverageAgentClassDefinedInDex": false
+    }
+  },
+  "sourceHashes": {
+    "pev-protocol-core/src/main/kotlin/io/github/zero2005x/pev/core/codec/xiaomi/XiaomiMotorInfoDecoder.kt": "7e4a1bc6d75fb6f686ccd78a9662bcea70c2361fba4f54a85d63c0705b6e5338",
+    "pev-protocol-core/src/main/kotlin/io/github/zero2005x/pev/core/codec/xiaomi/XiaomiPdu.kt": "603a7d9cf6515710f7bca71451091907215fb6e8a5a1eca6e23b703e16dd73a8",
+    "pev-protocol-core/src/main/kotlin/io/github/zero2005x/pev/core/codec/inmotioni1/InmotionI1Codec.kt": "092a27d41d55a1c18e1dd62fd133f2ed2d2641d805deffb7e728a76248e2c23f",
+    "pev-protocol-core/build.gradle.kts": "c44c0252188e9e8f54ad9136017aaf6f5c0b15acfff69d04defd5b17f59678f0"
+  },
+  "coreKover": {
+    "INSTRUCTION": {
+      "missed": 151,
+      "covered": 8894
+    },
+    "BRANCH": {
+      "missed": 54,
+      "covered": 959
+    },
+    "LINE": {
+      "missed": 2,
+      "covered": 930
+    },
+    "METHOD": {
+      "missed": 1,
+      "covered": 266
+    },
+    "CLASS": {
+      "missed": 0,
+      "covered": 104
+    }
+  },
+  "m365CodecJacoco": {
+    "INSTRUCTION": {
+      "missed": 16,
+      "covered": 310
+    },
+    "BRANCH": {
+      "missed": 4,
+      "covered": 58
+    },
+    "LINE": {
+      "missed": 0,
+      "covered": 24
+    },
+    "COMPLEXITY": {
+      "missed": 4,
+      "covered": 35
+    },
+    "METHOD": {
+      "missed": 0,
+      "covered": 8
+    },
+    "CLASS": {
+      "missed": 0,
+      "covered": 1
+    }
+  },
+  "coreJarSha256": "70c0b4dcaa9e1d19f8205e6a718f3d8d8c63f56383c0eb74b7cc6aa63a2663bb",
+  "logSha256": "c3e99c2353c18063578ad1ec0b56b72306f78c0bb5943bfdc892579e5585a30c"
+}

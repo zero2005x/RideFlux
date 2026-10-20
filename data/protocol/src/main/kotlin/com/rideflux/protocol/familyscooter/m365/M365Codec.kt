@@ -3,21 +3,30 @@ package com.rideflux.protocol.familyscooter.m365
 import com.rideflux.domain.telemetry.ScooterTelemetry
 import com.rideflux.protocol.familyscooter.RetailFraming
 import com.rideflux.protocol.familyscooter.RetailFraming.u
+import io.github.zero2005x.pev.core.codec.xiaomi.XiaomiBmsDecoder
+import io.github.zero2005x.pev.core.codec.xiaomi.XiaomiMotorInfoDecoder
+import io.github.zero2005x.pev.core.codec.xiaomi.XiaomiPdu
+import io.github.zero2005x.pev.core.telemetry.FieldId
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
-/** Xiaomi 55 AA retail register reads. Source: ninebot-docs protocol.md/M365ESC.md (L1). */
+/** M365 core consumer. Retail framing/authentication and legacy DTO display policy stay in RideFlux. */
 object M365Codec {
     data class B0Block(
         val errorCode: Int,
         val warningCode: Int,
         val batteryPercent: Int,
-        /** B5 wire word, retained unsigned for diagnostics; M365 velocity is signed LE16. */
+        /** B5 raw word retained unsigned; the legacy display accessor uses signed LE16 magnitude. */
         val speedRaw: Int,
         val totalDistanceMetres: Long,
         val tripDistanceMetres: Int,
         val frameTemperatureRaw: Int,
     ) {
-        /** Speed magnitude in either direction; only the exact zero word means stopped. */
+        /**
+         * Legacy RideFlux display policy: signed LE16 magnitude, including very slow reverse motion.
+         * The shared core's forward/wrap policy differs at 0x8001..0xBFFF; do not use this
+         * compatibility accessor as evidence that the physical interpretation was vehicle-verified.
+         */
         val speedKmh: Float?
             get() = if (speedRaw !in 0..0xffff) null else abs(speedRaw.toShort().toInt()) / 1_000f
 
@@ -35,7 +44,7 @@ object M365Codec {
     /** Length counts command, argument, and the mandatory one-byte read size. */
     fun readRequest(register: Int, byteCount: Int, destination: Int = 0x20): ByteArray {
         require(register in 0..255 && byteCount in 1..255 && destination in 0..255)
-        val body = byteArrayOf(3, destination.toByte(), 1, register.toByte(), byteCount.toByte())
+        val body = XiaomiPdu.read(register, byteCount, destination)
         return RetailFraming.appendChecksum(byteArrayOf(0x55, 0xaa.toByte()) + body, body)
     }
 
@@ -62,19 +71,20 @@ object M365Codec {
     /** The 0xB0..0xBF block is 16 word-addressed registers = 32 bytes. */
     fun decodeB0(payload: ByteArray): B0Block? {
         if (payload.size != 32) return null
+        val decoded = XiaomiMotorInfoDecoder.decode(payload, 0)
+        val soc = decoded.usableValue(FieldId.SOC_PERCENT)?.toInt() ?: return null
+        val odometer = decoded.usableValue(FieldId.TOTAL_DISTANCE_M)?.toLong() ?: return null
+        val temperature = decoded.usableValue(FieldId.TEMP_FRAME) ?: return null
         fun u16(reg: Int): Int {
             val at = (reg - 0xb0) * 2
-            return payload[at].u() or (payload[at + 1].u() shl 8)
+            return requireNotNull(XiaomiBmsDecoder.readU16(payload, at))
         }
-        val soc = u16(0xb4)
-        if (soc !in 0..100) return null
-        val odometerAt = (0xb7 - 0xb0) * 2
-        val odometer = (0..3).fold(0L) { acc, i -> acc or (payload[odometerAt + i].u().toLong() shl (8 * i)) }
         return B0Block(
             errorCode = u16(0xb0), warningCode = u16(0xb1),
             batteryPercent = soc, speedRaw = u16(0xb5),
+            // Existing B9 trip projection is legacy-only; the core leaves this meaning unresolved.
             totalDistanceMetres = odometer, tripDistanceMetres = u16(0xb9) * 10,
-            frameTemperatureRaw = u16(0xbb).toShort().toInt(),
+            frameTemperatureRaw = (temperature * 10).roundToInt(),
         )
     }
 }
