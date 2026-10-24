@@ -383,6 +383,54 @@ class WheelConnectionImplTest {
     }
 
     @Test
+    fun `a connection with no codec and no negotiation fails closed`() = runTest {
+        val transport = FakeBleTransport()
+        val conn = WheelConnectionImpl(transport, null, backgroundScope)
+
+        conn.start()
+        runCurrent()
+
+        val st = conn.state.value
+        assertTrue("state was $st", st is ConnectionState.Failed)
+        st as ConnectionState.Failed
+        assertEquals(ConnectionState.Failed.Reason.UNKNOWN_FAMILY, st.reason)
+        assertTrue(
+            "message was ${st.message}",
+            st.message.orEmpty().contains("no codec was supplied"),
+        )
+        assertEquals("the half-open transport must be released", 1, transport.disconnectCount)
+    }
+
+    @Test
+    fun `a resolution driven connection fails closed without a GATT resolution`() = runTest {
+        val transport = FakeBleTransport()
+        var asked = false
+        val conn = WheelConnectionImpl(
+            transport = transport,
+            codec = null,
+            scope = backgroundScope,
+            codecForResolution = {
+                asked = true
+                error("must not build a codec without a resolution")
+            },
+        )
+
+        conn.start()
+        runCurrent()
+
+        val st = conn.state.value
+        assertTrue("state was $st", st is ConnectionState.Failed)
+        st as ConnectionState.Failed
+        assertEquals(ConnectionState.Failed.Reason.UNKNOWN_FAMILY, st.reason)
+        assertTrue(
+            "message was ${st.message}",
+            st.message.orEmpty().contains("no GATT resolution"),
+        )
+        assertEquals("no codec may be built from a missing resolution", false, asked)
+        assertEquals(1, transport.disconnectCount)
+    }
+
+    @Test
     fun `start surfaces transport connect failure as Failed state`() = runTest {
         val transport = FakeBleTransport()
         transport.connectFailure = RuntimeException("link lost")
