@@ -66,6 +66,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import com.rideflux.data.bridge.VehicleType
 import com.rideflux.data.preferences.AppLanguage
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -759,6 +760,10 @@ private fun ReadyHud(uiState: HudUiState, dims: HudLayoutDimensions, profile: Hu
                 .align(Alignment.CenterEnd)
                 .width(dims.sideColumnWidthDp.dp),
             vehicleBatteryPercent = uiState.vehicleBatteryPercent,
+            voltageV = uiState.voltageV,
+            vehicleType = uiState.vehicleType,
+            aux1 = uiState.aux1,
+            aux2 = uiState.aux2,
             tripDistanceMetres = uiState.tripDistanceMetres,
             tripDurationSeconds = uiState.tripDurationSeconds,
             dims = dims,
@@ -906,6 +911,10 @@ private fun CenterSpeed(
 private fun RightColumn(
     modifier: Modifier = Modifier,
     vehicleBatteryPercent: Float?,
+    voltageV: Float? = null,
+    vehicleType: VehicleType = VehicleType.UNKNOWN,
+    aux1: Float? = null,
+    aux2: Int? = null,
     tripDistanceMetres: Int?,
     tripDurationSeconds: Long?,
     dims: HudLayoutDimensions,
@@ -913,6 +922,18 @@ private fun RightColumn(
 ) {
     val pct = vehicleBatteryPercent?.takeIf { it.isFinite() }?.coerceIn(0f, 100f)
     val tint = batteryTint(pct)
+    val voltageText = voltageV
+        ?.takeIf { it.isFinite() }
+        ?.let { "%.1f %s".format(it, stringResource(R.string.unit_volts)) }
+    // The aux slots mean different things per category, so the label is
+    // chosen by vehicle type rather than guessed from which value exists.
+    val auxText = when {
+        vehicleType == VehicleType.SCOOTER && aux1 != null ->
+            "%.0f %s".format(aux1, stringResource(R.string.unit_celsius))
+        aux2 != null ->
+            "$aux2${stringResource(R.string.unit_percent)}"
+        else -> null
+    }
 
     Column(
         modifier = modifier,
@@ -932,6 +953,21 @@ private fun RightColumn(
             fontWeight = FontWeight.Black,
             iconAfter = true,
         )
+        if (voltageText != null) {
+            Text(
+                text = voltageText,
+                color = HudWhiteSoft,
+                fontSize = dims.labelFontSizeSp.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        if (auxText != null) {
+            Text(
+                text = auxText,
+                color = HudWhiteSoft,
+                fontSize = dims.labelFontSizeSp.sp,
+            )
+        }
         if (profile.shows(HudLayoutProfile.DISTANCE) && tripDistanceMetres != null) {
             IconLabelRow(
                 icon = Icons.Filled.Straighten,

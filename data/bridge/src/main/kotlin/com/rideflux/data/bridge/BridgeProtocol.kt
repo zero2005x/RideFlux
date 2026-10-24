@@ -103,12 +103,28 @@ object BridgeProtocol {
     const val MAGIC: Byte = 0x52  // 'R'
 
     /** Increment when the wire format becomes incompatible. */
-    const val PROTOCOL_VERSION: Byte = 2
+    const val PROTOCOL_VERSION: Byte = 3
 
     /**
-     * Length of a v2 [BridgeFrame] when serialised — 20 bytes, so it
-     * fits the 20-byte payload of the default 23-byte ATT MTU. See
-     * [BridgeCodec].
+     * Length of a v3 [BridgeFrame] when serialised — 24 bytes.
+     *
+     * That is four bytes past the 20-byte payload of the default
+     * 23-byte ATT MTU, so a v3 notification needs an ATT MTU of at least
+     * 27. Only the GATT client can start that exchange and the phone is
+     * the server, so the phone can neither trigger it nor read the
+     * negotiated value: if the exchange never happens the stack truncates
+     * the notification to 20 bytes, [BridgeCodec] rejects it on length,
+     * and the HUD sees nothing until the silence watchdog restarts the
+     * link. The Rokid CXR transport has no MTU limit.
+     */
+    const val FRAME_SIZE_V3: Int = 24
+
+    /**
+     * Length of a v2 [BridgeFrame] — 20 bytes, which fits the default
+     * 23-byte ATT MTU.
+     *
+     * Kept only so [BridgeCodec] can decode a release that predates the
+     * v3 cut-over; the phone no longer encodes this layout.
      */
     const val FRAME_SIZE_V2: Int = 20
 
@@ -125,9 +141,9 @@ object BridgeProtocol {
      * In BLE only the GATT client (central) can initiate an MTU
      * exchange, so it is [BridgeClient] that calls `requestMtu` — the
      * phone-side GATT server merely accepts whatever is negotiated.
-     * v2 frames fit the default MTU, so a failed or silently dropped
-     * exchange never prevents telemetry from flowing; the larger MTU
-     * is requested only as headroom for future protocol versions.
+     *
+     * Unlike v2, the 24-byte v3 frame *does* depend on this exchange
+     * succeeding; see [FRAME_SIZE_V3] for the failure mode.
      */
     const val PREFERRED_MTU: Int = 64
 

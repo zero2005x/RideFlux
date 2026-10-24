@@ -48,6 +48,37 @@ data class BridgeFrame(
      * mixed installs keep working.
      */
     val hudHidden: Boolean = false,
+    /**
+     * Which kind of vehicle produced this frame.
+     *
+     * [VehicleType.UNKNOWN] is the value a v2 frame decodes to: it
+     * carried no type at all, so a receiver must fall back to
+     * wheel-shaped rendering rather than guess.
+     */
+    val vehicleType: VehicleType = VehicleType.UNKNOWN,
+    /**
+     * Category-specific measurement at 0.1 resolution.
+     *
+     * A wheel puts pack current in amperes here; a scooter puts ESC frame
+     * temperature in °C. Null means the category had nothing to report.
+     */
+    val aux1: Float? = null,
+    /**
+     * Category-specific small integer.
+     *
+     * A wheel puts PWM percent here; a scooter puts its gear. The wire
+     * slot is one byte with `0xFF` reserved for "absent", so the legal
+     * range stops at 254.
+     */
+    val aux2: Int? = null,
+    /**
+     * Second category-specific small integer.
+     *
+     * A wheel puts MOS temperature **biased by +64** here, because 0 °C is
+     * a valid reading and must not collide with the absent sentinel; a
+     * scooter puts throttle percent. Same 0..254 range as [aux2].
+     */
+    val aux3: Int? = null,
 ) {
     init {
         // 0 is reserved for the EMPTY sentinel below.
@@ -78,9 +109,24 @@ data class BridgeFrame(
         require(tripDurationSeconds == null || tripDurationSeconds >= 0L) {
             "tripDurationSeconds must be non-negative"
         }
+        require(aux1 == null || aux1.isFinite()) { "aux1 must be finite or null" }
+        require(aux2 == null || aux2 in 0..MAX_AUX_CODE) {
+            "aux2 must be 0..$MAX_AUX_CODE or null"
+        }
+        require(aux3 == null || aux3 in 0..MAX_AUX_CODE) {
+            "aux3 must be 0..$MAX_AUX_CODE or null"
+        }
     }
 
     companion object {
+        /**
+         * Highest value a one-byte aux slot may carry.
+         *
+         * The wire reserves `0xFF` for "absent", so a producer must clamp
+         * or drop anything above this rather than let it collide.
+         */
+        const val MAX_AUX_CODE: Int = 254
+
         /** Empty placeholder — useful as initialValue for StateFlows. */
         val EMPTY: BridgeFrame = BridgeFrame(
             timestampMillis = 0L,
@@ -111,5 +157,24 @@ enum class SignalLevel(val wire: Int) {
          * protocol/version error rather than silently degrading.
          */
         fun fromWire(b: Int): SignalLevel? = entries.firstOrNull { it.wire == b }
+    }
+}
+
+/**
+ * Which kind of vehicle a frame describes — wire encoding in flags bits 5-6.
+ *
+ * [UNKNOWN] is not an error: a v2 frame carried no type, so a decoder
+ * that accepts a legacy frame reports it as unknown and the receiver
+ * falls back to wheel-shaped rendering.
+ */
+enum class VehicleType(val wire: Int) {
+    UNKNOWN(0),
+    WHEEL(1),
+    SCOOTER(2),
+    BMS(3),
+    ;
+
+    companion object {
+        fun fromWire(b: Int): VehicleType? = entries.firstOrNull { it.wire == b }
     }
 }

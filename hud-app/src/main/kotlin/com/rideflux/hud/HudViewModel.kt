@@ -11,6 +11,7 @@ import android.os.BatteryManager
 import android.os.SystemClock
 import android.util.Log
 import com.rideflux.data.bridge.DiagnosticLogs
+import com.rideflux.data.bridge.VehicleType
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -67,6 +68,15 @@ data class HudUiState(
     val tripDistanceMetres: Int? = null,
     val tripDurationSeconds: Long? = null,
     val rideMode: RideMode? = null,
+    // ---- Category-specific extras (bridge only) ----
+    /** Which kind of vehicle the phone reported; unknown in direct mode. */
+    val vehicleType: VehicleType = VehicleType.UNKNOWN,
+    /** 0.1-resolution category measurement: wheel pack current A, scooter ESC °C. */
+    val aux1: Float? = null,
+    /** Category code: wheel PWM percent, scooter gear. */
+    val aux2: Int? = null,
+    /** Category code: wheel MOS °C biased by 64, scooter throttle percent. */
+    val aux3: Int? = null,
     // ---- Left column (devices / signal) ----
     /** Battery of the device running this APK (assumed to be the AR glasses). 0..100, or null. */
     val glassesBatteryPercent: Int? = null,
@@ -341,6 +351,10 @@ class HudViewModel @Inject constructor(
             tripDistanceMetres = scooterValues?.tripDistanceMetres ?: telem.tripDistanceMetres,
             tripDurationSeconds = frame.tripDurationSeconds ?: tripDurationSec,
             rideMode = telem.rideMode,
+            vehicleType = frame.vehicleType,
+            aux1 = frame.aux1,
+            aux2 = frame.aux2,
+            aux3 = frame.aux3,
             glassesBatteryPercent = glassesBattery,
             phoneBatteryPercent = frame.phoneBatteryPercent,
             signalQuality = frame.signal,

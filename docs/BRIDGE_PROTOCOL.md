@@ -19,9 +19,9 @@ centrals never fight over the wheel.
 | Telemetry characteristic | `e7810a72-73ae-499d-8c15-faa9aef0c3f2` (notify-only) |
 | HUD profile characteristic | `e7810a74-73ae-499d-8c15-faa9aef0c3f2` (read-only, per approved glasses token) |
 | Magic byte | `0x52` (`'R'`) |
-| Protocol version | `2` (20-byte frame) |
-| Frame size (v2) | 20 bytes, little-endian — fits the default 23-byte ATT MTU |
-| Preferred ATT MTU | 64 (client-initiated; v2 never depends on it) |
+| Protocol version | `3` (24-byte frame) |
+| Frame size (v3) | 24 bytes, little-endian — needs an ATT MTU of at least 27 |
+| Preferred ATT MTU | 64 (client-initiated; a v3 frame *does* depend on the exchange succeeding) |
 | Pairing token | 8 bytes of service data under the service UUID, in the scan response |
 | Rokid CXR channel | `rideflux.telemetry.v1` |
 | Rokid CXR HUD profile channel | `rideflux.hud-profile.v1` |
@@ -77,18 +77,36 @@ plus 40 s for scanning, connecting and subscribing, and it doubles each time it 
 unanswered, up to 10 minutes, which keeps glasses that were turned down from asking
 again and again.
 
-Frame payload: timestamp (seconds, decoded unsigned), speed, wheel battery %,
+Frame payload: timestamp (seconds, decoded unsigned), speed, vehicle battery %,
 phone battery %, pack voltage, trip distance, trip duration, coarse signal level,
-stale flag, ready flag. Sentinels encode "absent" for each numeric slot. The v2
-layout packs signal into the flags byte and narrows the timestamp to one word so
-one notification always carries a complete frame; the previous 32-byte v1 layout
-is retained decode-only so a glasses APK updated ahead of the phone still reads
-frames during a mixed-install window. Any breaking change must bump
-`PROTOCOL_VERSION`.
+stale flag, ready flag, vehicle type, and three category-specific aux slots.
+Sentinels encode "absent" for each numeric slot.
+
+The v3 layout keeps v2's twenty-byte prefix at identical offsets and appends
+four bytes: `aux1` at 0.1 resolution, then two one-byte slots. The vehicle type
+rides in flags bits 5-6, so a receiver that ignores it still decodes the frame.
+The aux slots mean different things per category — a wheel puts pack current,
+PWM and biased MOS temperature there; a scooter puts ESC temperature, gear and
+throttle — and a category that has nothing to say leaves them absent. Wheel MOS
+temperature is biased by +64 because 0 °C is a valid reading and must not
+collide with the absent sentinel.
+
+**The v3 frame depends on ATT MTU.** At 24 bytes it no longer fits the default
+23-byte MTU's 20-byte payload. Only the GATT client can start the exchange and
+the phone is the server, so the phone can neither trigger it nor read the
+negotiated value: if the exchange never happens the stack truncates the
+notification to 20 bytes, the decoder rejects it on length, and the HUD gets
+nothing until the silence watchdog restarts the link. This is a deliberate
+reversal of v2's zero-dependency design, taken to buy the category slots. The
+Rokid CXR transport has no MTU limit and is unaffected.
+
+The previous 32-byte v1 and 20-byte v2 layouts are retained decode-only so a
+glasses APK running ahead of the phone still reads frames; the phone encodes v3
+only. Any breaking change must bump `PROTOCOL_VERSION`.
 
 The glasses read a separate 10-byte, versioned HUD profile every second after
-subscribing to telemetry. This keeps the telemetry frame at 20 bytes and lets
-older clients ignore the new characteristic. The phone looks up the profile by
+subscribing to telemetry. This keeps the telemetry frame smaller than it would
+otherwise be and lets older clients ignore the new characteristic. The phone looks up the profile by
 the glasses handshake token (or legacy MAC) and stores one profile per device.
 The CXR publisher sends the same payload on its profile channel when it changes
 and periodically while connected. The HUD applies the profile locally; the
@@ -110,9 +128,9 @@ phone can edit profiles offline and sends the latest value on reconnect.
 | 遙測特徵值 | `e7810a72-73ae-499d-8c15-faa9aef0c3f2`（僅通知） |
 | HUD 偏好特徵值 | `e7810a74-73ae-499d-8c15-faa9aef0c3f2`（唯讀，依已核准眼鏡權杖選取） |
 | 魔術位元組 | `0x52`（`'R'`） |
-| 協定版本 | `2`（20 位元組封包） |
-| 封包大小（v2） | 20 位元組，小端序 — 可容於預設的 23 位元組 ATT MTU |
-| 偏好 ATT MTU | 64（由用戶端發起協商；v2 不依賴協商結果） |
+| 協定版本 | `3`（24 位元組封包） |
+| 封包大小（v3） | 24 位元組，小端序 — 需要至少 27 的 ATT MTU |
+| 偏好 ATT MTU | 64（由用戶端發起協商；v3 封包確實依賴協商成功） |
 | 配對權杖 | 8 位元組，以服務 UUID 的 service data 放在掃描回應中 |
 | Rokid CXR 通道 | `rideflux.telemetry.v1` |
 | Rokid CXR HUD 偏好通道 | `rideflux.hud-profile.v1` |
@@ -143,12 +161,24 @@ PDU 合併成單一 `ScanRecord`，因此接收端透過 `ScanRecord.getServiceD
 程式內比對。
 
 封包內容：時間戳（秒，以無號解碼）、時速、車輛電量 %、手機電量 %、電池組電壓、行程距離、
-行程時間、粗略訊號等級、資料過期旗標、就緒旗標。每個數值欄位皆以哨兵值表示「無資料」。v2
-將訊號等級併入 flags 位元組並把時間戳縮為一個字，確保單一通知一定能承載完整封包；先前的
-32 位元組 v1 版面保留為「僅解碼」，讓比手機先更新的眼鏡 APK 在混合安裝期間仍讀得懂。任何
-破壞性變更都必須遞增 `PROTOCOL_VERSION`。
+行程時間、粗略訊號等級、資料過期旗標、就緒旗標、車輛類型，以及三個依類別定義的輔助欄位。
+每個數值欄位皆以哨兵值表示「無資料」。
 
-眼鏡訂閱遙測後每秒讀取獨立的 10 位元組 HUD 偏好資料。它有自己的版本號，不占用原本
-20 位元組的遙測封包；舊版眼鏡會忽略新增的特徵值。手機以眼鏡握手權杖（舊版則以 MAC）
+v3 保留 v2 前二十個位元組的欄位順序與位移，再附加四個位元組：以 0.1 解析度編碼的 `aux1`，
+以及兩個單位元組欄位。車輛類型放在 flags 的第 5–6 位，因此忽略它的接收端仍能解出這一幀。
+輔助欄位的意義依類別而異 —— 獨輪車放電池電流、PWM 與平移過的 MOS 溫度；滑板車放 ESC
+溫度、檔位與油門；沒有東西可報的類別就留空。獨輪車的 MOS 溫度加上 +64，因為 0 °C 是合法
+讀數，不能與「無資料」的哨兵值相撞。
+
+**v3 封包依賴 ATT MTU。** 24 位元組已超出預設 23 MTU 的 20 位元組酬載。只有 GATT 用戶端
+能發起協商，而手機是伺服器端，既無法觸發也讀不到協商結果：協商若沒發生，協定堆疊會把通知
+截斷成 20 位元組，解碼器依長度拒收，眼鏡就什麼都拿不到，直到靜默看門狗重啟連線。這是刻意
+逆轉 v2 的「零依賴」設計，用來換取類別欄位。Rokid CXR 傳輸沒有 MTU 限制，不受影響。
+
+先前的 32 位元組 v1 與 20 位元組 v2 版面保留為「僅解碼」，讓比手機先更新的眼鏡 APK 仍讀得懂；
+手機只編碼 v3。任何破壞性變更都必須遞增 `PROTOCOL_VERSION`。
+
+眼鏡訂閱遙測後每秒讀取獨立的 10 位元組 HUD 偏好資料。它有自己的版本號，不占用遙測封包的
+位元組；舊版眼鏡會忽略新增的特徵值。手機以眼鏡握手權杖（舊版則以 MAC）
 尋找各自的版面設定。CXR 連線透過另一個通道在設定變更時及連線期間定期傳送相同資料。
 手機離線時仍可編輯，重連後眼鏡會套用最新設定。

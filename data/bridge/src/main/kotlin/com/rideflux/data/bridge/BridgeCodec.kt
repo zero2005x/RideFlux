@@ -61,11 +61,11 @@ import kotlin.math.roundToInt
 object BridgeCodec {
 
     /**
-     * Encode [frame] to its 20-byte v2 wire representation. Always
+     * Encode [frame] to its 24-byte v3 wire representation. Always
      * succeeds; absent fields are encoded with their sentinel values.
      */
     fun encode(frame: BridgeFrame): ByteArray {
-        val out = ByteArray(BridgeProtocol.FRAME_SIZE_V2)
+        val out = ByteArray(BridgeProtocol.FRAME_SIZE_V3)
         val buf = ByteBuffer.wrap(out).order(ByteOrder.LITTLE_ENDIAN)
 
         buf.put(BridgeProtocol.MAGIC)
@@ -76,6 +76,7 @@ object BridgeCodec {
         if (frame.ready) flags = flags or 0x02
         flags = flags or (frame.signal.wire shl 2)
         if (frame.hudHidden) flags = flags or FLAG_HUD_HIDDEN
+        flags = flags or (frame.vehicleType.wire shl VEHICLE_TYPE_SHIFT)
         buf.put(flags.toByte())
 
         // Seconds resolution; decoded as unsigned on the receive side
@@ -100,6 +101,14 @@ object BridgeCodec {
         buf.putInt(frame.tripDurationSeconds
             ?.takeIf { it <= Int.MAX_VALUE.toLong() }
             ?.toInt() ?: BridgeProtocol.INT32_NULL)
+
+        // Category-specific slots. aux1 shares the 0.1-resolution i16
+        // convention with speed and voltage; aux2/aux3 are one byte each,
+        // where 0xFF means absent. A producer that has nothing to say for
+        // its category leaves all three null.
+        buf.putShort(toScaledI16(frame.aux1))
+        buf.put((frame.aux2 ?: BridgeProtocol.PERCENT_NULL).toByte())
+        buf.put((frame.aux3 ?: BridgeProtocol.PERCENT_NULL).toByte())
         return out
     }
 
@@ -110,6 +119,9 @@ object BridgeCodec {
      */
     fun decode(bytes: ByteArray): BridgeFrame? = try {
         when {
+            bytes.size == BridgeProtocol.FRAME_SIZE_V3 && bytes[0] == BridgeProtocol.MAGIC &&
+                bytes[1] == BridgeProtocol.PROTOCOL_VERSION -> decodeV3(bytes)
+
             bytes.size == BridgeProtocol.FRAME_SIZE_V2 && bytes[0] == BridgeProtocol.MAGIC &&
                 bytes[1] == PROTOCOL_VERSION_V2 -> decodeV2(bytes)
 
@@ -163,6 +175,57 @@ object BridgeCodec {
             stale = (flags and 0x01) != 0,
             ready = (flags and 0x02) != 0,
             hudHidden = (flags and FLAG_HUD_HIDDEN) != 0,
+        )
+    }
+
+    private fun decodeV3(bytes: ByteArray): BridgeFrame? {
+        val buf = ByteBuffer.wrap(bytes, 0, BridgeProtocol.FRAME_SIZE_V3)
+            .order(ByteOrder.LITTLE_ENDIAN)
+        buf.position(2)
+
+        val flags = buf.get().toInt() and 0xFF
+        val signal = SignalLevel.fromWire((flags shr 2) and 0x03) ?: return null
+        val vehicleType = VehicleType.fromWire((flags shr VEHICLE_TYPE_SHIFT) and 0x03) ?: return null
+
+        // Treat sec as unsigned so the field covers up to 2106 rather
+        // than sign-extending and corrupting post-2038 stamps.
+        val timestampMillis = Integer.toUnsignedLong(buf.int) * 1_000L
+
+        val sx10 = buf.short
+        val speed = if (sx10 == BridgeProtocol.INT16_NULL) null else sx10 / 10f
+
+        val vehBat = byteToPercent(buf.get())
+        val phoneBat = byteToPercent(buf.get())?.roundToInt()
+
+        val vx10 = buf.short
+        val voltage = if (vx10 == BridgeProtocol.INT16_NULL) null else vx10 / 10f
+
+        val distance = readU24(buf).takeUnless { it == BridgeProtocol.U24_NULL }
+        val duration = buf.int.let {
+            if (it == BridgeProtocol.INT32_NULL) null else it.toLong()
+        }
+
+        val ax10 = buf.short
+        val aux1 = if (ax10 == BridgeProtocol.INT16_NULL) null else ax10 / 10f
+        val aux2 = buf.get().toInt().and(0xFF).takeUnless { it == BridgeProtocol.PERCENT_NULL }
+        val aux3 = buf.get().toInt().and(0xFF).takeUnless { it == BridgeProtocol.PERCENT_NULL }
+
+        return BridgeFrame(
+            timestampMillis = timestampMillis,
+            speedKmh = speed,
+            vehicleBatteryPercent = vehBat,
+            phoneBatteryPercent = phoneBat,
+            voltageV = voltage,
+            tripDistanceMetres = distance,
+            tripDurationSeconds = duration,
+            signal = signal,
+            stale = (flags and 0x01) != 0,
+            ready = (flags and 0x02) != 0,
+            hudHidden = (flags and FLAG_HUD_HIDDEN) != 0,
+            vehicleType = vehicleType,
+            aux1 = aux1,
+            aux2 = aux2,
+            aux3 = aux3,
         )
     }
 
@@ -274,12 +337,14 @@ object BridgeCodec {
     /**
      * Flags bit 4 — the phone asking the glasses to blank the HUD.
      *
-     * Bits 0..3 were already spoken for (stale, ready, two signal bits);
-     * 4..7 were unused and decoded as don't-care, which is what makes
-     * this addition compatible in both directions without a version
-     * bump. Claim bits from 4 upward for any future flag.
+     * Bits 0..3 carry stale, ready and the two signal bits. Bits 5-6 now
+     * carry the vehicle type (see [VEHICLE_TYPE_SHIFT]); bit 7 remains
+     * free for the "not fully measured" marker.
      */
     private const val FLAG_HUD_HIDDEN = 0x10
+
+    /** Flags bits 5-6 — which kind of vehicle produced this frame. */
+    private const val VEHICLE_TYPE_SHIFT = 5
 
     private const val PROTOCOL_VERSION_V1: Byte = 1
     private const val PROTOCOL_VERSION_V2: Byte = 2

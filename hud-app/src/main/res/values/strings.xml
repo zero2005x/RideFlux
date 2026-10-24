@@ -23,6 +23,7 @@
     <string name="hud_peer_row" translatable="false">%1$s  %2$d dBm</string>
     <string name="unit_kmh" translatable="false">km/h</string>
     <string name="unit_celsius" translatable="false">°C</string>
+    <string name="unit_volts" translatable="false">V</string>
     <string name="unit_percent" translatable="false">%</string>
     <string name="hud_limit_value" translatable="false">%1$d %2$s</string>
     <string name="hud_step_decrement" translatable="false">−</string>
