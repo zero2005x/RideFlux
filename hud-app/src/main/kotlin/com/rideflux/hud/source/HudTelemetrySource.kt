@@ -5,6 +5,7 @@
  */
 package com.rideflux.hud.source
 
+import com.rideflux.data.bridge.VehicleType
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.telemetry.ScooterTelemetry
@@ -58,6 +59,20 @@ data class HudTelemetryFrame(
     val hudHiddenByPhone: Boolean? = null,
     /** Direct scooter telemetry; wheel fields are ignored when present. */
     val scooterTelemetry: ScooterTelemetry? = null,
+    /**
+     * Which kind of vehicle the bridge frame described.
+     *
+     * Only the bridge source populates this — a directly connected wheel
+     * has no wire frame to read it from, so direct mode leaves it
+     * [VehicleType.UNKNOWN] and the HUD falls back to wheel rendering.
+     */
+    val vehicleType: VehicleType = VehicleType.UNKNOWN,
+    /** Bridge-only: 0.1-resolution category measurement (wheel current A, scooter °C). */
+    val aux1: Float? = null,
+    /** Bridge-only: category code (wheel PWM %, scooter gear). */
+    val aux2: Int? = null,
+    /** Bridge-only: category code (wheel MOS °C biased by 64, scooter throttle %). */
+    val aux3: Int? = null,
 )
 
 /**

@@ -5,6 +5,7 @@
   Simplified Chinese (华语) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">档位 %1$d</string>
     <string name="hud_language">语言</string>
     <string name="hud_follow_system">跟随系统</string>
     <string name="hud_waiting_phone_title">等待\n手机</string>

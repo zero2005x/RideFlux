@@ -5,6 +5,7 @@
   Urdu (اردو) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">گیئر %1$d</string>
     <string name="hud_language">زبان</string>
     <string name="hud_follow_system">سسٹم کی زبان استعمال کریں</string>
     <string name="hud_waiting_phone_title">فون کا\nانتظار</string>
