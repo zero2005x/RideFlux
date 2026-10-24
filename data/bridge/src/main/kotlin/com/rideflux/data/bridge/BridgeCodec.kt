@@ -137,11 +137,25 @@ object BridgeCodec {
         null
     }
 
-    private fun decodeV2(bytes: ByteArray): BridgeFrame? {
-        val buf = ByteBuffer.wrap(bytes, 0, BridgeProtocol.FRAME_SIZE_V2)
-            .order(ByteOrder.LITTLE_ENDIAN)
-        buf.position(2)
+    /**
+     * The fields the twenty-byte v2 prefix and the 24-byte v3 frame share.
+     *
+     * v3 appends the category slots after this part, so both decoders read
+     * it through one function instead of walking the same offsets twice.
+     */
+    private data class Prefix(
+        val flags: Int,
+        val signal: SignalLevel,
+        val timestampMillis: Long,
+        val speedKmh: Float?,
+        val vehicleBatteryPercent: Float?,
+        val phoneBatteryPercent: Int?,
+        val voltageV: Float?,
+        val tripDistanceMetres: Int?,
+        val tripDurationSeconds: Long?,
+    )
 
+    private fun readPrefix(buf: ByteBuffer): Prefix? {
         val flags = buf.get().toInt() and 0xFF
         val signal = SignalLevel.fromWire((flags shr 2) and 0x03) ?: return null
 
@@ -163,7 +177,9 @@ object BridgeCodec {
             if (it == BridgeProtocol.INT32_NULL) null else it.toLong()
         }
 
-        return BridgeFrame(
+        return Prefix(
+            flags = flags,
+            signal = signal,
             timestampMillis = timestampMillis,
             speedKmh = speed,
             vehicleBatteryPercent = vehBat,
@@ -171,11 +187,38 @@ object BridgeCodec {
             voltageV = voltage,
             tripDistanceMetres = distance,
             tripDurationSeconds = duration,
-            signal = signal,
-            stale = (flags and 0x01) != 0,
-            ready = (flags and 0x02) != 0,
-            hudHidden = (flags and FLAG_HUD_HIDDEN) != 0,
         )
+    }
+
+    private fun frameOf(
+        prefix: Prefix,
+        vehicleType: VehicleType = VehicleType.UNKNOWN,
+        aux1: Float? = null,
+        aux2: Int? = null,
+        aux3: Int? = null,
+    ): BridgeFrame = BridgeFrame(
+        timestampMillis = prefix.timestampMillis,
+        speedKmh = prefix.speedKmh,
+        vehicleBatteryPercent = prefix.vehicleBatteryPercent,
+        phoneBatteryPercent = prefix.phoneBatteryPercent,
+        voltageV = prefix.voltageV,
+        tripDistanceMetres = prefix.tripDistanceMetres,
+        tripDurationSeconds = prefix.tripDurationSeconds,
+        signal = prefix.signal,
+        stale = (prefix.flags and 0x01) != 0,
+        ready = (prefix.flags and 0x02) != 0,
+        hudHidden = (prefix.flags and FLAG_HUD_HIDDEN) != 0,
+        vehicleType = vehicleType,
+        aux1 = aux1,
+        aux2 = aux2,
+        aux3 = aux3,
+    )
+
+    private fun decodeV2(bytes: ByteArray): BridgeFrame? {
+        val buf = ByteBuffer.wrap(bytes, 0, BridgeProtocol.FRAME_SIZE_V2)
+            .order(ByteOrder.LITTLE_ENDIAN)
+        buf.position(2)
+        return frameOf(readPrefix(buf) ?: return null)
     }
 
     private fun decodeV3(bytes: ByteArray): BridgeFrame? {
@@ -183,50 +226,16 @@ object BridgeCodec {
             .order(ByteOrder.LITTLE_ENDIAN)
         buf.position(2)
 
-        val flags = buf.get().toInt() and 0xFF
-        val signal = SignalLevel.fromWire((flags shr 2) and 0x03) ?: return null
-        val vehicleType = VehicleType.fromWire((flags shr VEHICLE_TYPE_SHIFT) and 0x03) ?: return null
-
-        // Treat sec as unsigned so the field covers up to 2106 rather
-        // than sign-extending and corrupting post-2038 stamps.
-        val timestampMillis = Integer.toUnsignedLong(buf.int) * 1_000L
-
-        val sx10 = buf.short
-        val speed = if (sx10 == BridgeProtocol.INT16_NULL) null else sx10 / 10f
-
-        val vehBat = byteToPercent(buf.get())
-        val phoneBat = byteToPercent(buf.get())?.roundToInt()
-
-        val vx10 = buf.short
-        val voltage = if (vx10 == BridgeProtocol.INT16_NULL) null else vx10 / 10f
-
-        val distance = readU24(buf).takeUnless { it == BridgeProtocol.U24_NULL }
-        val duration = buf.int.let {
-            if (it == BridgeProtocol.INT32_NULL) null else it.toLong()
-        }
+        val prefix = readPrefix(buf) ?: return null
+        val vehicleType =
+            VehicleType.fromWire((prefix.flags shr VEHICLE_TYPE_SHIFT) and 0x03) ?: return null
 
         val ax10 = buf.short
         val aux1 = if (ax10 == BridgeProtocol.INT16_NULL) null else ax10 / 10f
         val aux2 = buf.get().toInt().and(0xFF).takeUnless { it == BridgeProtocol.PERCENT_NULL }
         val aux3 = buf.get().toInt().and(0xFF).takeUnless { it == BridgeProtocol.PERCENT_NULL }
 
-        return BridgeFrame(
-            timestampMillis = timestampMillis,
-            speedKmh = speed,
-            vehicleBatteryPercent = vehBat,
-            phoneBatteryPercent = phoneBat,
-            voltageV = voltage,
-            tripDistanceMetres = distance,
-            tripDurationSeconds = duration,
-            signal = signal,
-            stale = (flags and 0x01) != 0,
-            ready = (flags and 0x02) != 0,
-            hudHidden = (flags and FLAG_HUD_HIDDEN) != 0,
-            vehicleType = vehicleType,
-            aux1 = aux1,
-            aux2 = aux2,
-            aux3 = aux3,
-        )
+        return frameOf(prefix, vehicleType, aux1, aux2, aux3)
     }
 
     private fun decodeV1(bytes: ByteArray): BridgeFrame? {
