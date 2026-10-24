@@ -12,12 +12,14 @@ import com.rideflux.data.preferences.AndroidKeystoreBondCipher
 import com.rideflux.data.preferences.EncryptedFileBondStore
 import com.rideflux.domain.bond.BondBackup
 import com.rideflux.domain.bond.BondStore
+import com.rideflux.domain.garage.VehicleProfileStore
 import java.io.File
 import com.rideflux.core.location.TripLocationSource
 import com.rideflux.data.database.RideFluxDatabase
 import com.rideflux.data.database.RoomTripRepository
 import com.rideflux.data.preferences.DataStoreBegodeProfileStore
 import com.rideflux.data.preferences.DataStoreSettingsRepository
+import com.rideflux.data.preferences.DataStoreVehicleProfileStore
 import com.rideflux.data.preferences.DataStoreWheelBatteryPackStore
 import com.rideflux.domain.ride.TripRepository
 import com.rideflux.domain.settings.SettingsRepository
@@ -57,6 +59,13 @@ object PersistenceModule {
         @ApplicationContext context: Context,
         @ApplicationScope scope: CoroutineScope,
     ): WheelBatteryPackStore = DataStoreWheelBatteryPackStore(context, scope)
+
+    @Provides
+    @Singleton
+    fun provideVehicleProfileStore(
+        @ApplicationContext context: Context,
+        @ApplicationScope scope: CoroutineScope,
+    ): VehicleProfileStore = DataStoreVehicleProfileStore(context, scope)
 
     @Provides
     @Singleton

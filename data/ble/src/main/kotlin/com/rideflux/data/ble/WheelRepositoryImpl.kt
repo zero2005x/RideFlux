@@ -64,22 +64,56 @@ import java.util.concurrent.ConcurrentHashMap
  * `ACCESS_FINE_LOCATION` before invoking either [scan] or [connect].
  */
 @SuppressLint("MissingPermission")
-class WheelRepositoryImpl internal constructor(
+class WheelRepositoryImpl private constructor(
     private val context: Context?,
     private val rootScope: CoroutineScope,
     private val codecFactory: BleWheelCodecFactory,
     private val connectionFactory: ((String, WheelFamily?, CoroutineScope) -> WheelConnectionImpl)?,
+    /**
+     * Persisted per-vehicle family hint, read synchronously before a connect.
+     * This is a hint only: the discovered GATT table still decides. It exists
+     * so a process restart does not forget the rider's explicit brand choice
+     * (the old in-memory `manualFamilies` map could not survive one).
+     */
+    private val savedFamilyHints: (String) -> WheelFamily?,
 ) : WheelRepository {
+    /** Production constructor: optional persisted hint, no test connection factory. */
     constructor(
         context: Context,
         rootScope: CoroutineScope,
         codecFactory: BleWheelCodecFactory = WheelCodecFactoryImpl(),
-    ) : this(context, rootScope, codecFactory, null)
+        savedFamilyHints: (String) -> WheelFamily? = { null },
+    ) : this(context, rootScope, codecFactory, null, savedFamilyHints)
+
+    /**
+     * Test seam. Kept as a separate overload with the factory last so
+     * `WheelRepositoryImpl(context, scope, factory) { ... }` continues to bind
+     * its trailing lambda to the connection factory.
+     */
+    constructor(
+        context: Context,
+        rootScope: CoroutineScope,
+        codecFactory: BleWheelCodecFactory = WheelCodecFactoryImpl(),
+        connectionFactory: (String, WheelFamily?, CoroutineScope) -> WheelConnectionImpl,
+    ) : this(context, rootScope, codecFactory, connectionFactory, { null })
 
     internal constructor(
         rootScope: CoroutineScope,
         connectionFactory: (String, WheelFamily?, CoroutineScope) -> WheelConnectionImpl,
-    ) : this(null, rootScope, WheelCodecFactoryImpl(), connectionFactory)
+    ) : this(null, rootScope, WheelCodecFactoryImpl(), connectionFactory, { null })
+
+    internal constructor(
+        rootScope: CoroutineScope,
+        savedFamilyHints: (String) -> WheelFamily?,
+        connectionFactory: (String, WheelFamily?, CoroutineScope) -> WheelConnectionImpl,
+    ) : this(null, rootScope, WheelCodecFactoryImpl(), connectionFactory, savedFamilyHints)
+
+    internal constructor(
+        context: Context,
+        rootScope: CoroutineScope,
+        savedFamilyHints: (String) -> WheelFamily?,
+        connectionFactory: (String, WheelFamily?, CoroutineScope) -> WheelConnectionImpl,
+    ) : this(context, rootScope, WheelCodecFactoryImpl(), connectionFactory, savedFamilyHints)
 
     // Deferred until first use (scan/connect run off the main thread) so
     // the binder call to BluetoothManagerService never stalls composition.
@@ -93,6 +127,17 @@ class WheelRepositoryImpl internal constructor(
         val connection: WheelConnectionImpl,
         val scopeJob: Job,
         var refCount: Int,
+        /**
+         * Manual family requested when this entry was built, or `null` for a
+         * discovery-only session.
+         *
+         * [WheelConnectionImpl.resolvedFamily] stays `null` until the final
+         * codec is bound, so it cannot distinguish "not bound yet" from
+         * "bound to another family". The request is what a second connect()
+         * must compare against: an in-flight binding for the same family is
+         * one session, not a contradiction to tear down.
+         */
+        val requestedFamily: WheelFamily?,
         /**
          * Non-null once teardown has begun, completing when the GATT
          * link is actually gone.
@@ -118,7 +163,9 @@ class WheelRepositoryImpl internal constructor(
      * for an unrecognised FFE0 name, so without this the rider would be asked
      * again on every scan.
      */
-    private val manualFamilies = ConcurrentHashMap<String, WheelFamily>()
+
+    /** Single decision point shared by scanning, transport binding and codec choice. */
+    private val sessionResolver = WheelSessionResolver(codecFactory)
 
     private val _active = MutableStateFlow<Map<String, WheelConnection>>(emptyMap())
 
@@ -182,8 +229,13 @@ class WheelRepositoryImpl internal constructor(
                 if (uuidStrings.isNotEmpty()) {
                     lastSeenServiceUuids[address] = uuidStrings
                 }
-                val family = codecFactory.inferFromAdvertisement(name, uuidStrings)
-                    ?: manualFamilies[address]
+                val family = sessionResolver.advertisementHint(
+                    SessionHints(
+                        manualFamily = savedFamilyHints(address),
+                        advertisedName = name,
+                        advertisedServices = uuidStrings,
+                    ),
+                )
                 if (family == null) {
                     val hasRelevantService = uuidStrings.any(::isRelevantWheelServiceUuid)
                     val shouldSurfaceUnclassified = name != null || hasRelevantService
@@ -302,7 +354,10 @@ class WheelRepositoryImpl internal constructor(
         address: String,
         expectedFamily: WheelFamily?,
     ): WheelConnection {
-        expectedFamily?.let { manualFamilies[address] = it }
+        // The explicit family is scoped to this connect call. There is no
+        // process-local override cache: Auto/deletion must be able to retire
+        // an earlier explicit choice, and the persisted profile is the only
+        // pre-connect hint that survives it.
         while (true) {
             // Work that must happen outside the global lock, decided
             // while holding it.
@@ -328,11 +383,17 @@ class WheelRepositoryImpl internal constructor(
                     // rebuild instead.
                     //
                     // The same applies when expectedFamily differs from the
-                    // family of the existing connection: it was built with the
-                    // wrong codec (e.g. guessed G when the rider explicitly
-                    // selected V or K) and must not be reused.
+                    // family the existing connection was built for (or from
+                    // the family it has already resolved): it was built with
+                    // the wrong codec (e.g. guessed G when the rider
+                    // explicitly selected V or K) and must not be reused.
+                    // A `null` resolvedFamily only means the final binding is
+                    // still in flight; the request is compared instead so two
+                    // rapid connects for the same family share one session.
                     existing.connection.state.value is ConnectionState.Failed ||
-                        (expectedFamily != null && existing.connection.codec.family != expectedFamily) -> {
+                        (expectedFamily != null && existing.requestedFamily != expectedFamily) ||
+                        (expectedFamily != null &&
+                            existing.connection.resolvedFamily?.let { it != expectedFamily } == true) -> {
                         val done = CompletableDeferred<Unit>()
                         existing.closing = done
                         awaitTeardown = done
@@ -367,7 +428,7 @@ class WheelRepositoryImpl internal constructor(
             entryJob.cancel()
             throw error
         }
-        entries[address] = Entry(conn, entryJob, refCount = 1)
+        entries[address] = Entry(conn, entryJob, refCount = 1, requestedFamily = expectedFamily)
         publishActive()
         entryScope.launch { conn.start() }
         return SharedWheelConnection(address, conn)
@@ -385,25 +446,36 @@ class WheelRepositoryImpl internal constructor(
             throw IOException("invalid MAC $address", t)
         }
 
-        val family = expectedFamily
-            ?: inferFamilyHintForAddress(address)
-            ?: run {
-                Log.w(TAG, "device $address has no family hint or expectedFamily; falling back to G")
-                WheelFamily.G
-            }
-
-        val codec = codecFactory.forFamilyWithAddress(family, address)
-        val topology = codecFactory.topologyFor(family)
+        val hints = SessionHints(
+            manualFamily = expectedFamily,
+            savedFamily = if (expectedFamily == null) savedFamilyHints(address) else null,
+            advertisedName = lastSeenNames[address],
+            advertisedServices = lastSeenServiceUuids[address].orEmpty(),
+        )
+        // Provisional only: the discovered table decides. A null family is
+        // allowed here — the session fails with UNKNOWN_FAMILY after discovery
+        // rather than guessing G and decoding another family's bytes.
+        val provisional = sessionResolver.provisional(hints)
+        val initialTopology = provisional.topology ?: GattTopology.SINGLE_CHAR
+        val initialCodec = provisional.family?.let { codecFactory.forFamilyWithAddress(it, address) }
+        if (provisional.family == null) {
+            Log.i(TAG, "device $address has no pre-connect family hint; discovery will decide")
+        }
 
         val transport = AndroidBleTransport(
             context = checkNotNull(context),
             device = device,
-            topology = topology,
+            topology = initialTopology,
+            resolveSession = { snapshot -> sessionResolver.resolve(hints, snapshot) },
         )
         return WheelConnectionImpl(
             transport = transport,
-            codec = codec,
+            codec = initialCodec,
             scope = entryScope,
+            codecForResolution = { resolution ->
+                val family = requireNotNull(resolution.family) { "usable resolution without family" }
+                codecFactory.forFamilyWithAddress(family, address)
+            },
         )
     }
 
@@ -487,12 +559,6 @@ class WheelRepositoryImpl internal constructor(
                 entryToTearDown?.let { tearDown(address, it) }
             }
         }
-    }
-
-    private fun inferFamilyHintForAddress(address: String): WheelFamily? {
-        val name = lastSeenNames[address]
-        val services = lastSeenServiceUuids[address].orEmpty()
-        return codecFactory.inferFromAdvertisement(name, services) ?: manualFamilies[address]
     }
 
     private companion object {

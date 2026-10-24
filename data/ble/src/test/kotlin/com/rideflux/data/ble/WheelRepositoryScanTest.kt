@@ -41,7 +41,12 @@ class WheelRepositoryScanTest {
     @Test
     fun mergesAdvertisementAndScanResponseWithoutEmittingForRssiOnlyChanges() = runTest {
         val fixture = Fixture()
-        val repository = WheelRepositoryImpl(fixture.context, backgroundScope)
+        var savedHint: WheelFamily? = null
+        val repository = WheelRepositoryImpl(
+            fixture.context,
+            backgroundScope,
+            savedFamilyHints = { savedHint },
+        )
         val emissions = mutableListOf<List<com.rideflux.domain.repository.DiscoveredWheel>>()
         val job = backgroundScope.launch { repository.scan().collect { emissions.add(it) } }
         runCurrent()
@@ -76,10 +81,11 @@ class WheelRepositoryScanTest {
     @Test
     fun deviceTheRiderClassifiedByHandIsRecognisedOnTheNextScan() = runTest {
         val fixture = Fixture()
+        var savedHint: WheelFamily? = null
         val repository = WheelRepositoryImpl(
             fixture.context,
             backgroundScope,
-            WheelCodecFactoryImpl(),
+            { savedHint },
         ) { _, family, scope ->
             WheelConnectionImpl(
                 FakeBleTransport(),
@@ -98,11 +104,38 @@ class WheelRepositoryScanTest {
         runCurrent()
         assertEquals(null, emissions.last().single().family)
 
-        // The rider picks KingSong; the same device is then classified on its own.
-        repository.connect("11:22:33:44:55:66", WheelFamily.K)
+        // The rider's persisted family is the only pre-connect hint; the
+        // repository no longer keeps a process-local manual cache.
+        savedHint = WheelFamily.K
         fixture.callback.onScanResult(0, fixture.result("11:22:33:44:55:66", "Odd Board", -61, ffe0))
         runCurrent()
         assertEquals(WheelFamily.K, emissions.last().single().family)
+
+        job.cancelAndJoin()
+    }
+
+    @Test
+    fun `changing the saved family to Auto is reflected by the next scan`() = runTest {
+        val fixture = Fixture()
+        var savedHint: WheelFamily? = WheelFamily.G
+        val repository = WheelRepositoryImpl(
+            fixture.context,
+            backgroundScope,
+            savedFamilyHints = { savedHint },
+        )
+        val ffe0 = listOf("0000ffe0-0000-1000-8000-00805f9b34fb")
+        val emissions = mutableListOf<List<com.rideflux.domain.repository.DiscoveredWheel>>()
+        val job = backgroundScope.launch { repository.scan().collect { emissions.add(it) } }
+        runCurrent()
+
+        fixture.callback.onScanResult(0, fixture.result("11:22:33:44:55:66", "Odd Board", -60, ffe0))
+        runCurrent()
+        assertEquals(WheelFamily.G, emissions.last().single().family)
+
+        savedHint = null
+        fixture.callback.onScanResult(0, fixture.result("11:22:33:44:55:66", "Odd Board", -61, ffe0))
+        runCurrent()
+        assertEquals(null, emissions.last().single().family)
 
         job.cancelAndJoin()
     }
@@ -126,6 +159,33 @@ class WheelRepositoryScanTest {
         assertTrue(failure?.message?.contains("errorCode=6") == true)
         job.cancelAndJoin()
         verify(exactly = 1) { fixture.scanner.stopScan(any<ScanCallback>()) }
+    }
+
+    @Test
+    fun `an explicit family does not survive Auto or deletion as a process cache`() = runTest {
+        var savedHint: WheelFamily? = WheelFamily.G
+        val requested = mutableListOf<WheelFamily?>()
+        val repository = WheelRepositoryImpl(
+            backgroundScope,
+            { savedHint },
+        ) { _, family, scope ->
+            requested += family
+            WheelConnectionImpl(
+                FakeBleTransport(),
+                FakeWheelCodec(family = family ?: WheelFamily.G),
+                scope,
+                clock = { 1_000L },
+            )
+        }
+
+        repository.connect("AA:BB:CC:DD:EE:FF", WheelFamily.G).close()
+        runCurrent()
+        // The rider switches the saved profile to Auto (null).
+        savedHint = null
+        repository.connect("AA:BB:CC:DD:EE:FF", null).close()
+        runCurrent()
+
+        assertEquals(listOf(WheelFamily.G, null), requested)
     }
 
     private class Fixture {

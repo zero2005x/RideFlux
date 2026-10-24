@@ -393,4 +393,23 @@
     <string name="settings_diag_subtitle">Peristiwa terbaru jembatan dan kacamata, hanya disimpan di ponsel ini. Tidak berisi kunci atau token. Simpan untuk dibagikan saat terjadi masalah.</string>
     <string name="settings_diag_saved">Log diagnostik disimpan.</string>
     <string name="settings_diag_error">Tidak dapat menyimpan log diagnostik: %1$s</string>
+    <string name="scanner_saved_vehicles">Kendaraan tersimpan</string>
+    <string name="scanner_saved_vehicles_empty">Belum ada kendaraan tersimpan. Pilih perangkat untuk menyimpannya.</string>
+    <string name="scanner_vehicle_edit_title">Edit kendaraan</string>
+    <string name="scanner_vehicle_name_label">Nama</string>
+    <string name="scanner_vehicle_alerts_override">Gunakan peringatan kendaraan ini</string>
+    <string name="scanner_vehicle_delete">Hapus kendaraan</string>
+    <string name="action_save">Simpan</string>
+    <string name="support_limited_family">Model tidak dikenali. Kontrol dinonaktifkan; hanya telemetri dasar.</string>
+    <string name="support_limited_firmware">Firmware belum terverifikasi. Kontrol tetap dinonaktifkan.</string>
+    <string name="support_limited_layout">Model dikenali, telemetri sebagian.</string>
+    <string name="support_limited_generic">Dukungan terbatas: %1$s</string>
+    <string name="support_limited_control">Kontrol dinonaktifkan sampai kontrak kontrol model ini terverifikasi.</string>
+    <string name="support_limited_unidentified">Kendaraan belum dikenali. Kontrol tetap nonaktif sampai model diketahui.</string>
+    <string name="support_limited_reason_unknown">alasan tidak tercatat</string>
+    <string name="scanner_family_auto">Otomatis</string>
+    <string name="command_failed_unsupported">Tidak didukung oleh perangkat ini.</string>
+    <string name="command_failed_invalid">Perintah ditolak: %1$s</string>
+    <string name="command_failed_transport">Perintah tidak sampai ke roda.</string>
+    <string name="command_failed_not_connected">Tidak terhubung</string>
 </resources>

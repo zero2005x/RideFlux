@@ -175,7 +175,7 @@ class InmotionI2WheelCodecTest {
     }
 
     @Test
-    fun `V11Y does not match V11 early layout even with FW 1 3`() {
+    fun `V11Y uses its own 74-byte layout and not the V11 early offsets`() {
         val codec = InmotionI2WheelCodec("AA:BB:CC:DD:EE:FF")
         val state = codec.newState() as InmotionI2WheelCodec.InmotionI2State
 
@@ -191,15 +191,23 @@ class InmotionI2WheelCodecTest {
         codec.decode(state, buildFrame(cmd = InmotionI2CommandBuilder.CMD_MAIN_INFO, data = verData))
 
         val rtData = ByteArray(74)
-        rtData[0] = 0xD0.toByte(); rtData[1] = 0x20
-        rtData[2] = 0xF4.toByte(); rtData[3] = 0x01
+        // V11Y vendor layout: voltage @0 (/50), current @2 (/100),
+        // charge current @4, speed @6 (/100), battery ratio @0x1c (/10000).
+        rtData[0] = 0x68; rtData[1] = 0x10 // 4200 -> 84.0 V
+        rtData[2] = 0xF4.toByte(); rtData[3] = 0x01 // 500 -> 5.00 A
+        rtData[4] = 0xAC.toByte(); rtData[5] = 0x26 // 9900 -> would be 99.0 if read as V11 speed
+        rtData[6] = 0xD0.toByte(); rtData[7] = 0x07 // 2000 -> 20.00 km/h
+        rtData[0x1c] = 0x88.toByte(); rtData[0x1d] = 0x13 // 5000 -> 50 %
 
         val events = codec.decode(state, buildFrame(cmd = InmotionI2CommandBuilder.CMD_REALTIME, data = rtData))
         val telem = events.filterIsInstance<DecodeEvent.TelemetryUpdate>().first().snapshot
 
         assertEquals(84.0f, telem.voltageV)
         assertEquals(5.0f, telem.currentA)
-        // V11Y is not V11 early layout
-        assertNull(telem.speedKmh)
+        assertEquals(20.0f, telem.speedKmh)
+        assertEquals(50.0f, telem.batteryPercent)
+        // V11 early offsets 12/16 would decode trip 0 / battery 0 from this
+        // frame; the V11Y layout deliberately leaves the trip null.
+        assertNull(telem.tripDistanceMetres)
     }
 }

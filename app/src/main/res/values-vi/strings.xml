@@ -391,4 +391,23 @@
     <string name="settings_diag_subtitle">Các sự kiện gần đây của cầu nối và kính, chỉ lưu trên điện thoại này. Không chứa khóa hay token. Hãy lưu lại để chia sẻ khi có sự cố.</string>
     <string name="settings_diag_saved">Đã lưu nhật ký chẩn đoán.</string>
     <string name="settings_diag_error">Không thể lưu nhật ký chẩn đoán: %1$s</string>
+    <string name="scanner_saved_vehicles">Xe đã lưu</string>
+    <string name="scanner_saved_vehicles_empty">Chưa có xe nào được lưu. Chọn thiết bị để lưu.</string>
+    <string name="scanner_vehicle_edit_title">Sửa xe</string>
+    <string name="scanner_vehicle_name_label">Tên</string>
+    <string name="scanner_vehicle_alerts_override">Dùng cảnh báo riêng cho xe này</string>
+    <string name="scanner_vehicle_delete">Xóa xe</string>
+    <string name="action_save">Lưu</string>
+    <string name="support_limited_family">Không nhận diện được kiểu xe. Điều khiển bị tắt; chỉ hiển thị dữ liệu cơ bản.</string>
+    <string name="support_limited_firmware">Chưa xác minh firmware. Điều khiển vẫn bị tắt.</string>
+    <string name="support_limited_layout">Đã nhận diện kiểu xe, dữ liệu chỉ một phần.</string>
+    <string name="support_limited_generic">Hỗ trợ hạn chế: %1$s</string>
+    <string name="support_limited_control">Điều khiển bị tắt cho đến khi hợp đồng điều khiển của kiểu xe này được xác minh.</string>
+    <string name="support_limited_unidentified">Chưa nhận diện được xe. Điều khiển vẫn bị tắt cho đến khi biết kiểu xe.</string>
+    <string name="support_limited_reason_unknown">lý do chưa được ghi</string>
+    <string name="scanner_family_auto">Tự động</string>
+    <string name="command_failed_unsupported">Thiết bị này không hỗ trợ.</string>
+    <string name="command_failed_invalid">Lệnh bị từ chối: %1$s</string>
+    <string name="command_failed_transport">Lệnh không đến được bánh xe.</string>
+    <string name="command_failed_not_connected">Chưa kết nối</string>
 </resources>

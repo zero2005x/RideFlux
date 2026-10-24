@@ -393,4 +393,23 @@
     <string name="settings_diag_subtitle">Recente gebeurtenissen van de brug en de bril, alleen op deze telefoon bewaard. Het bevat geen sleutels of tokens. Sla het op om te delen als er iets misgaat.</string>
     <string name="settings_diag_saved">Diagnoselogboek opgeslagen.</string>
     <string name="settings_diag_error">Kan het diagnoselogboek niet opslaan: %1$s</string>
+    <string name="scanner_saved_vehicles">Opgeslagen voertuigen</string>
+    <string name="scanner_saved_vehicles_empty">Nog geen opgeslagen voertuigen. Selecteer een apparaat om het op te slaan.</string>
+    <string name="scanner_vehicle_edit_title">Voertuig bewerken</string>
+    <string name="scanner_vehicle_name_label">Naam</string>
+    <string name="scanner_vehicle_alerts_override">Waarschuwingen per voertuig gebruiken</string>
+    <string name="scanner_vehicle_delete">Voertuig verwijderen</string>
+    <string name="action_save">Opslaan</string>
+    <string name="support_limited_family">Model niet herkend. Bediening uitgeschakeld; alleen basistelemetrie.</string>
+    <string name="support_limited_firmware">Firmware niet geverifieerd. Bediening blijft uitgeschakeld.</string>
+    <string name="support_limited_layout">Model herkend, telemetrie gedeeltelijk.</string>
+    <string name="support_limited_generic">Beperkte ondersteuning: %1$s</string>
+    <string name="support_limited_control">Bediening uitgeschakeld tot het bedieningscontract van dit model is geverifieerd.</string>
+    <string name="support_limited_unidentified">Voertuig nog niet geïdentificeerd. Bediening blijft uitgeschakeld tot het model bekend is.</string>
+    <string name="support_limited_reason_unknown">reden niet vastgelegd</string>
+    <string name="scanner_family_auto">Automatisch</string>
+    <string name="command_failed_unsupported">Niet ondersteund door dit apparaat.</string>
+    <string name="command_failed_invalid">Opdracht geweigerd: %1$s</string>
+    <string name="command_failed_transport">Opdracht heeft het wiel niet bereikt.</string>
+    <string name="command_failed_not_connected">Niet verbonden.</string>
 </resources>

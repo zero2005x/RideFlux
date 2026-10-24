@@ -23,7 +23,12 @@ import com.rideflux.domain.repository.WheelRepository
 import com.rideflux.domain.settings.AppSettings
 import com.rideflux.domain.settings.SettingsRepository
 import com.rideflux.domain.telemetry.ScooterTelemetry
+import com.rideflux.domain.telemetry.WheelAlert
+import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.wheel.WheelBatteryPackStore
+import com.rideflux.domain.wheel.WheelCapabilities
+import com.rideflux.domain.wheel.WheelIdentity
+import com.rideflux.domain.wheel.WheelSupport
 import com.rideflux.domain.wheel.WheelFamily
 import io.mockk.every
 import io.mockk.mockk
@@ -32,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -230,13 +236,38 @@ class DashboardViewModelMiTest {
         until("countdown cleared") { viewModel.uiState.value.handshakeRemainingSeconds == null }
     }
 
+    /**
+     * A real flow-backed wheel fake. A relaxed MockK of [WheelConnection]
+     * returns a mock StateFlow whose `collect` throws
+     * `KotlinNothingValueException`; that escaped the ViewModel scope and
+     * poisoned the next test in the class. This fake keeps the same
+     * production call path without the mock quirk.
+     */
+    private class FakeWheelConnection : WheelConnection {
+        override val state = MutableStateFlow<ConnectionState>(ConnectionState.Ready)
+        override val identity = MutableStateFlow<WheelIdentity?>(null)
+        override val capabilities = MutableStateFlow<WheelCapabilities?>(null)
+        override val support = MutableStateFlow<WheelSupport?>(null)
+        override val telemetry = MutableStateFlow(WheelTelemetry.EMPTY)
+        override val alerts = MutableSharedFlow<WheelAlert>(extraBufferCapacity = 8)
+        override val speedKmh = MutableStateFlow<Float?>(null)
+        override val voltageV = MutableStateFlow<Float?>(null)
+        override val batteryPercent = MutableStateFlow<Float?>(null)
+        override val currentA = MutableStateFlow<Float?>(null)
+        override val mosTemperatureC = MutableStateFlow<Float?>(null)
+        override val totalDistanceMetres = MutableStateFlow<Long?>(null)
+        override suspend fun dispatch(command: WheelCommand): CommandOutcome =
+            CommandOutcome.Unsupported(command)
+        override suspend fun close() = Unit
+    }
+
     @Test
     fun `onMiRegistrationConsent does nothing when connection is not a scooter`() {
         val handle = SavedStateHandle(mapOf(
             DashboardViewModel.ARG_ADDRESS to ADDRESS,
             DashboardViewModel.ARG_CATEGORY to PlevCategory.WHEEL.name,
         ))
-        val fakeWheelConnection = mockk<WheelConnection>(relaxed = true)
+        val fakeWheelConnection = FakeWheelConnection()
         val wheelRepo = object : WheelRepository {
             override fun scan() = flowOf(emptyList<DiscoveredWheel>())
             override fun activeConnections() = flowOf(emptyMap<String, WheelConnection>())

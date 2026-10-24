@@ -402,4 +402,23 @@
     <string name="settings_diag_subtitle">أحدث أحداث الجسر والنظارات، محفوظة على هذا الهاتف فقط. لا يحتوي على مفاتيح أو رموز. احفظه لمشاركته عند حدوث مشكلة.</string>
     <string name="settings_diag_saved">تم حفظ سجل التشخيص.</string>
     <string name="settings_diag_error">تعذّر حفظ سجل التشخيص: %1$s</string>
+    <string name="scanner_saved_vehicles">المركبات المحفوظة</string>
+    <string name="scanner_saved_vehicles_empty">لا توجد مركبات محفوظة بعد. اختر جهازًا لحفظه.</string>
+    <string name="scanner_vehicle_edit_title">تعديل المركبة</string>
+    <string name="scanner_vehicle_name_label">الاسم</string>
+    <string name="scanner_vehicle_alerts_override">استخدم تنبيهات هذه المركبة</string>
+    <string name="scanner_vehicle_delete">إزالة المركبة</string>
+    <string name="action_save">حفظ</string>
+    <string name="support_limited_family">لم يتم التعرف على الطراز. التحكم معطل؛ تُعرض القياسات الأساسية فقط.</string>
+    <string name="support_limited_firmware">لم يتم التحقق من البرنامج الثابت. يبقى التحكم معطلاً.</string>
+    <string name="support_limited_layout">تم التعرف على الطراز، والقياسات جزئية.</string>
+    <string name="support_limited_generic">دعم محدود: %1$s</string>
+    <string name="support_limited_control">التحكم معطل حتى يتم التحقق من عقد التحكم لهذا الطراز.</string>
+    <string name="support_limited_unidentified">لم يتم التعرف على المركبة بعد. يبقى التحكم معطلاً حتى يُعرف الطراز.</string>
+    <string name="support_limited_reason_unknown">السبب غير مسجل</string>
+    <string name="scanner_family_auto">تلقائي</string>
+    <string name="command_failed_unsupported">غير مدعوم على هذا الجهاز.</string>
+    <string name="command_failed_invalid">تم رفض الأمر: %1$s</string>
+    <string name="command_failed_transport">لم يصل الأمر إلى العجلة.</string>
+    <string name="command_failed_not_connected">غير متصل</string>
 </resources>

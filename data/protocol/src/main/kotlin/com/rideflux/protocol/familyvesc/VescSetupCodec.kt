@@ -2,13 +2,33 @@ package com.rideflux.protocol.familyvesc
 
 /** VESC COMM_GET_VALUES_SETUP (0x2F), never COMM_GET_VALUES (0x04). */
 object VescSetupCodec {
+    /**
+     * Multiplier from the wire's SI speed to the domain's km/h.
+     *
+     * The firmware field is **metres per second**, not km/h: `comm/commands.c`
+     * serialises `mc_interface_get_speed()` with scale 1e3, and
+     * `motor/mc_interface.c` defines that function in m/s (vedderb/bldc
+     * `abc9217fb2b7ee3821f1742bc32b269173643319`). The factor is applied
+     * exactly once, at the telemetry boundary in `VescWheelCodec`; [Values]
+     * keeps the wire's own unit so the field name cannot drift from it.
+     */
+    const val METRES_PER_SECOND_TO_KILOMETRES_PER_HOUR: Float = 3.6f
+
+    /**
+     * Plausibility bound in the wire's own unit: 250 km/h ≈ 69.4 m/s. A value
+     * beyond it is far more likely a mis-framed reply than a real ride.
+     */
+    private const val MAX_SPEED_METRES_PER_SECOND: Float =
+        250f / METRES_PER_SECOND_TO_KILOMETRES_PER_HOUR
+
     data class Values(
         val motorRpm: Int,
         val motorCurrentA: Float,
         val inputCurrentA: Float,
         val inputVoltageV: Float,
         val dutyPercent: Float,
-        val speedKmh: Float,
+        /** Wheel speed in metres per second, the unit the firmware encodes. */
+        val speedMetresPerSecond: Float,
         val batteryPercent: Float,
         val mosTemperatureC: Float,
         val odometerMetres: Long,
@@ -26,18 +46,20 @@ object VescSetupCodec {
         val crc = (frame[2 + length].u() shl 8) or frame[3 + length].u()
         if (crc16Xmodem(payload) != crc) return null
         val duty = be16(payload, 13).toShort() / 10f
-        val speed = be32(payload, 19).toInt() / 1_000f
+        // Raw / 1000 is the firmware's own scale for a value already in m/s.
+        val speedMetresPerSecond = be32(payload, 19).toInt() / 1_000f
         val battery = be16(payload, 25).toShort() / 10f
         val voltage = be16(payload, 23).toShort() / 10f
         if (duty !in -100f..100f || battery !in 0f..100f || voltage !in 0f..300f ||
-            !speed.isFinite() || kotlin.math.abs(speed) > 250f) return null
+            !speedMetresPerSecond.isFinite() ||
+            kotlin.math.abs(speedMetresPerSecond) > MAX_SPEED_METRES_PER_SECOND) return null
         return Values(
             motorRpm = be32(payload, 15).toInt(),
             motorCurrentA = be32(payload, 5).toInt() / 100f,
             inputCurrentA = be32(payload, 9).toInt() / 100f,
             inputVoltageV = voltage,
             dutyPercent = duty,
-            speedKmh = speed,
+            speedMetresPerSecond = speedMetresPerSecond,
             batteryPercent = battery,
             mosTemperatureC = be16(payload, 1).toShort() / 10f,
             odometerMetres = be32(payload, 62),
