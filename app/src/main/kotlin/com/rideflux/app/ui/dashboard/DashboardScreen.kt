@@ -76,6 +76,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
@@ -614,6 +615,10 @@ fun DashboardScreen(
                         } else ControlsCard(
                             headlightOn = uiState.headlightOn,
                             rideMode = uiState.rideMode,
+                            capabilities = uiState.capabilities,
+                            support = uiState.support,
+                            commandFailure = uiState.commandFailure,
+                            headlightPending = uiState.headlightPending,
                             enabled = uiState.connectionState == ConnectionState.Ready,
                             actionsPermitted = actionsPermitted,
                             isMoving = isMoving,
@@ -973,11 +978,36 @@ private val DEFAULT_PEDALS_PRESETS: List<PedalsModePreset> = listOf(
     PedalsModePreset(2, R.string.pedals_hard),
 )
 
+@Composable
+private fun limitedSupportText(support: com.rideflux.domain.wheel.WheelSupport): String =
+    when (support.reason) {
+        "model-unknown" -> stringResource(R.string.support_limited_family)
+        "firmware-unknown" -> stringResource(R.string.support_limited_firmware)
+        "layout-unestablished" -> stringResource(R.string.support_limited_layout)
+        else -> stringResource(
+            R.string.support_limited_generic,
+            support.detail ?: support.identityEvidence.name,
+        )
+    }
+
+@Composable
+private fun commandFailureText(failure: CommandFailure): String = when (failure.reason) {
+    CommandFailureReason.UNSUPPORTED -> stringResource(R.string.command_failed_unsupported)
+    CommandFailureReason.INVALID_ARGUMENT ->
+        stringResource(R.string.command_failed_invalid, failure.detail.orEmpty())
+    CommandFailureReason.TRANSPORT_ERROR -> stringResource(R.string.command_failed_transport)
+    CommandFailureReason.NOT_CONNECTED -> stringResource(R.string.command_failed_not_connected)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ControlsCard(
     headlightOn: Boolean,
     rideMode: RideMode?,
+    capabilities: com.rideflux.domain.wheel.WheelCapabilities?,
+    support: com.rideflux.domain.wheel.WheelSupport?,
+    commandFailure: CommandFailure?,
+    headlightPending: Boolean,
     enabled: Boolean,
     actionsPermitted: Boolean,
     isMoving: Boolean,
@@ -989,6 +1019,14 @@ private fun ControlsCard(
     onOpenSpeedLimit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val ready = enabled
+    val headlightEnabled = ready && capabilities?.headlight == true
+    val rideModesEnabled = ready && capabilities?.rideModes == true
+    val beepEnabled = ready && capabilities?.beep == true
+    val speedLimitEnabled = actionsPermitted && capabilities?.maxSpeed == true
+    val calibrateEnabled = actionsPermitted && capabilities?.calibration == true
+    val powerOffEnabled = actionsPermitted && capabilities?.powerOff == true
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -1000,6 +1038,22 @@ private fun ControlsCard(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            support?.takeIf { it.isLimited }?.let { limited ->
+                Text(
+                    text = limitedSupportText(limited),
+                    modifier = Modifier.testTag("dashboard_support_notice"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            commandFailure?.let { failure ->
+                Text(
+                    text = commandFailureText(failure),
+                    modifier = Modifier.testTag("dashboard_command_failure"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     stringResource(R.string.controls_headlight),
@@ -1010,7 +1064,8 @@ private fun ControlsCard(
                 Switch(
                     checked = headlightOn,
                     onCheckedChange = onSetHeadlight,
-                    enabled = enabled,
+                    enabled = headlightEnabled && !headlightPending,
+                    modifier = Modifier.testTag("dashboard_control_headlight"),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = MaterialTheme.colorScheme.primary,
                         checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
@@ -1027,7 +1082,8 @@ private fun ControlsCard(
                     FilterChip(
                         selected = selected,
                         onClick = { onSetPedalsMode(preset.code) },
-                        enabled = enabled,
+                        enabled = rideModesEnabled,
+                        modifier = Modifier.testTag("dashboard_control_ride_mode_${preset.code}"),
                         label = { Text(stringResource(preset.labelRes), fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
@@ -1038,7 +1094,8 @@ private fun ControlsCard(
                 Spacer(Modifier.weight(1f))
                 Button(
                     onClick = onBeep,
-                    enabled = enabled,
+                    enabled = beepEnabled,
+                    modifier = Modifier.testTag("dashboard_control_beep"),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -1086,8 +1143,8 @@ private fun ControlsCard(
             ) {
                 OutlinedButton(
                     onClick = onOpenSpeedLimit,
-                    enabled = actionsPermitted,
-                    modifier = Modifier.weight(1f),
+                    enabled = speedLimitEnabled,
+                    modifier = Modifier.weight(1f).testTag("dashboard_control_speed_limit"),
                     contentPadding = ControlButtonPadding,
                 ) {
                     Icon(
@@ -1101,8 +1158,8 @@ private fun ControlsCard(
 
                 OutlinedButton(
                     onClick = onOpenCalibrate,
-                    enabled = actionsPermitted,
-                    modifier = Modifier.weight(1f),
+                    enabled = calibrateEnabled,
+                    modifier = Modifier.weight(1f).testTag("dashboard_control_calibrate"),
                     contentPadding = ControlButtonPadding,
                 ) {
                     Icon(
@@ -1116,8 +1173,8 @@ private fun ControlsCard(
 
                 OutlinedButton(
                     onClick = onOpenPowerOff,
-                    enabled = actionsPermitted,
-                    modifier = Modifier.weight(1f),
+                    enabled = powerOffEnabled,
+                    modifier = Modifier.weight(1f).testTag("dashboard_control_power_off"),
                     contentPadding = ControlButtonPadding,
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,

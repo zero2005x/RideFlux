@@ -37,12 +37,16 @@ class VescSetupCodecRejectionTest {
         assertNull(VescSetupCodec.decode(mutate(25 to 0x03, 26 to 0xe9)))
         assertNull(VescSetupCodec.decode(mutate(25 to 0xff, 26 to 0xff)))
         assertNull(VescSetupCodec.decode(mutate(23 to 0x0b, 24 to 0xb9)))
-        assertNull(VescSetupCodec.decode(mutate(19 to 0x00, 20 to 0x03, 21 to 0xd5, 22 to 0x88)))
+        // 70000 raw = 70 m/s, just past the 250 km/h (69.4 m/s) bound. The
+        // bound is expressed in metres per second, so this asserts the range
+        // check uses the same unit as the field.
+        assertNull(VescSetupCodec.decode(mutate(19 to 0x00, 20 to 0x01, 21 to 0x11, 22 to 0x70)))
     }
 
     @Test fun `negative duty and reverse speed are accepted`() {
         val values = VescSetupCodec.decode(mutate(13 to 0xfe, 14 to 0x0c, 19 to 0xff, 20 to 0xff, 21 to 0xf0, 22 to 0x60))!!
         assertEquals(-50f, values.dutyPercent, 0.01f)
-        assertEquals(-4f, values.speedKmh, 0.01f)
+        // 0xFFFFF060 = -4000 raw, i.e. -4 m/s (reverse), not -4 km/h.
+        assertEquals(-4f, values.speedMetresPerSecond, 0.01f)
     }
 }

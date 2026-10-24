@@ -13,6 +13,8 @@ import com.rideflux.data.ble.WheelRepositoryImpl
 import com.rideflux.data.ble.ScooterRepositoryImpl
 import com.rideflux.protocol.repository.PlevRepositoryImpl
 import com.rideflux.domain.bond.BondStore
+import com.rideflux.domain.garage.VehicleProfileStore
+import com.rideflux.domain.garage.normalizeVehicleAddress
 import com.rideflux.domain.codec.WheelCodecFactory
 import com.rideflux.domain.repository.WheelRepository
 import com.rideflux.domain.repository.PlevRepository
@@ -114,11 +116,15 @@ object BleModule {
         @ApplicationContext context: Context,
         @ApplicationScope scope: CoroutineScope,
         codecFactory: BleWheelCodecFactory,
+        vehicleProfiles: VehicleProfileStore,
     ): WheelRepository =
         WheelRepositoryImpl(
             context = context,
             rootScope = scope,
             codecFactory = codecFactory,
+            savedFamilyHints = { address ->
+                vehicleProfiles.familyHints.value[normalizeVehicleAddress(address)]
+            },
         )
 
     @Provides

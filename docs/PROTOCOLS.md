@@ -22,8 +22,11 @@ Which vehicle families (Electric Unicycles, Electric Scooters, and Smart BMS) Ri
 | `N2` | Ninebot Z / ZT / KickScooter Z | Long CAN-like, session key |
 | `I1` | Inmotion legacy — V5 / V8 / V10 | Escape-byte framing |
 | `I2` | Inmotion current — V9 / V11 / V12 / V13 / V14 | XOR-check framing |
+| `VESC` | VESC-based controllers (Nordic UART) | `COMM_GET_VALUES_SETUP` `0x2F`, read-only |
 
 `G` and `GX` share `BegodeWheelCodec`; the remaining families each have their own codec under `:data:protocol`.
+`VESC` was appended last on purpose: the enum name is the persistence key, so new families go at the end.
+Its read contract, sources and limits are in [Multidevice resolution](MULTIDEVICE_RESOLUTION.md).
 
 ---
 
@@ -55,7 +58,7 @@ is L1 community evidence, not promoted to L2 by the crypto specifications. See
 |---|---|---|
 | **JBD / Xiaoxiang BMS** | Header `0xDD`, status code, length, payload, checksum, footer `0x77`. Registers `0x03` (basic info) and `0x04` (individual cell voltages). | Total pack voltage, current, residual capacity, temperatures, cycle count, and millivolt-level cell balance. |
 | **Ant BMS** | Header `0xAA 0x55 0xAA`, structured telemetry report. | Multi-sensor battery telemetry. |
-| **VESC** | Comm frame format with `COMM_GET_VALUES` (`0x2F`) polling and 16-bit XMODEM CRC (`0xD58D`). | Duty cycle, motor/MOSFET temperatures, input voltage, current. |
+| **VESC** | Packet framing `[0x02][len][payload][CRC16 hi/lo][0x03]`; `COMM_GET_VALUES_SETUP` (`0x2F`) poll only. `COMM_GET_VALUES` (`0x04`) and `GetPkgInfo` (`0x65`) are **not** sent: no verified reply layout/side effects here. | MOSFET temperature, motor/input current, duty, RPM, speed, input voltage, battery level, odometer. The speed word is **metres per second** (firmware `mc_interface_get_speed()`, scale 1e3); it is converted to the domain's km/h exactly once, at the telemetry boundary. Read-only: no setting encoder. |
 
 ---
 
@@ -71,37 +74,37 @@ is L1 community evidence, not promoted to L2 by the crypto specifications. See
 
 A UUID-only guess is never authoritative — the true family/dialect is confirmed by the bootstrap handshake after connect.
 
-### 5. GATT signature detection and its confidence levels
+### 5. GATT signature detection and family resolution
 
-After connect, the discovered service/characteristic table is matched against a small table of
-**GATT signatures** (`FamilyDetector`, `WheelFamilySignatures`). A signature requires specific
-services, specific characteristics on each, and may require a characteristic to be *absent*; matching
-is composite and negative, so one shared UUID (`FFE0` alone) never decides a family.
+After connect, the discovered service/characteristic table is resolved by
+`WheelSessionResolver`. The decision, the codec, the notify/write characteristics and the bootstrap
+all come from **one** `WheelResolution`; the pre-connect guess is only a provisional codec.
 
-| Confidence | Meaning | What the resolver does |
-|---|---|---|
-| `EXACT` | Exactly one family matched | Uses it |
-| `PROBABLE` | Several matched, and the device name names one of them | Uses the named one, and records that the GATT evidence alone did not decide |
-| `AMBIGUOUS` | Several matched with nothing to separate them, **or** nothing matched | **Falls back** to the name/UUID inference and logs which signatures tied |
+Resolution precedence (highest first):
 
-**An `AMBIGUOUS` detection is never auto-selected**: picking one of several tied families would be a
-guess, and a wrong guess routes a wheel to the wrong codec.
+1. **Manual selection** — the rider picked a family in the "change brand" dialog. It is authoritative
+   when the discovered table can carry it; otherwise the connection fails with
+   `UNKNOWN_FAMILY` and the reason, and **no bootstrap is written** (a manual G on a Nordic-UART
+   device is a diagnostic, not a silent switch to another family).
+2. **Saved profile** — a manual choice remembered for the same MAC. Used when compatible; when it
+   contradicts the table the table is re-resolved and an ambiguous table stays ambiguous.
+3. **GATT structure** — split `FFE0[FFE4]+FFE5[FFE9]` → `I1`; Nordic UART (`…0002` + `…0003`) →
+   `I2` / `N2` / `VESC`; single `FFE0[FFE1]` → `G` / `K` / `V` / `N1`. If several structures are
+   present, all of their families are candidates.
+4. **Name hint** — only narrows a tie *inside* a present structure. A model name that contradicts the
+   table (for example `KS-18XL` on Nordic UART) is a conflict, not a routing decision.
 
-The detector is only asked *after* the two older branches: a table carrying the I1 split profile
-resolves to `I1`, and a table with both Nordic UART characteristics resolves to `I2`/`N2`, before any
-signature is consulted — because those branches ran first before the detector existed, and a `PROBABLE`
-single-char answer must not bypass them.
+`AMBIGUOUS` and `CONFLICT` are terminal for that connect: the UI gets `UNKNOWN_FAMILY` with the
+candidate list, and neither a codec nor a bootstrap is chosen. An unnamed `FFE0`/`FFE1` peer is
+ambiguous across `G`/`K`/`V`/`N1`; an unnamed Nordic-UART peer is ambiguous across `I2`/`N2`/`VESC`.
+This deliberately replaces the old silent fallbacks (G for single-char, N2 for NUS), which could put
+another family's initialisation on the wire.
 
-The seeded table is deliberately small and **non-discriminating today**: Begode, KingSong and Veteran
-all advertise `FFE0`+`FFE1`, and no source in this project ties a *second* service or an exclusion to
-any of them at L2+. A `FFE0`/`FFE1` wheel is therefore reported `AMBIGUOUS` (candidates named in the
-log) and resolves exactly as it did before the detector existed. Rows enter the table only when a note
-states them at **L2+** or when the **owner's own capture** shows them; everything else stays out with a
-`TODO(T08): probe` marker, because a wrong signature mis-routes a wheel while "unknown" does not.
-
-Families that share the Nordic UART topology (Inmotion `I2`, Ninebot Z `N2`, VESC) cannot be separated
-by any passive signature — that is what the `ProbeStrategy` interface is for (an active, read-only
-probe such as VESC `GetPkgInfo`), and **no probe is sent today**.
+The seeded `FamilyDetector` table stays a *diagnostic* signal (signature ids are recorded in the
+resolution) and does not override the structural precedence above. Families that share Nordic UART
+(`I2`, `N2`, `VESC`) cannot be separated passively — that is what `ProbeStrategy` is for (an active,
+read-only probe), and **no probe is sent today**; VESC therefore requires a manual selection until a
+verified probe (or a recovered name predicate) is implemented.
 
 ---
 
@@ -137,8 +140,11 @@ RideFlux 解碼哪些車輛家族（電動獨輪車、電動滑板車與智慧 B
 | `N2` | Ninebot Z / ZT / KickScooter Z | 長 CAN-like，含工作階段金鑰 |
 | `I1` | Inmotion 舊款——V5 / V8 / V10 | 跳脫位元組封包 |
 | `I2` | Inmotion 新款——V9 / V11 / V12 / V13 / V14 | XOR 校驗封包 |
+| `VESC` | VESC 控制器（Nordic UART） | `COMM_GET_VALUES_SETUP` `0x2F`，唯讀 |
 
 `G` 與 `GX` 共用 `BegodeWheelCodec`；其餘家族在 `:data:protocol` 中各自擁有獨立 codec。
+`VESC` 刻意附加在最後：列舉名稱是持久化鍵，新家族只能往後加。讀取契約、來源與限制見
+[多家族解析](MULTIDEVICE_RESOLUTION.md)。
 
 ---
 
@@ -167,7 +173,7 @@ B9 單位與倒退速度解讀衝突保留在報告，現行有號速度取絕�
 |---|---|---|
 | **JBD / 小象 BMS** | 幀頭 `0xDD`，狀態碼、長度、負載、校驗和、幀尾 `0x77`。暫存器 `0x03`（基本資訊）與 `0x04`（單體電芯電壓）。 | 總電壓、電流、剩餘容量、溫度、循環次數、單體電芯毫伏級電壓平衡。 |
 | **Ant 螞蟻 BMS** | 幀頭 `0xAA 0x55 0xAA`，結構化資料幀。 | 多感測器電池健康度與電壓監控。 |
-| **VESC** | 通用通訊幀格式，支援 `COMM_GET_VALUES`（`0x2F`）輪詢與 16 位元 XMODEM CRC（`0xD58D`）。 | 占空比、馬達/MOSFET 溫度、輸入電壓、相電流。 |
+| **VESC** | 封包格式 `[0x02][len][payload][CRC16 hi/lo][0x03]`；只送 `COMM_GET_VALUES_SETUP`（`0x2F`）輪詢。`COMM_GET_VALUES`（`0x04`）與 `GetPkgInfo`（`0x65`）**不送**：本專案沒有可驗證的回覆格式／副作用。 | MOSFET 溫度、馬達／輸入電流、占空比、RPM、速度、輸入電壓、電量、里程。唯讀，沒有設定 encoder。 |
 
 ---
 
@@ -183,31 +189,28 @@ B9 單位與倒退速度解讀衝突保留在報告，現行有號速度取絕�
 
 僅憑 UUID 的推測永遠不是定論——真正的家族要等連線後的啟動握手才會確認。
 
-### 5. GATT 指紋辨識與信心等級
+### 5. GATT 指紋與家族解析
 
-連線後，實際解析到的服務／特徵值表會與一組 **GATT 指紋**比對（`FamilyDetector`、
-`WheelFamilySignatures`）。一個指紋要求特定服務、每個服務上的特定特徵值，也可以要求某個特徵值
-**必須不存在**；比對同時具備「組合」與「排除」兩性質，因此單一共享 UUID（只看到 `FFE0`）永遠
-不足以決定家族。
+連線後，實際 discovery 到的服務／特徵值表由 `WheelSessionResolver` 解析。家族、codec、
+notify/write 特徵值與 bootstrap **全部來自同一個** `WheelResolution`；連線前的猜測只是暫用 codec。
 
-| 信心等級 | 意義 | 解析器的行為 |
-|---|---|---|
-| `EXACT` | 恰好只有一個家族符合 | 直接採用 |
-| `PROBABLE` | 有多個符合，而裝置名稱指向其中一個 | 採用名稱所指者，並記錄「單憑 GATT 證據未能決定」 |
-| `AMBIGUOUS` | 有多個符合且無從區分，**或**完全沒有符合者 | **退回**原有的名稱／UUID 推測，並記錄是哪幾個指紋並列 |
+解析優先序（高到低）：
 
-**`AMBIGUOUS` 絕不自動選邊**：在多個並列家族中挑一個就是猜測，而猜錯會把車輛導向錯誤的解碼器。
+1. **手選**——使用者在「變更品牌」對話框選的家族。只要 discovery 表能承載就採用；不能承載時
+   連線以 `UNKNOWN_FAMILY` 失敗並附原因，**不送任何 bootstrap**（手選 G 卻只有 Nordic UART 是
+   診斷訊息，不是悄悄換成別家）。
+2. **已存 profile**——同一 MAC 先前的手選記憶。相容時採用；與 discovery 表衝突時重新由表解析，
+   表本身有歧義就維持歧義。
+3. **GATT 結構**——split `FFE0[FFE4]+FFE5[FFE9]` → `I1`；Nordic UART（`…0002` + `…0003`）→
+   `I2`／`N2`／`VESC`；單一 `FFE0[FFE1]` → `G`／`K`／`V`／`N1`。若同時存在多種結構，全部列為候選。
+4. **名稱提示**——只在已存在的結構內縮小歧義。名稱與表衝突（例如 Nordic UART 上出現 `KS-18XL`）
+   視為 conflict，不是路由決定。
 
-偵測器只在兩個舊分支之後才介入：帶 I1 分割組合的表先判為 `I1`，RX/TX 齊全的 Nordic UART 表先判為
-`I2`/`N2`，都不符合才問指紋——因為這兩個分支在偵測器出現前本就排在前面，不能讓 `PROBABLE`
-的單字元答案繞過它們。
+`AMBIGUOUS` 與 `CONFLICT` 對該次連線是終態：UI 收到 `UNKNOWN_FAMILY` 與候選清單，既不選 codec
+也不送 bootstrap。未命名的 `FFE0`/`FFE1` 在 `G`/`K`/`V`/`N1` 之間有歧義；未命名的 Nordic UART 在
+`I2`/`N2`/`VESC` 之間有歧義。這刻意取代舊的靜默 fallback（單字元 → G、NUS → N2），因為那會把
+別家的初始化送上線。
 
-目前種入的指紋表刻意很小、且**尚無區辨力**：Begode、KingSong 與 Veteran 都廣播 `FFE0`+`FFE1`，
-而本專案沒有任何來源能以 L2+ 佐證第二個服務或排除條件。因此 `FFE0`/`FFE1` 的車輛會回報
-`AMBIGUOUS`（並列者寫入日誌），最終解析結果與偵測器存在前完全相同。只有註記達到 **L2+** 或由
-**擁有者自己的擷取**佐證的資料列才能進入表中；其餘一律留在表外並標記 `TODO(T08): probe`——錯誤的
-指紋會把車輛導錯，而「未知」不會。
-
-共用 Nordic UART 拓撲的家族（Inmotion `I2`、Ninebot Z `N2`、VESC）無法用任何被動指紋區分，這正是
-`ProbeStrategy` 介面存在的理由（主動但唯讀的探測，例如 VESC `GetPkgInfo`）；**目前不會送出任何
-探測**。
+`FamilyDetector` 指紋表保留為**診斷**訊號（簽章 id 會記進 resolution），不覆寫上述結構優先序。
+共用 Nordic UART 的家族（`I2`、`N2`、`VESC`）無法被動區分——這正是 `ProbeStrategy` 的用途
+（主動但唯讀的探測），**目前不送任何探測**；因此在探測實作前，VESC 只能靠手選。

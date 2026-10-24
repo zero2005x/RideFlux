@@ -394,4 +394,19 @@
     <string name="settings_diag_subtitle">حالیہ برج اور چشمے کے واقعات، صرف اسی فون پر محفوظ ہیں۔ اس میں کوئی کلید یا ٹوکن نہیں ہے۔ مسئلہ ہونے پر شیئر کرنے کے لیے محفوظ کریں۔</string>
     <string name="settings_diag_saved">تشخیصی لاگ محفوظ ہو گیا۔</string>
     <string name="settings_diag_error">تشخیصی لاگ محفوظ نہیں ہو سکا: %1$s</string>
+    <string name="scanner_saved_vehicles">محفوظ گاڑیاں</string>
+    <string name="scanner_saved_vehicles_empty">ابھی کوئی محفوظ گاڑی نہیں۔ محفوظ کرنے کے لیے ڈیوائس منتخب کریں۔</string>
+    <string name="scanner_vehicle_edit_title">گاڑی میں ترمیم کریں</string>
+    <string name="scanner_vehicle_name_label">نام</string>
+    <string name="scanner_vehicle_alerts_override">اس گاڑی کے الرٹس استعمال کریں</string>
+    <string name="scanner_vehicle_delete">گاڑی ہٹائیں</string>
+    <string name="action_save">محفوظ کریں</string>
+    <string name="support_limited_family">ماڈل شناخت نہیں ہوا۔ کنٹرول بند ہیں؛ صرف بنیادی ٹیلی میٹری۔</string>
+    <string name="support_limited_firmware">فرم ویئر کی تصدیق نہیں ہوئی۔ کنٹرول بند رہیں گے۔</string>
+    <string name="support_limited_layout">ماڈل شناخت ہوا، ٹیلی میٹری جزوی ہے۔</string>
+    <string name="support_limited_generic">محدود معاونت: %1$s</string>
+    <string name="command_failed_unsupported">یہ ڈیوائس اسے معاون نہیں کرتا۔</string>
+    <string name="command_failed_invalid">کمانڈ مسترد: %1$s</string>
+    <string name="command_failed_transport">کمانڈ وہیل تک نہیں پہنچی۔</string>
+    <string name="command_failed_not_connected">منسلک نہیں</string>
 </resources>

@@ -92,11 +92,9 @@ fun RideFluxNavHost(
                 return@composable
             }
             val familyName = backStackEntry.arguments?.getString(DashboardViewModel.ARG_FAMILY)
-            val family = familyName?.let {
-                runCatching { WheelFamily.valueOf(it) }.getOrElse { e ->
-                    Log.w(TAG, "Unrecognised wheel family '$it'; treating as unknown", e)
-                    null
-                }
+            val family = Routes.parseFamilyArgument(familyName)
+            if (familyName != null && family == null) {
+                Log.w(TAG, "Unrecognised wheel family '$familyName'; treating as unknown")
             }
             DashboardRoute(
                 onNavigateUp = { navController.popBackStack() },
@@ -232,6 +230,16 @@ object Routes {
     /** Build the concrete HUD route for the given wheel. */
     fun hud(address: String, family: WheelFamily?, category: PlevCategory = PlevCategory.WHEEL): String =
         buildRoute("hud", address, family, category)
+
+    /**
+     * Decode the dashboard/HUD `family` navigation argument.
+     *
+     * `null` covers both "argument absent" (an ordinary scan selection, where
+     * discovery decides) and "unrecognised value" (a stale/deep link). Callers
+     * that care about the difference can compare against the raw argument.
+     */
+    fun parseFamilyArgument(value: String?): WheelFamily? =
+        value?.let { runCatching { WheelFamily.valueOf(it) }.getOrNull() }
 
     fun trip(tripId: Long): String = "trip/$tripId"
 

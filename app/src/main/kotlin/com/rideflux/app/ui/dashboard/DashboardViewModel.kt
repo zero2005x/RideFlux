@@ -11,15 +11,22 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rideflux.domain.command.CommandOutcome
+import com.rideflux.domain.command.supports
 import com.rideflux.app.recording.RecordingService
 import com.rideflux.domain.alert.ThresholdAlert
 import com.rideflux.domain.alert.ThresholdMonitor
 import com.rideflux.domain.command.WheelCommand
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
+import com.rideflux.domain.connection.WheelSessionSnapshot
 import com.rideflux.domain.connection.ScooterHandshakeState
 import com.rideflux.domain.connection.MiRegistrationState
 import com.rideflux.domain.device.PlevCategory
+import com.rideflux.domain.garage.VehicleCalibration
+import com.rideflux.domain.garage.VehicleProfile
+import com.rideflux.domain.garage.VehicleProfileStore
+import com.rideflux.domain.garage.updateIdentifiedIdentity
+import com.rideflux.domain.garage.normalizeVehicleAddress
 import com.rideflux.domain.telemetry.ScooterTelemetry
 import com.rideflux.domain.connection.ScooterConnection
 import com.rideflux.domain.repository.PlevConnectionHandle
@@ -32,10 +39,14 @@ import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.wheel.BegodeProfileStore
 import com.rideflux.domain.wheel.BegodeProtocolProfile
 import com.rideflux.domain.wheel.WheelBatteryPackStore
+import com.rideflux.domain.wheel.WheelCapabilities
 import com.rideflux.domain.wheel.WheelFamily
+import com.rideflux.domain.wheel.WheelIdentityEvidence
 import com.rideflux.domain.wheel.WheelIdentity
+import com.rideflux.domain.wheel.WheelSupport
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -50,6 +61,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
@@ -62,16 +74,49 @@ import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
+ * Why the last control command did not take effect.
+ *
+ * This is a UI-facing projection of [CommandOutcome]; `Success` is not a
+ * failure and therefore has no entry. A [TRANSPORT_ERROR] means the bytes did
+ * not reach the BLE transport, not that the wheel applied anything.
+ */
+enum class CommandFailureReason {
+    UNSUPPORTED,
+    INVALID_ARGUMENT,
+    TRANSPORT_ERROR,
+    NOT_CONNECTED,
+}
+
+data class CommandFailure(
+    val operation: String,
+    val reason: CommandFailureReason,
+    val detail: String? = null,
+)
+
+/**
  * UI projection of a single wheel's live state.
  *
- * Separate fields instead of exposing `WheelTelemetry` directly keep
- * the Compose screen decoupled from the domain package and make each
- * tile trivially recomposable via `collectAsState()`.
+ * [capabilities] is the per-feature authorization matrix and [support] is the
+ * evidence statement behind it. Both are `null` until identification. A
+ * `Ready` connection with `support.isLimited == true` must render a
+ * limited-support notice; `Ready` alone is not a full-support claim.
+ *
+ * [commandFailure] is cleared by the next successful dispatch. `headlightOn`
+ * is only changed after a successful write (and rolled back on failure), so a
+ * refused or lost command never leaves the switch looking applied.
  */
 data class DashboardUiState(
     val connectionState: ConnectionState = ConnectionState.Disconnected,
     val identity: WheelIdentity? = null,
+    val capabilities: WheelCapabilities? = null,
+    val support: WheelSupport? = null,
+    val vehicleProfile: VehicleProfile? = null,
+    val calibration: VehicleCalibration = VehicleCalibration(),
+    val commandFailure: CommandFailure? = null,
+    val headlightPending: Boolean = false,
     val speedKmh: Float? = null,
+    val pitchAngleDegrees: Float? = null,
+    val rollAngleDegrees: Float? = null,
     val voltageV: Float? = null,
     val batteryPercent: Float? = null,
     val batteryVoltageV: Float? = null,
@@ -216,6 +261,7 @@ class DashboardViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val plevRepository: PlevRepository = com.rideflux.protocol.repository.PlevRepositoryImpl(wheelRepository),
     private val begodeProfiles: BegodeProfileStore = BegodeProfileStore.empty(),
+    private val vehicleProfiles: VehicleProfileStore = VehicleProfileStore.empty(),
 ) : ViewModel() {
 
     /** MAC of the target device (e.g. `"AA:BB:CC:DD:EE:FF"`). Exposed so nav callers can re-route to the HUD. */
@@ -229,10 +275,27 @@ class DashboardViewModel @Inject constructor(
             runCatching { WheelFamily.valueOf(it) }.getOrNull()
         }
 
-    val deviceCategory: PlevCategory =
+    /** Explicit navigation category, when the scanner knew it. */
+    private val explicitCategory: PlevCategory? =
         savedStateHandle.get<String>(ARG_CATEGORY)?.let {
             runCatching { PlevCategory.valueOf(it) }.getOrNull()
-        } ?: PlevCategory.WHEEL
+        }
+
+    /**
+     * Category used to route the connect. Restored from the saved vehicle
+     * profile when navigation did not carry one, so a scooter in a fresh
+     * process does not fall through to the wheel repository merely because
+     * no scan has run yet.
+     */
+    @Volatile
+    var deviceCategory: PlevCategory = explicitCategory ?: PlevCategory.WHEEL
+        private set
+
+    private val profileAddress: String = normalizeVehicleAddress(address)
+
+    /** Saved profile for this address, or `null` when this is an ad-hoc connect. */
+    private val _vehicleProfile = MutableStateFlow<VehicleProfile?>(null)
+    val vehicleProfile: StateFlow<VehicleProfile?> = _vehicleProfile.asStateFlow()
 
     private val handshakeCountdown = MutableStateFlow<Int?>(null)
 
@@ -276,10 +339,21 @@ class DashboardViewModel @Inject constructor(
      */
     private val connectionAsync: Deferred<PlevConnectionHandle> =
         viewModelScope.async(NonCancellable + Dispatchers.IO) {
-            (if (deviceCategory == PlevCategory.SCOOTER) plevRepository.connect(address)
-            else PlevConnectionHandle.Wheel(
-                wheelRepository.connect(address = address, expectedFamily = expectedFamily), address))
-                .also { resolvedConnection = it }
+            val profile = vehicleProfiles.profile(profileAddress)
+            _vehicleProfile.value = profile
+            val category = explicitCategory ?: profile?.category ?: PlevCategory.WHEEL
+            deviceCategory = category
+            val family = expectedFamily ?: profile?.family
+            // Pass the persisted/explicit category into the router. The
+            // address-only PlevRepository API depends on this process's scan
+            // cache; a fresh process with a saved scooter would otherwise
+            // fall through to wheels.connect.
+            plevRepository.connect(
+                address = address,
+                category = category,
+                expectedFamily = family,
+                modelHint = profile?.transportHint,
+            ).also { resolvedConnection = it }
         }
 
     /**
@@ -291,6 +365,10 @@ class DashboardViewModel @Inject constructor(
      */
     @Volatile
     private var resolvedConnection: PlevConnectionHandle? = null
+
+    /** The wheel session currently allowed to write identity into the garage. */
+    @Volatile
+    private var activeWheel: com.rideflux.domain.connection.WheelConnection? = null
 
     init {
         connectionAsync.invokeOnCompletion { cause ->
@@ -307,6 +385,10 @@ class DashboardViewModel @Inject constructor(
      * [DashboardUiState.headlightOn] for UI feedback.
      */
     private val headlightOnFlow = MutableStateFlow(false)
+    private val headlightPendingFlow = MutableStateFlow(false)
+
+    /** Last rejected/failed command; cleared by the next successful dispatch. */
+    private val commandFailureFlow = MutableStateFlow<CommandFailure?>(null)
 
     /**
      * Unified UI state. We `flatMapLatest` off a flow that emits the
@@ -366,6 +448,11 @@ class DashboardViewModel @Inject constructor(
     private var rideStartedAtMillis: Long? = null
 
     init {
+        vehicleProfiles.profiles
+            .onEach { saved ->
+                _vehicleProfile.value = saved.firstOrNull { it.address == profileAddress }
+            }
+            .launchIn(viewModelScope)
         viewModelScope.launch {
             // Guard the connect: WheelRepository.connect can throw
             // (device not found, permission denied, BLE stack failure).
@@ -415,13 +502,26 @@ class DashboardViewModel @Inject constructor(
                 return@launch
             }
             val wheel = (conn as PlevConnectionHandle.Wheel).connection
+            activeWheel = wheel
+            // Persist only evidence-backed session identity. The alias,
+            // per-vehicle thresholds, calibration and notes are preserved by
+            // the store; a retired session must not update a newer profile.
+            observeIdentityEvidence(wheel, profileAddress)
             wheel.alerts.onEach { alert ->
                 publishAlert(DashboardAlert.Wheel(alert))
             }.launchIn(viewModelScope)
 
-            val thresholdFlow = settingsRepository.settings
-                .map { it.alertThresholds }
-                .stateIn(viewModelScope, SharingStarted.Eagerly, AlertThresholds())
+            // Per-vehicle thresholds override the global defaults. The
+            // vehicle-scoped value is read from the same persisted profile
+            // store that routed the connection, so two wheels in the garage
+            // cannot share one alert limit by accident.
+            val thresholdFlow = combine(
+                settingsRepository.settings,
+                vehicleProfiles.profiles,
+            ) { settings, saved ->
+                saved.firstOrNull { it.address == profileAddress }?.alertThresholds
+                    ?: settings.alertThresholds
+            }.stateIn(viewModelScope, SharingStarted.Eagerly, AlertThresholds())
             val thresholdMonitor = ThresholdMonitor(
                 telemetry = wheel.telemetry,
                 thresholds = thresholdFlow,
@@ -560,29 +660,34 @@ class DashboardViewModel @Inject constructor(
     // ---- High-level command helpers -----------------------------------
 
     /**
-     * Toggle the wheel's primary headlight. Optimistically updates
-     * [DashboardUiState.headlightOn] first so the UI feels immediate;
-     * on transport failure the flag stays on the last known value
-     * (the wheel will correct the rider by not lighting up).
+     * Request the wheel's primary headlight.
+     *
+     * The switch does not move until the write succeeded, and moves back to
+     * the previous value when it did not. A transport-level `Success` still
+     * means only "the bytes were handed to the BLE stack": the I2 protocol
+     * has no headlight readback, so the UI must not present this as a
+     * device-confirmed state.
      */
     fun setHeadlight(on: Boolean) {
-        headlightOnFlow.value = on
-        dispatchSafely(WheelCommand.SetHeadlight(on), "set headlight")
+        val previous = headlightOnFlow.value
+        headlightPendingFlow.value = true
+        launchCommand(WheelCommand.SetHeadlight(on), "set headlight") { outcome ->
+            headlightPendingFlow.value = false
+            headlightOnFlow.value = if (outcome is CommandOutcome.Success) on else previous
+        }
     }
 
     /**
-     * Select a pedals ride mode. Pass the family-specific integer
-     * code (e.g. `0 = Soft`, `1 = Medium`, `2 = Hard` for most
-     * families). The actual applied mode is confirmed by the next
-     * telemetry frame, which updates [DashboardUiState.rideMode].
+     * Select a pedals ride mode. The actual applied mode is confirmed by the
+     * next telemetry frame, which updates [DashboardUiState.rideMode].
      */
     fun setPedalsMode(modeCode: Int) {
-        dispatchSafely(WheelCommand.SetRideMode(modeCode), "set pedals mode")
+        launchCommand(WheelCommand.SetRideMode(modeCode), "set pedals mode")
     }
 
     /** Fire a single short beep on the wheel's speaker. */
     fun beep() {
-        dispatchSafely(WheelCommand.Beep, "beep")
+        launchCommand(WheelCommand.Beep, "beep")
     }
 
     /**
@@ -590,12 +695,8 @@ class DashboardViewModel @Inject constructor(
      * Guarded by vehicle speed: will not execute if speed > 0 km/h.
      */
     fun powerOff() {
-        val speed = uiState.value.speedKmh ?: 0f
-        if (speed > 0f) {
-            Log.w(TAG, "powerOff blocked: vehicle is in motion (speed=$speed km/h)")
-            return
-        }
-        dispatchSafely(WheelCommand.PowerOff, "power off")
+        if (rejectIfMoving("power off")) return
+        launchCommand(WheelCommand.PowerOff, "power off")
     }
 
     /**
@@ -603,12 +704,8 @@ class DashboardViewModel @Inject constructor(
      * Guarded by vehicle speed: will not execute if speed > 0 km/h.
      */
     fun calibrate() {
-        val speed = uiState.value.speedKmh ?: 0f
-        if (speed > 0f) {
-            Log.w(TAG, "calibrate blocked: vehicle is in motion (speed=$speed km/h)")
-            return
-        }
-        dispatchSafely(WheelCommand.Calibrate, "calibrate")
+        if (rejectIfMoving("calibrate")) return
+        launchCommand(WheelCommand.Calibrate, "calibrate")
     }
 
     /**
@@ -616,27 +713,143 @@ class DashboardViewModel @Inject constructor(
      * Guarded by vehicle speed: will not execute if speed > 0 km/h.
      */
     fun setMaxSpeedKmh(kmh: Float) {
-        val speed = uiState.value.speedKmh ?: 0f
-        if (speed > 0f) {
-            Log.w(TAG, "setMaxSpeedKmh blocked: vehicle is in motion (speed=$speed km/h)")
-            return
-        }
-        dispatchSafely(WheelCommand.SetMaxSpeedKmh(kmh), "set max speed")
+        if (rejectIfMoving("set max speed")) return
+        launchCommand(WheelCommand.SetMaxSpeedKmh(kmh), "set max speed")
     }
 
-    private fun dispatchSafely(command: WheelCommand, operation: String) {
+    private fun rejectIfMoving(operation: String): Boolean {
+        val speed = uiState.value.speedKmh ?: 0f
+        if (speed > 0f) {
+            val failure = CommandFailure(
+                operation = operation,
+                reason = CommandFailureReason.INVALID_ARGUMENT,
+                detail = "vehicle is moving (${speed} km/h)",
+            )
+            commandFailureFlow.value = failure
+            Log.w(TAG, "$operation blocked: vehicle is in motion (speed=$speed km/h)")
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Run one user-visible command, gate it on the published capability
+     * matrix, and project its outcome into [DashboardUiState.commandFailure].
+     *
+     * The gate here is a UX guard; the connection and codec repeat it. In
+     * particular a `null` matrix (before identification) is left to the codec,
+     * because some families accept a command during their bootstrap.
+     */
+    private fun launchCommand(
+        command: WheelCommand,
+        operation: String,
+        onOutcome: ((CommandOutcome) -> Unit)? = null,
+    ) {
         viewModelScope.launch {
-            try {
-                dispatch(command)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
-                Log.e(TAG, "Failed to $operation on $address", e)
+            val outcome = dispatchWithOutcome(command, operation)
+            onOutcome?.invoke(outcome)
+        }
+    }
+
+    private suspend fun dispatchWithOutcome(
+        command: WheelCommand,
+        operation: String,
+    ): CommandOutcome {
+        val capabilities = uiState.value.capabilities
+        if (capabilities != null && !capabilities.supports(command)) {
+            val outcome = CommandOutcome.Unsupported(command)
+            commandFailureFlow.value = CommandFailure(operation, CommandFailureReason.UNSUPPORTED)
+            return outcome
+        }
+        val outcome = try {
+            dispatch(command)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to $operation on $address", e)
+            CommandOutcome.TransportError(command, e)
+        }
+        when (outcome) {
+            is CommandOutcome.Success -> commandFailureFlow.value = null
+            is CommandOutcome.Unsupported -> {
+                commandFailureFlow.value = CommandFailure(operation, CommandFailureReason.UNSUPPORTED)
+            }
+            is CommandOutcome.InvalidArgument -> {
+                commandFailureFlow.value = CommandFailure(
+                    operation,
+                    CommandFailureReason.INVALID_ARGUMENT,
+                    outcome.message,
+                )
+            }
+            is CommandOutcome.TransportError -> {
+                commandFailureFlow.value = CommandFailure(
+                    operation,
+                    CommandFailureReason.TRANSPORT_ERROR,
+                    outcome.cause?.message,
+                )
             }
         }
+        return outcome
+    }
+
+    /**
+     * Prefer the connection's immutable [WheelSessionSnapshot]. A legacy
+     * connection that predates it is handled with publication-version pairing:
+     * a pair is eligible only when both flows have the same emission version,
+     * so a new identity cannot borrow the previous support (or vice versa).
+     */
+    private fun observeIdentityEvidence(wheel: WheelConnection, profileAddress: String) {
+        val snapshots = wheel.sessionSnapshot
+        if (snapshots != null) {
+            var lastSequence = Long.MIN_VALUE
+            snapshots.onEach { snapshot ->
+                if (activeWheel !== wheel || snapshot == null) return@onEach
+                if (snapshot.sequence <= lastSequence) return@onEach
+                lastSequence = snapshot.sequence
+                persistIdentitySnapshot(
+                    profileAddress,
+                    snapshot.identity,
+                    snapshot.support?.identityEvidence,
+                )
+            }.launchIn(viewModelScope)
+            return
+        }
+
+        val identityVersion = AtomicLong(0)
+        val supportVersion = AtomicLong(0)
+        wheel.identity.onEach { identity ->
+            val version = identityVersion.incrementAndGet()
+            if (supportVersion.get() == version) {
+                persistIdentitySnapshot(profileAddress, identity, wheel.support.value?.identityEvidence)
+            }
+        }.launchIn(viewModelScope)
+        wheel.support.onEach { support ->
+            val version = supportVersion.incrementAndGet()
+            if (identityVersion.get() == version) {
+                persistIdentitySnapshot(profileAddress, wheel.identity.value, support?.identityEvidence)
+            }
+        }.launchIn(viewModelScope)
+    }
+
+    private suspend fun persistIdentitySnapshot(
+        address: String,
+        identity: WheelIdentity?,
+        evidence: WheelIdentityEvidence?,
+    ) {
+        if (evidence != WheelIdentityEvidence.MODEL_AND_FIRMWARE) return
+        val model = identity?.modelName?.takeIf { it.isNotBlank() } ?: return
+        val firmware = identity.firmwareVersion?.takeIf { it.isNotBlank() } ?: return
+        vehicleProfiles.updateIdentifiedIdentity(
+            address = address,
+            modelName = model,
+            firmwareVersion = firmware,
+            family = identity.family,
+            evidence = evidence,
+        )
     }
 
     override fun onCleared() {
+        activeWheel = null
         val conn = resolvedConnection
         val deferred = connectionAsync
         super.onCleared()
@@ -697,53 +910,76 @@ class DashboardViewModel @Inject constructor(
         }
         val conn = (handle as PlevConnectionHandle.Wheel).connection
         return with(conn) {
-        // Build the state out of the consolidated `telemetry`
-        // StateFlow plus the discrete connection-level signals. The
-        // per-field convenience flows (speedKmh, currentA, ...) on
-        // [WheelConnection] are derived from the same `telemetry`
-        // anyway, so we read it once and avoid the 5-arg combine
-        // arity ceiling.
-        kotlinx.coroutines.flow.combine(
-            state,
-            identity,
-            telemetry,
-            headlightOnFlow,
-            kotlinx.coroutines.flow.combine(
+            // Keep each combine at or below the five-flow arity limit while
+            // still reading the consolidated telemetry snapshot once.
+            val live = kotlinx.coroutines.flow.combine(state, identity, telemetry) { s, id, t ->
+                Triple(s, id, t)
+            }
+            val controls = kotlinx.coroutines.flow.combine(
+                capabilities,
+                support,
+                headlightOnFlow,
+                headlightPendingFlow,
+                commandFailureFlow,
+            ) { caps, sup, headlight, pending, failure ->
+                ControlExtras(caps, sup, headlight, pending, failure)
+            }
+            val metrics = kotlinx.coroutines.flow.combine(
                 maxSpeedFlow,
                 avgSpeedFlow,
                 rideTimeFlow,
                 settingsRepository.settings,
-            ) { mx, av, rt, settings -> DashboardExtras(mx, av, rt, settings.useMetric, settings.keepScreenOnDashboard) },
-        ) { connState, id, t, headlight, metrics ->
-            DashboardUiState(
-                connectionState = connState,
-                identity = id,
-                speedKmh = t.speedKmh?.let { kotlin.math.abs(it) },
-                voltageV = t.voltageV,
-                batteryPercent = t.batteryPercent,
-                batteryVoltageV = t.batteryVoltageV,
-                currentA = t.currentA,
-                phaseCurrentA = t.phaseCurrentA,
-                pwmPercent = t.pwmPercent,
-                mosTemperatureC = t.mosTemperatureC,
-                imuTemperatureC = t.imuTemperatureC,
-                motorTemperatureC = t.motorTemperatureC,
-                boardTemperatureC = t.boardTemperatureC,
-                batteryTemperatureC = t.batteryTemperatureC,
-                totalDistanceMetres = t.totalDistanceMetres,
-                tripDistanceMetres = t.tripDistanceMetres,
-                rideMode = t.rideMode,
-                headlightOn = headlight,
-                faults = t.faults ?: emptySet(),
-                maxSpeedKmh = metrics.maxSpeedKmh,
-                avgSpeedKmh = metrics.avgSpeedKmh,
-                rideTimeSeconds = metrics.rideTimeSeconds,
-                useMetric = metrics.useMetric,
-                keepScreenOnDashboard = metrics.keepScreenOnDashboard,
-            )
-        }
+            ) { mx, av, rt, settings ->
+                DashboardExtras(mx, av, rt, settings.useMetric, settings.keepScreenOnDashboard)
+            }
+            kotlinx.coroutines.flow.combine(live, controls, metrics, _vehicleProfile) {
+                    (connState, id, t), control, metric, profile ->
+                val calibration = profile?.calibration ?: VehicleCalibration()
+                DashboardUiState(
+                    connectionState = connState,
+                    identity = id,
+                    capabilities = control.capabilities,
+                    support = control.support,
+                    vehicleProfile = profile,
+                    calibration = calibration,
+                    commandFailure = control.commandFailure,
+                    headlightPending = control.headlightPending,
+                    speedKmh = t.speedKmh?.let { kotlin.math.abs(it) },
+                    pitchAngleDegrees = t.pitchAngleDegrees?.plus(calibration.pitchOffsetDegrees),
+                    rollAngleDegrees = t.rollAngleDegrees?.plus(calibration.rollOffsetDegrees),
+                    voltageV = t.voltageV,
+                    batteryPercent = t.batteryPercent,
+                    batteryVoltageV = t.batteryVoltageV,
+                    currentA = t.currentA,
+                    phaseCurrentA = t.phaseCurrentA,
+                    pwmPercent = t.pwmPercent,
+                    mosTemperatureC = t.mosTemperatureC,
+                    imuTemperatureC = t.imuTemperatureC,
+                    motorTemperatureC = t.motorTemperatureC,
+                    boardTemperatureC = t.boardTemperatureC,
+                    batteryTemperatureC = t.batteryTemperatureC,
+                    totalDistanceMetres = t.totalDistanceMetres,
+                    tripDistanceMetres = t.tripDistanceMetres,
+                    rideMode = t.rideMode,
+                    headlightOn = control.headlightOn,
+                    faults = t.faults ?: emptySet(),
+                    maxSpeedKmh = metric.maxSpeedKmh,
+                    avgSpeedKmh = metric.avgSpeedKmh,
+                    rideTimeSeconds = metric.rideTimeSeconds,
+                    useMetric = metric.useMetric,
+                    keepScreenOnDashboard = metric.keepScreenOnDashboard,
+                )
+            }
         }
     }
+
+    private data class ControlExtras(
+        val capabilities: WheelCapabilities?,
+        val support: WheelSupport?,
+        val headlightOn: Boolean,
+        val headlightPending: Boolean,
+        val commandFailure: CommandFailure?,
+    )
 
     private data class DashboardExtras(
         val maxSpeedKmh: Float?,

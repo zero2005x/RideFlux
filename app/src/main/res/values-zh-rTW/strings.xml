@@ -391,4 +391,19 @@
     <string name="settings_diag_subtitle">最近的橋接與眼鏡事件，只保存在這支手機上，不含任何金鑰或權杖。出狀況時可儲存下來提供參考。</string>
     <string name="settings_diag_saved">診斷日誌已儲存。</string>
     <string name="settings_diag_error">無法儲存診斷日誌：%1$s</string>
+    <string name="scanner_saved_vehicles">已儲存車輛</string>
+    <string name="scanner_saved_vehicles_empty">尚無已儲存車輛。選擇裝置即可儲存。</string>
+    <string name="scanner_vehicle_edit_title">編輯車輛</string>
+    <string name="scanner_vehicle_name_label">名稱</string>
+    <string name="scanner_vehicle_alerts_override">使用本車告警</string>
+    <string name="scanner_vehicle_delete">移除車輛</string>
+    <string name="action_save">儲存</string>
+    <string name="support_limited_family">未辨識型號。控制已停用，僅顯示基礎遙測。</string>
+    <string name="support_limited_firmware">韌體未驗證，控制維持停用。</string>
+    <string name="support_limited_layout">已辨識型號，但遙測僅部分可用。</string>
+    <string name="support_limited_generic">有限支援：%1$s</string>
+    <string name="command_failed_unsupported">此裝置不支援此操作。</string>
+    <string name="command_failed_invalid">命令遭拒絕：%1$s</string>
+    <string name="command_failed_transport">命令未送達車輛。</string>
+    <string name="command_failed_not_connected">未連線</string>
 </resources>

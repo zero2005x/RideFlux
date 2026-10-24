@@ -395,4 +395,19 @@
     <string name="settings_diag_subtitle">Eventi recenti del bridge e degli occhiali, conservati solo su questo telefono. Non contiene chiavi né token. Salvalo per condividerlo quando qualcosa non va.</string>
     <string name="settings_diag_saved">Registro di diagnostica salvato.</string>
     <string name="settings_diag_error">Impossibile salvare il registro di diagnostica: %1$s</string>
+    <string name="scanner_saved_vehicles">Veicoli salvati</string>
+    <string name="scanner_saved_vehicles_empty">Nessun veicolo salvato. Seleziona un dispositivo per salvarlo.</string>
+    <string name="scanner_vehicle_edit_title">Modifica veicolo</string>
+    <string name="scanner_vehicle_name_label">Nome</string>
+    <string name="scanner_vehicle_alerts_override">Usa avvisi specifici del veicolo</string>
+    <string name="scanner_vehicle_delete">Rimuovi veicolo</string>
+    <string name="action_save">Salva</string>
+    <string name="support_limited_family">Modello non riconosciuto. Controlli disattivati; solo telemetria di base.</string>
+    <string name="support_limited_firmware">Firmware non verificato. I controlli restano disattivati.</string>
+    <string name="support_limited_layout">Modello riconosciuto con telemetria parziale.</string>
+    <string name="support_limited_generic">Supporto limitato: %1$s</string>
+    <string name="command_failed_unsupported">Non supportato da questo dispositivo.</string>
+    <string name="command_failed_invalid">Comando rifiutato: %1$s</string>
+    <string name="command_failed_transport">Il comando non ha raggiunto la ruota.</string>
+    <string name="command_failed_not_connected">Non connesso.</string>
 </resources>

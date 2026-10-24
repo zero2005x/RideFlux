@@ -391,4 +391,19 @@
     <string name="settings_diag_subtitle">直近のブリッジとグラスのイベントを、このスマートフォンにのみ保存します。キーやトークンは含まれません。不具合のときに保存して共有できます。</string>
     <string name="settings_diag_saved">診断ログを保存しました。</string>
     <string name="settings_diag_error">診断ログを保存できませんでした: %1$s</string>
+    <string name="scanner_saved_vehicles">保存済みの車両</string>
+    <string name="scanner_saved_vehicles_empty">保存済みの車両はまだありません。デバイスを選択して保存してください。</string>
+    <string name="scanner_vehicle_edit_title">車両を編集</string>
+    <string name="scanner_vehicle_name_label">名前</string>
+    <string name="scanner_vehicle_alerts_override">この車両のアラートを使用</string>
+    <string name="scanner_vehicle_delete">車両を削除</string>
+    <string name="action_save">保存</string>
+    <string name="support_limited_family">モデルを認識できません。コントロールは無効です。基本テレメトリのみ表示します。</string>
+    <string name="support_limited_firmware">ファームウェア未確認のため、コントロールは無効です。</string>
+    <string name="support_limited_layout">モデルを認識しましたが、テレメトリは一部のみです。</string>
+    <string name="support_limited_generic">限定サポート: %1$s</string>
+    <string name="command_failed_unsupported">このデバイスではサポートされていません。</string>
+    <string name="command_failed_invalid">コマンドが拒否されました: %1$s</string>
+    <string name="command_failed_transport">コマンドがホイールに届きませんでした。</string>
+    <string name="command_failed_not_connected">未接続</string>
 </resources>

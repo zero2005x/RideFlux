@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.CastConnected
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.History
@@ -38,6 +40,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -53,10 +56,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -72,7 +77,10 @@ import com.rideflux.app.ui.permission.rememberNotificationsEnabled
 import com.rideflux.app.ui.permission.shouldShowNotificationsHint
 import com.rideflux.domain.repository.DiscoveredWheel
 import com.rideflux.domain.device.PlevCategory
+import com.rideflux.domain.garage.VehicleCalibration
+import com.rideflux.domain.garage.VehicleProfile
 import com.rideflux.domain.device.ScooterDevice
+import com.rideflux.domain.settings.AlertThresholds
 import com.rideflux.domain.wheel.WheelFamily
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -142,8 +150,26 @@ fun ScannerRoute(
             }
         },
         onSelectLinkMode = { mode -> BridgeService.setLinkMode(context, mode) },
-        onDeviceSelected = { onDeviceSelected(it.address, it.family, PlevCategory.WHEEL) },
-        onScooterSelected = { onDeviceSelected(it.address, null, PlevCategory.SCOOTER) },
+        // The selection event, not this route, decides whether a family is a
+        // manual claim: Scanned keeps `family = null` (the discovered GATT
+        // table decides) while Brand forwards the rider's choice. See
+        // [ScannerSelection] and its regression.
+        onDeviceSelected = { selection ->
+            viewModel.recordSelection(selection)
+            scannerDeviceNavigator(onDeviceSelected)(selection)
+        },
+        onScooterSelected = {
+            viewModel.recordScooterSelection(it)
+            onDeviceSelected(it.address, null, PlevCategory.SCOOTER)
+        },
+        onSavedVehicleSelected = { profile ->
+            onDeviceSelected(profile.address, profile.family, profile.category)
+        },
+        onRemoveSavedVehicle = viewModel::removeVehicle,
+        onRenameSavedVehicle = viewModel::renameVehicle,
+        onSetSavedVehicleFamily = viewModel::setVehicleFamily,
+        onSaveSavedVehicle = viewModel::saveVehicle,
+        onResetSavedVehicle = viewModel::resetVehicleOverrides,
         onOpenSettings = onOpenSettings,
         onOpenTripHistory = onOpenTripHistory,
     )
@@ -171,8 +197,14 @@ fun ScannerScreen(
     onStopScan: () -> Unit,
     onToggleBridge: (Boolean) -> Unit = {},
     onSelectLinkMode: (GlassesLinkMode) -> Unit = {},
-    onDeviceSelected: (DiscoveredWheel) -> Unit,
+    onDeviceSelected: (ScannerSelection) -> Unit,
     onScooterSelected: (ScooterDevice) -> Unit = {},
+    onSavedVehicleSelected: (VehicleProfile) -> Unit = {},
+    onRemoveSavedVehicle: (String) -> Unit = {},
+    onRenameSavedVehicle: (String, String) -> Unit = { _, _ -> },
+    onSetSavedVehicleFamily: (String, WheelFamily?) -> Unit = { _, _ -> },
+    onSaveSavedVehicle: ((String, String, WheelFamily?, AlertThresholds?, VehicleCalibration) -> Unit)? = null,
+    onResetSavedVehicle: ((String) -> Unit)? = null,
     onOpenSettings: () -> Unit = {},
     onOpenTripHistory: () -> Unit = {},
 ) {
@@ -187,68 +219,20 @@ fun ScannerScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    TextButton(
-                        onClick = {
-                            manualFamilySelectionDevice = null
-                            onDeviceSelected(device.copy(family = WheelFamily.V))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.scanner_brand_veteran))
-                    }
-                    TextButton(
-                        onClick = {
-                            manualFamilySelectionDevice = null
-                            onDeviceSelected(device.copy(family = WheelFamily.G))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.scanner_brand_begode))
-                    }
-                    TextButton(
-                        onClick = {
-                            manualFamilySelectionDevice = null
-                            onDeviceSelected(device.copy(family = WheelFamily.K))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.scanner_brand_kingsong))
-                    }
-                    TextButton(
-                        onClick = {
-                            manualFamilySelectionDevice = null
-                            onDeviceSelected(device.copy(family = WheelFamily.I2))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.scanner_brand_inmotion_i2))
-                    }
-                    TextButton(
-                        onClick = {
-                            manualFamilySelectionDevice = null
-                            onDeviceSelected(device.copy(family = WheelFamily.I1))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.scanner_brand_inmotion_i1))
-                    }
-                    TextButton(
-                        onClick = {
-                            manualFamilySelectionDevice = null
-                            onDeviceSelected(device.copy(family = WheelFamily.N1))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.scanner_brand_ninebot_n1))
-                    }
-                    TextButton(
-                        onClick = {
-                            manualFamilySelectionDevice = null
-                            onDeviceSelected(device.copy(family = WheelFamily.N2))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.scanner_brand_ninebot_n2))
+                    // One entry per brand: every button is an explicit rider
+                    // choice and therefore emits ScannerSelection.Brand. VESC
+                    // is read-only (telemetry + Ready), but it is still a
+                    // manual family and must reach the repository as one.
+                    ScannerBrand.entries.forEach { brand ->
+                        TextButton(
+                            onClick = {
+                                manualFamilySelectionDevice = null
+                                onDeviceSelected(brand.select(device))
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(brand.labelRes))
+                        }
                     }
                 }
             },
@@ -313,6 +297,16 @@ fun ScannerScreen(
                 linkState = linkState,
                 onToggle = onToggleBridge,
                 onSelectLinkMode = onSelectLinkMode,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            SavedVehiclesCard(
+                profiles = uiState.savedVehicles,
+                onSelect = onSavedVehicleSelected,
+                onRemove = { onRemoveSavedVehicle(it.address) },
+                onRename = onRenameSavedVehicle,
+                onSetFamily = onSetSavedVehicleFamily,
+                onSave = onSaveSavedVehicle,
+                onReset = onResetSavedVehicle,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
             if (notificationsHint) {
@@ -527,11 +521,258 @@ private fun ScanToggleFab(
 }
 
 @Composable
+private fun SavedVehiclesCard(
+    profiles: List<VehicleProfile>,
+    onSelect: (VehicleProfile) -> Unit,
+    onRemove: (VehicleProfile) -> Unit,
+    onRename: (String, String) -> Unit,
+    onSetFamily: (String, WheelFamily?) -> Unit,
+    onSave: ((String, String, WheelFamily?, AlertThresholds?, VehicleCalibration) -> Unit)?,
+    onReset: ((String) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    var editing by remember { mutableStateOf<VehicleProfile?>(null) }
+
+    editing?.let { profile ->
+        var name by remember(profile.id) { mutableStateOf(profile.displayName) }
+        var family by remember(profile.id) { mutableStateOf(profile.family) }
+        var alertsOverride by remember(profile.id) {
+            mutableStateOf(profile.alertThresholds != null)
+        }
+        val initialThresholds = profile.alertThresholds ?: AlertThresholds()
+        var alertsEnabled by remember(profile.id) { mutableStateOf(initialThresholds.enabled) }
+        var speedLimit by remember(profile.id) { mutableStateOf(initialThresholds.speedLimitKmh.toString()) }
+        var temperatureLimit by remember(profile.id) {
+            mutableStateOf(initialThresholds.temperatureLimitC.toString())
+        }
+        var lowBattery by remember(profile.id) { mutableStateOf(initialThresholds.lowBatteryPercent.toString()) }
+        var pwmLoad by remember(profile.id) { mutableStateOf(initialThresholds.pwmAlertPercent.toString()) }
+        var pitch by remember(profile.id) {
+            mutableStateOf(profile.calibration.pitchOffsetDegrees.toString())
+        }
+        var roll by remember(profile.id) {
+            mutableStateOf(profile.calibration.rollOffsetDegrees.toString())
+        }
+        val thresholdsValid = !alertsOverride || listOf(
+            speedLimit.toFloatOrNull()?.takeIf { it in 1f..150f },
+            temperatureLimit.toFloatOrNull()?.takeIf { it in 20f..150f },
+            lowBattery.toFloatOrNull()?.takeIf { it in 1f..99f },
+            pwmLoad.toFloatOrNull()?.takeIf { it in 1f..100f },
+        ).all { it != null }
+        val calibrationValid = pitch.toFloatOrNull()?.let { it in -30f..30f } == true &&
+            roll.toFloatOrNull()?.let { it in -30f..30f } == true
+        val canSave = name.trim().isNotEmpty() && thresholdsValid && calibrationValid
+        AlertDialog(
+            onDismissRequest = { editing = null },
+            title = { Text(stringResource(R.string.scanner_vehicle_edit_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text(stringResource(R.string.scanner_vehicle_name_label)) },
+                        singleLine = true,
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        item {
+                            FilterChip(
+                                selected = family == null,
+                                onClick = { family = null },
+                                label = { Text("Auto") },
+                            )
+                        }
+                        items(ScannerBrand.entries) { brand ->
+                            FilterChip(
+                                selected = family == brand.family,
+                                onClick = { family = brand.family },
+                                label = { Text(stringResource(brand.labelRes), fontSize = 11.sp) },
+                            )
+                        }
+                    }
+                    FilterChip(
+                        selected = alertsOverride,
+                        onClick = { alertsOverride = !alertsOverride },
+                        label = { Text(stringResource(R.string.scanner_vehicle_alerts_override)) },
+                    )
+                    if (alertsOverride) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedTextField(
+                                value = speedLimit,
+                                onValueChange = { speedLimit = it },
+                                label = { Text(stringResource(R.string.settings_speed_limit), fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f).testTag("vehicle_speed"),
+                            )
+                            OutlinedTextField(
+                                value = temperatureLimit,
+                                onValueChange = { temperatureLimit = it },
+                                label = { Text(stringResource(R.string.settings_mos_temperature), fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f).testTag("vehicle_temperature"),
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedTextField(
+                                value = lowBattery,
+                                onValueChange = { lowBattery = it },
+                                label = { Text(stringResource(R.string.settings_low_battery), fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f).testTag("vehicle_low_battery"),
+                            )
+                            OutlinedTextField(
+                                value = pwmLoad,
+                                onValueChange = { pwmLoad = it },
+                                label = { Text(stringResource(R.string.settings_pwm_load), fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f).testTag("vehicle_pwm"),
+                            )
+                        }
+                        FilterChip(
+                            selected = alertsEnabled,
+                            onClick = { alertsEnabled = !alertsEnabled },
+                            label = { Text(stringResource(R.string.settings_enable_alerts_title), fontSize = 11.sp) },
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(
+                            value = pitch,
+                            onValueChange = { pitch = it },
+                            label = { Text(stringResource(R.string.scanner_vehicle_pitch), fontSize = 11.sp) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f).testTag("vehicle_pitch"),
+                        )
+                        OutlinedTextField(
+                            value = roll,
+                            onValueChange = { roll = it },
+                            label = { Text(stringResource(R.string.scanner_vehicle_roll), fontSize = 11.sp) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f).testTag("vehicle_roll"),
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.scanner_vehicle_calibration_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = canSave,
+                    onClick = {
+                        val thresholds = if (alertsOverride) AlertThresholds(
+                            speedLimitKmh = speedLimit.toFloat(),
+                            temperatureLimitC = temperatureLimit.toFloat(),
+                            lowBatteryPercent = lowBattery.toFloat(),
+                            pwmAlertPercent = pwmLoad.toFloat(),
+                            enabled = alertsEnabled,
+                        ) else null
+                        val calibration = VehicleCalibration(
+                            pitchOffsetDegrees = pitch.toFloat(),
+                            rollOffsetDegrees = roll.toFloat(),
+                        )
+                        if (onSave != null) {
+                            onSave(profile.address, name, family, thresholds, calibration)
+                        } else {
+                            onRename(profile.address, name)
+                            onSetFamily(profile.address, family)
+                        }
+                        editing = null
+                    },
+                ) {
+                    Text(stringResource(R.string.action_save))
+                }
+            },
+            dismissButton = {
+                Row {
+                    if (onReset != null) {
+                        TextButton(onClick = {
+                            onReset(profile.address)
+                            editing = null
+                        }) {
+                            Text(stringResource(R.string.settings_ring_key_reset))
+                        }
+                    }
+                    TextButton(onClick = {
+                        onRemove(profile)
+                        editing = null
+                    }) {
+                        Text(
+                            stringResource(R.string.scanner_vehicle_delete),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            },
+        )
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Text(
+                stringResource(R.string.scanner_saved_vehicles),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            if (profiles.isEmpty()) {
+                Text(
+                    stringResource(R.string.scanner_saved_vehicles_empty),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(profiles, key = { it.id }) { profile ->
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                            ),
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                TextButton(onClick = { onSelect(profile) }) {
+                                    Text(profile.displayName)
+                                }
+                                Text(
+                                    text = listOfNotNull(
+                                        profile.category.name,
+                                        profile.family?.name ?: "AUTO",
+                                    ).joinToString(" · "),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Row {
+                                    IconButton(onClick = { editing = profile }) {
+                                        Icon(
+                                            Icons.Filled.Edit,
+                                            contentDescription = stringResource(R.string.scanner_vehicle_edit_title),
+                                        )
+                                    }
+                                    IconButton(onClick = { onRemove(profile) }) {
+                                        Icon(
+                                            Icons.Filled.Delete,
+                                            contentDescription = stringResource(R.string.scanner_vehicle_delete),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ScannerContent(
     uiState: ScannerUiState,
-    onDeviceSelected: (DiscoveredWheel) -> Unit,
+    onDeviceSelected: (ScannerSelection) -> Unit,
     onScooterSelected: (ScooterDevice) -> Unit,
-    onUnrecognisedDeviceSelected: (DiscoveredWheel) -> Unit = onDeviceSelected,
+    onUnrecognisedDeviceSelected: (DiscoveredWheel) -> Unit = {
+        onDeviceSelected(ScannerSelection.Scanned(it))
+    },
     onChangeBrand: (DiscoveredWheel) -> Unit = onUnrecognisedDeviceSelected,
     contentPadding: PaddingValues,
 ) {
@@ -576,7 +817,7 @@ private fun ScannerContent(
                 items(recognised, key = { it.address }) { device ->
                     DeviceCard(
                         device = device,
-                        onClick = { onDeviceSelected(device) },
+                        onClick = { onDeviceSelected(ScannerSelection.Scanned(device)) },
                         onChangeBrand = { onChangeBrand(device) },
                     )
                 }

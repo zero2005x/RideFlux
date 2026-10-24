@@ -8,6 +8,15 @@ import kotlinx.coroutines.flow.Flow
 interface ScooterRepository {
     fun scan(): Flow<List<ScooterDevice>>
     suspend fun connect(address: String): ScooterConnection
+
+    /**
+     * Connect with a persisted transport hint (for example an ES2 classifier
+     * name). The default keeps existing implementations source-compatible;
+     * the platform router may use it only to select a profile, never as
+     * verified identity or control authorisation.
+     */
+    suspend fun connectWithModel(address: String, modelHint: String?): ScooterConnection =
+        connect(address)
     /** Whether this process has identified the address as a scooter advertisement. */
     fun isDiscovered(address: String): Boolean = false
     /** Close only this address's session before removing its stored credential. */

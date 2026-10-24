@@ -20,6 +20,7 @@ import com.rideflux.protocol.familyk.KingSongWheelCodec
 import com.rideflux.protocol.familyn.NinebotN1WheelCodec
 import com.rideflux.protocol.familyn.NinebotN2WheelCodec
 import com.rideflux.protocol.familyv.VeteranWheelCodec
+import com.rideflux.protocol.familyvesc.VescWheelCodec
 import java.util.Locale
 import java.util.UUID
 
@@ -130,6 +131,7 @@ class WheelCodecFactoryImpl(
             WheelFamily.N2 -> NinebotN2WheelCodec(deviceAddress = address)
             WheelFamily.I1 -> InmotionI1WheelCodec(deviceAddress = address)
             WheelFamily.I2 -> InmotionI2WheelCodec(deviceAddress = address)
+            WheelFamily.VESC -> VescWheelCodec(deviceAddress = address)
         }
     }
 
@@ -179,7 +181,7 @@ class WheelCodecFactoryImpl(
         WheelFamily.G, WheelFamily.GX,
         WheelFamily.K, WheelFamily.N1 -> GattTopology.SINGLE_CHAR
         WheelFamily.I1 -> GattTopology.SPLIT_CHAR
-        WheelFamily.N2, WheelFamily.I2 -> GattTopology.NORDIC_UART
+        WheelFamily.N2, WheelFamily.I2, WheelFamily.VESC -> GattTopology.NORDIC_UART
         WheelFamily.V -> GattTopology.SINGLE_CHAR // V uses the same FFE0/FFE1 single-char link.
     }
 

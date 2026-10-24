@@ -226,6 +226,17 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockk)
+    // Compose behaviour tests run on the JVM through Robolectric (no device):
+    // the scanner's brand dialog must be exercised through the real
+    // composables, not only through extracted helpers.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.androidx.ui.test.manifest)
+    // Compose's test artifact declares older androidx.test versions than the
+    // ones used by androidTest; the catalog versions are the cached/verified
+    // ones, so pull them onto the unit-test classpath explicitly.
+    testImplementation(libs.androidx.junit)
+    testImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

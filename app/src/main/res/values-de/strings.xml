@@ -393,4 +393,19 @@
     <string name="settings_diag_subtitle">Aktuelle Ereignisse von Bridge und Brille, nur auf diesem Telefon gespeichert. Es enthält keine Schlüssel oder Token. Speichere es, um es bei Problemen weiterzugeben.</string>
     <string name="settings_diag_saved">Diagnoseprotokoll gespeichert.</string>
     <string name="settings_diag_error">Das Diagnoseprotokoll konnte nicht gespeichert werden: %1$s</string>
+    <string name="scanner_saved_vehicles">Gespeicherte Fahrzeuge</string>
+    <string name="scanner_saved_vehicles_empty">Noch keine gespeicherten Fahrzeuge. Wähle ein Gerät zum Speichern.</string>
+    <string name="scanner_vehicle_edit_title">Fahrzeug bearbeiten</string>
+    <string name="scanner_vehicle_name_label">Name</string>
+    <string name="scanner_vehicle_alerts_override">Fahrzeugspezifische Warnungen verwenden</string>
+    <string name="scanner_vehicle_delete">Fahrzeug entfernen</string>
+    <string name="action_save">Speichern</string>
+    <string name="support_limited_family">Modell nicht erkannt. Steuerung deaktiviert; nur Kerntelemetrie.</string>
+    <string name="support_limited_firmware">Firmware nicht bestätigt. Steuerung bleibt deaktiviert.</string>
+    <string name="support_limited_layout">Modell erkannt, Telemetrie nur teilweise.</string>
+    <string name="support_limited_generic">Eingeschränkte Unterstützung: %1$s</string>
+    <string name="command_failed_unsupported">Von diesem Gerät nicht unterstützt.</string>
+    <string name="command_failed_invalid">Befehl abgelehnt: %1$s</string>
+    <string name="command_failed_transport">Befehl hat das Rad nicht erreicht.</string>
+    <string name="command_failed_not_connected">Nicht verbunden.</string>
 </resources>

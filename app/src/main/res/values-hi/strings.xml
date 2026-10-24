@@ -393,4 +393,19 @@
     <string name="settings_diag_subtitle">हाल की ब्रिज और चश्मे की घटनाएँ, केवल इस फ़ोन में रखी जाती हैं। इसमें कोई कुंजी या टोकन नहीं है। कुछ गड़बड़ होने पर साझा करने के लिए इसे सहेजें।</string>
     <string name="settings_diag_saved">डायग्नोस्टिक लॉग सहेजा गया।</string>
     <string name="settings_diag_error">डायग्नोस्टिक लॉग सहेजा नहीं जा सका: %1$s</string>
+    <string name="scanner_saved_vehicles">सहेजे गए वाहन</string>
+    <string name="scanner_saved_vehicles_empty">अभी कोई सहेजा गया वाहन नहीं है। सहेजने के लिए डिवाइस चुनें।</string>
+    <string name="scanner_vehicle_edit_title">वाहन संपादित करें</string>
+    <string name="scanner_vehicle_name_label">नाम</string>
+    <string name="scanner_vehicle_alerts_override">इस वाहन के अलर्ट उपयोग करें</string>
+    <string name="scanner_vehicle_delete">वाहन हटाएँ</string>
+    <string name="action_save">सहेजें</string>
+    <string name="support_limited_family">मॉडल पहचाना नहीं गया। नियंत्रण बंद हैं; केवल बुनियादी टेलीमेट्री दिखाई देगी।</string>
+    <string name="support_limited_firmware">फ़र्मवेयर सत्यापित नहीं है। नियंत्रण बंद रहेंगे।</string>
+    <string name="support_limited_layout">मॉडल पहचाना गया, टेलीमेट्री आंशिक है।</string>
+    <string name="support_limited_generic">सीमित समर्थन: %1$s</string>
+    <string name="command_failed_unsupported">यह डिवाइस इसे समर्थित नहीं करता।</string>
+    <string name="command_failed_invalid">कमांड अस्वीकृत: %1$s</string>
+    <string name="command_failed_transport">कमांड व्हील तक नहीं पहुँचा।</string>
+    <string name="command_failed_not_connected">कनेक्ट नहीं है</string>
 </resources>

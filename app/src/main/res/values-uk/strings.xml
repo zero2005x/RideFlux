@@ -397,4 +397,19 @@
     <string name="settings_diag_subtitle">Нещодавні події мосту й окулярів, що зберігаються лише на цьому телефоні. Журнал не містить ключів і токенів. Збережіть його, щоб поділитися, якщо щось піде не так.</string>
     <string name="settings_diag_saved">Журнал діагностики збережено.</string>
     <string name="settings_diag_error">Не вдалося зберегти журнал діагностики: %1$s</string>
+    <string name="scanner_saved_vehicles">Збережені транспортні засоби</string>
+    <string name="scanner_saved_vehicles_empty">Збережених транспортних засобів ще немає. Виберіть пристрій для збереження.</string>
+    <string name="scanner_vehicle_edit_title">Редагувати транспортний засіб</string>
+    <string name="scanner_vehicle_name_label">Назва</string>
+    <string name="scanner_vehicle_alerts_override">Використовувати сповіщення для цього транспорту</string>
+    <string name="scanner_vehicle_delete">Видалити транспортний засіб</string>
+    <string name="action_save">Зберегти</string>
+    <string name="support_limited_family">Модель не розпізнано. Керування вимкнено; лише базова телеметрія.</string>
+    <string name="support_limited_firmware">Прошивку не підтверджено. Керування залишається вимкненим.</string>
+    <string name="support_limited_layout">Модель розпізнано, телеметрія часткова.</string>
+    <string name="support_limited_generic">Обмежена підтримка: %1$s</string>
+    <string name="command_failed_unsupported">Не підтримується цим пристроєм.</string>
+    <string name="command_failed_invalid">Команду відхилено: %1$s</string>
+    <string name="command_failed_transport">Команда не дійшла до колеса.</string>
+    <string name="command_failed_not_connected">Немає підключення.</string>
 </resources>

@@ -13,6 +13,7 @@ import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.wheel.WheelCapabilities
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelIdentity
+import com.rideflux.domain.wheel.WheelSupport
 
 /**
  * Discrete output of [WheelCodec.decode], one per logical frame (or
@@ -48,10 +49,18 @@ sealed class DecodeEvent {
     /**
      * Identification-handshake frame decoded; [identity] / [capabilities]
      * now describe the device. Emitted exactly once per handshake.
+     *
+     * [support] is the codec's evidence statement for this session. It is
+     * `null` only for codecs that have not adopted the support contract yet;
+     * consumers must then fall back to the legacy "capabilities only" view.
+     * An Inmotion I2 session whose model/firmware is not established publishes
+     * a limited [WheelSupport] together with all-false capabilities, because a
+     * `Ready` connection is not a full-support statement.
      */
     data class Identified(
         val identity: WheelIdentity,
         val capabilities: WheelCapabilities,
+        val support: WheelSupport? = null,
     ) : DecodeEvent()
 
     /** Codec-level protocol error (checksum storm, bad LEN, etc.). */

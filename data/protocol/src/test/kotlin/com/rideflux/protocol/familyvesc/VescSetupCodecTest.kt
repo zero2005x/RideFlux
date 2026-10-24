@@ -22,7 +22,10 @@ class VescSetupCodecTest {
         assertEquals(5.67f, values.inputCurrentA, 0.01f)
         assertEquals(50.4f, values.inputVoltageV, 0.01f)
         assertEquals(50f, values.dutyPercent, 0.01f)
-        assertEquals(25f, values.speedKmh, 0.01f)
+        // Payload speed word is 0x000061A8 = 25000; the firmware scale is
+        // 1e3 over a metres-per-second value, so this is 25 m/s (= 90 km/h),
+        // NOT 25 km/h. Name and unit are asserted together on purpose.
+        assertEquals(25f, values.speedMetresPerSecond, 0.01f)
         assertEquals(80f, values.batteryPercent, 0.01f)
         assertEquals(12_345L, values.odometerMetres)
         assertNull(VescSetupCodec.decode(synthetic.copyOf(synthetic.size - 1)))
