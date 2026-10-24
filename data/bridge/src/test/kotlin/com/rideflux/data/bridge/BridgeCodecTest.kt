@@ -314,6 +314,121 @@ class BridgeCodecTest {
         assertArrayEquals(BridgeCodec.encode(frame), BridgeCodec.encode(frame))
     }
 
+    /**
+     * Hand-written scooter frame. Every byte is computed from the documented
+     * layout rather than from `encode`, so a wrong offset in the encoder
+     * cannot also move the expectation.
+     */
+    @Test
+    fun `v3 scooter golden bytes pin the category slots`() {
+        val frame = BridgeFrame(
+            timestampMillis = 1_700_000_000_000L,
+            speedKmh = 12.5f,
+            vehicleBatteryPercent = 55f,
+            phoneBatteryPercent = 90,
+            voltageV = null,
+            tripDistanceMetres = null,
+            tripDurationSeconds = null,
+            signal = SignalLevel.GOOD,
+            stale = false,
+            ready = true,
+            vehicleType = VehicleType.SCOOTER,
+            aux1 = -4.5f,
+            aux2 = 2,
+            aux3 = 41,
+        )
+        val expected = byteArrayOf(
+            0x52, 0x03, 0x4A, // magic, v3, flags: ready|GOOD|SCOOTER
+            0x00, 0xF1.toByte(), 0x53, 0x65, // timestamp 1 700 000 000 s, u32 LE
+            0x7D, 0x00, // speed 12.5 -> 125
+            0x37, 0x5A, // vehicle 55 %, phone 90 %
+            0x00, 0x80.toByte(), // voltage absent (INT16_NULL)
+            0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), // distance absent (U24_NULL)
+            0x00, 0x00, 0x00, 0x80.toByte(), // duration absent (INT32_NULL)
+            0xD3.toByte(), 0xFF.toByte(), // aux1 -4.5 -> -45
+            0x02, // aux2 gear 2
+            0x29, // aux3 throttle 41 %
+        )
+        assertArrayEquals(expected, BridgeCodec.encode(frame))
+    }
+
+    /**
+     * Hand-written BMS frame: no speed, no batteries, no voltage, and only
+     * `aux1` present. The reserved 0xFF bytes must decode back to null.
+     */
+    @Test
+    fun `v3 BMS golden bytes keep every absent slot absent`() {
+        val frame = BridgeFrame(
+            timestampMillis = 1_700_000_123_000L,
+            speedKmh = null,
+            vehicleBatteryPercent = null,
+            phoneBatteryPercent = null,
+            voltageV = null,
+            tripDistanceMetres = null,
+            tripDurationSeconds = null,
+            signal = SignalLevel.NONE,
+            stale = false,
+            ready = true,
+            vehicleType = VehicleType.BMS,
+            aux1 = -4.2f,
+            aux2 = null,
+            aux3 = null,
+        )
+        val expected = byteArrayOf(
+            0x52, 0x03, 0x62, // magic, v3, flags: ready|NONE|BMS
+            0x7B, 0xF1.toByte(), 0x53, 0x65, // timestamp 1 700 000 123 s
+            0x00, 0x80.toByte(), // speed absent
+            0xFF.toByte(), 0xFF.toByte(), // both batteries absent
+            0x00, 0x80.toByte(), // voltage absent
+            0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(), // distance absent
+            0x00, 0x00, 0x00, 0x80.toByte(), // duration absent
+            0xD6.toByte(), 0xFF.toByte(), // aux1 -4.2 -> -42
+            0xFF.toByte(), 0xFF.toByte(), // aux2/aux3 reserved
+        )
+        assertArrayEquals(expected, BridgeCodec.encode(frame))
+
+        val decoded = BridgeCodec.decode(expected)!!
+        assertNull(decoded.speedKmh)
+        assertNull(decoded.vehicleBatteryPercent)
+        assertNull(decoded.voltageV)
+        assertNull(decoded.tripDistanceMetres)
+        assertNull(decoded.aux2)
+        assertNull(decoded.aux3)
+        assertEquals(VehicleType.BMS, decoded.vehicleType)
+        assertEquals(-4.2f, decoded.aux1)
+    }
+
+    @Test
+    fun `a v3 frame truncated to twenty bytes is rejected, not rendered`() {
+        val full = BridgeCodec.encode(fullFrame())
+
+        assertEquals(BridgeProtocol.FRAME_SIZE_V3, full.size)
+        assertNull(BridgeCodec.decode(full.copyOf(BridgeProtocol.FRAME_SIZE_V2)))
+    }
+
+    @Test
+    fun `an aux code above the reserved sentinel is refused at construction`() {
+        val base = fullFrame()
+        for (bad in listOf(255, 300)) {
+            try {
+                base.copy(aux2 = bad)
+                throw AssertionError("aux2=$bad should have been rejected")
+            } catch (expected: IllegalArgumentException) {
+                assertTrue(expected.message.orEmpty().contains("254"))
+            }
+        }
+    }
+
+    @Test
+    fun `a wheel aux3 carries the biased MOS temperature as a plain code`() {
+        // 105 on the wire is 41 °C once the producer's +64 bias is removed;
+        // the codec itself stays bias-agnostic and round-trips the code.
+        val decoded = BridgeCodec.decode(BridgeCodec.encode(fullFrame()))!!
+
+        assertEquals(105, decoded.aux3)
+        assertEquals(VehicleType.WHEEL, decoded.vehicleType)
+    }
+
     private fun fullFrame() = BridgeFrame(
         timestampMillis = 1_700_000_000_000L,
         speedKmh = 18.3f,

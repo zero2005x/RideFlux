@@ -5,6 +5,7 @@
   Spanish (Español) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">Marcha %1$d</string>
     <string name="hud_language">Idioma</string>
     <string name="hud_follow_system">Usar idioma del sistema</string>
     <string name="hud_waiting_phone_title">ESPERANDO\nTELÉFONO</string>

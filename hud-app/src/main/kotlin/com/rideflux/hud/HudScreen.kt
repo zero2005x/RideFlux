@@ -927,12 +927,15 @@ private fun RightColumn(
         ?.let { "%.1f %s".format(it, stringResource(R.string.unit_volts)) }
     // The aux slots mean different things per category, so the label is
     // chosen by vehicle type rather than guessed from which value exists.
-    val auxText = when {
-        vehicleType == VehicleType.SCOOTER && aux1 != null ->
-            "%.0f %s".format(aux1, stringResource(R.string.unit_celsius))
-        aux2 != null ->
-            "$aux2${stringResource(R.string.unit_percent)}"
-        else -> null
+    val auxText = AuxDisplay.forFrame(vehicleType, aux1, aux2)?.let { display ->
+        when (display) {
+            is AuxDisplay.Celsius ->
+                "%.0f %s".format(display.value, stringResource(R.string.unit_celsius))
+            is AuxDisplay.Percent ->
+                "${display.value}${stringResource(R.string.unit_percent)}"
+            is AuxDisplay.Gear ->
+                stringResource(R.string.hud_gear_value, display.value)
+        }
     }
 
     Column(

@@ -5,6 +5,7 @@
   Standard German (Deutsch) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">Gang %1$d</string>
     <string name="hud_language">Sprache</string>
     <string name="hud_follow_system">Systemsprache verwenden</string>
     <string name="hud_waiting_phone_title">WARTE AUF\nTELEFON</string>

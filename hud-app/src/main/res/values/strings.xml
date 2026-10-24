@@ -13,6 +13,7 @@
   `LocalizationCoverageTest` fails the build otherwise.
 -->
 <resources>
+    <string name="hud_gear_value">Gear %1$d</string>
     <string name="hud_language">Language</string>
     <string name="hud_follow_system">Follow system</string>
 

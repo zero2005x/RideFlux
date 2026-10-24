@@ -5,6 +5,7 @@
   Vietnamese (Tiếng Việt) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">Số %1$d</string>
     <string name="hud_language">Ngôn ngữ</string>
     <string name="hud_follow_system">Theo ngôn ngữ hệ thống</string>
     <string name="hud_waiting_phone_title">CHỜ\nĐIỆN THOẠI</string>

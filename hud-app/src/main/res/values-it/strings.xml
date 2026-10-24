@@ -5,6 +5,7 @@
   Italian (Italiano) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">Marcia %1$d</string>
     <string name="hud_language">Lingua</string>
     <string name="hud_follow_system">Usa la lingua di sistema</string>
     <string name="hud_waiting_phone_title">ATTESA\nTELEFONO</string>

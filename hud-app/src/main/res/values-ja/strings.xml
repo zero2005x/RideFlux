@@ -5,6 +5,7 @@
   Japanese (日本語) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">ギア %1$d</string>
     <string name="hud_language">言語</string>
     <string name="hud_follow_system">システムの言語に従う</string>
     <string name="hud_waiting_phone_title">スマホを\n待機中</string>
