@@ -979,14 +979,20 @@ private val DEFAULT_PEDALS_PRESETS: List<PedalsModePreset> = listOf(
 )
 
 @Composable
-private fun limitedSupportText(support: com.rideflux.domain.wheel.WheelSupport): String =
+internal fun limitedSupportText(support: com.rideflux.domain.wheel.WheelSupport): String =
     when (support.reason) {
         "model-unknown" -> stringResource(R.string.support_limited_family)
         "firmware-unknown" -> stringResource(R.string.support_limited_firmware)
-        "layout-unestablished" -> stringResource(R.string.support_limited_layout)
+        "layout-unestablished", "layout-partial" ->
+            stringResource(R.string.support_limited_layout)
+        "control-contract-not-closed" -> stringResource(R.string.support_limited_control)
+        "unidentified" -> stringResource(R.string.support_limited_unidentified)
+        // An unrecognised reason must not splice English diagnostic prose
+        // into a translated sentence. The detail stays on the model for
+        // logs; the rider sees translated copy in every case.
         else -> stringResource(
             R.string.support_limited_generic,
-            support.detail ?: support.identityEvidence.name,
+            stringResource(R.string.support_limited_reason_unknown),
         )
     }
 

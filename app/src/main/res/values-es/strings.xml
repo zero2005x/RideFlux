@@ -406,6 +406,10 @@
     <string name="support_limited_firmware">Firmware no verificada. Los controles siguen desactivados.</string>
     <string name="support_limited_layout">Modelo reconocido con telemetría parcial.</string>
     <string name="support_limited_generic">Compatibilidad limitada: %1$s</string>
+    <string name="support_limited_control">Controles desactivados hasta verificar el contrato de control de este modelo.</string>
+    <string name="support_limited_unidentified">Vehículo aún no identificado. Los controles siguen desactivados hasta conocer el modelo.</string>
+    <string name="support_limited_reason_unknown">motivo no registrado</string>
+    <string name="scanner_family_auto">Automático</string>
     <string name="command_failed_unsupported">No compatible con este dispositivo.</string>
     <string name="command_failed_invalid">Comando rechazado: %1$s</string>
     <string name="command_failed_transport">El comando no llegó a la rueda.</string>

@@ -406,6 +406,10 @@
     <string name="support_limited_firmware">Firmware non vérifié. Les commandes restent désactivées.</string>
     <string name="support_limited_layout">Modèle reconnu, télémétrie partielle.</string>
     <string name="support_limited_generic">Prise en charge limitée : %1$s</string>
+    <string name="support_limited_control">Commandes désactivées jusqu\'à vérification du contrat de commande de ce modèle.</string>
+    <string name="support_limited_unidentified">Véhicule pas encore identifié. Les commandes restent désactivées jusqu\'à connaître le modèle.</string>
+    <string name="support_limited_reason_unknown">motif non enregistré</string>
+    <string name="scanner_family_auto">Auto</string>
     <string name="command_failed_unsupported">Non pris en charge par cet appareil.</string>
     <string name="command_failed_invalid">Commande refusée : %1$s</string>
     <string name="command_failed_transport">La commande n a pas atteint la roue.</string>

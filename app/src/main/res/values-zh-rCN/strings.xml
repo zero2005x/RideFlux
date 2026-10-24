@@ -402,6 +402,10 @@
     <string name="support_limited_firmware">固件未验证，控制保持禁用。</string>
     <string name="support_limited_layout">已识别型号，但遥测仅部分可用。</string>
     <string name="support_limited_generic">有限支持：%1$s</string>
+    <string name="support_limited_control">在验证该型号的控制契约之前，控制保持禁用。</string>
+    <string name="support_limited_unidentified">尚未识别车辆。在确认型号之前，控制保持禁用。</string>
+    <string name="support_limited_reason_unknown">原因未记录</string>
+    <string name="scanner_family_auto">自动</string>
     <string name="command_failed_unsupported">此设备不支持该操作。</string>
     <string name="command_failed_invalid">命令被拒绝：%1$s</string>
     <string name="command_failed_transport">命令未到达车辆。</string>

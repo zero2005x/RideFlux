@@ -405,6 +405,10 @@
     <string name="support_limited_firmware">فرم ویئر کی تصدیق نہیں ہوئی۔ کنٹرول بند رہیں گے۔</string>
     <string name="support_limited_layout">ماڈل شناخت ہوا، ٹیلی میٹری جزوی ہے۔</string>
     <string name="support_limited_generic">محدود معاونت: %1$s</string>
+    <string name="support_limited_control">اس ماڈل کے کنٹرول معاہدے کی تصدیق ہونے تک کنٹرول بند ہیں۔</string>
+    <string name="support_limited_unidentified">گاڑی ابھی شناخت نہیں ہوئی۔ ماڈل معلوم ہونے تک کنٹرول بند رہیں گے۔</string>
+    <string name="support_limited_reason_unknown">وجہ درج نہیں</string>
+    <string name="scanner_family_auto">خودکار</string>
     <string name="command_failed_unsupported">یہ ڈیوائس اسے معاون نہیں کرتا۔</string>
     <string name="command_failed_invalid">کمانڈ مسترد: %1$s</string>
     <string name="command_failed_transport">کمانڈ وہیل تک نہیں پہنچی۔</string>

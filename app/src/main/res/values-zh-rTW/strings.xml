@@ -402,6 +402,10 @@
     <string name="support_limited_firmware">韌體未驗證，控制維持停用。</string>
     <string name="support_limited_layout">已辨識型號，但遙測僅部分可用。</string>
     <string name="support_limited_generic">有限支援：%1$s</string>
+    <string name="support_limited_control">在驗證此型號的控制契約之前，控制保持停用。</string>
+    <string name="support_limited_unidentified">尚未辨識車輛。在確認型號之前，控制保持停用。</string>
+    <string name="support_limited_reason_unknown">原因未記錄</string>
+    <string name="scanner_family_auto">自動</string>
     <string name="command_failed_unsupported">此裝置不支援此操作。</string>
     <string name="command_failed_invalid">命令遭拒絕：%1$s</string>
     <string name="command_failed_transport">命令未送達車輛。</string>

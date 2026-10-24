@@ -402,6 +402,10 @@
     <string name="support_limited_firmware">펌웨어가 확인되지 않아 제어가 비활성화됩니다.</string>
     <string name="support_limited_layout">모델은 인식되었지만 텔레메트리가 일부만 제공됩니다.</string>
     <string name="support_limited_generic">제한적 지원: %1$s</string>
+    <string name="support_limited_control">이 모델의 제어 계약이 확인될 때까지 제어가 비활성화됩니다.</string>
+    <string name="support_limited_unidentified">차량이 아직 식별되지 않았습니다. 모델을 알 때까지 제어가 비활성화됩니다.</string>
+    <string name="support_limited_reason_unknown">이유가 기록되지 않음</string>
+    <string name="scanner_family_auto">자동</string>
     <string name="command_failed_unsupported">이 기기에서는 지원되지 않습니다.</string>
     <string name="command_failed_invalid">명령이 거부되었습니다: %1$s</string>
     <string name="command_failed_transport">명령이 휠에 도달하지 못했습니다.</string>

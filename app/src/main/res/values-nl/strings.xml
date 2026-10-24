@@ -404,6 +404,10 @@
     <string name="support_limited_firmware">Firmware niet geverifieerd. Bediening blijft uitgeschakeld.</string>
     <string name="support_limited_layout">Model herkend, telemetrie gedeeltelijk.</string>
     <string name="support_limited_generic">Beperkte ondersteuning: %1$s</string>
+    <string name="support_limited_control">Bediening uitgeschakeld tot het bedieningscontract van dit model is geverifieerd.</string>
+    <string name="support_limited_unidentified">Voertuig nog niet geïdentificeerd. Bediening blijft uitgeschakeld tot het model bekend is.</string>
+    <string name="support_limited_reason_unknown">reden niet vastgelegd</string>
+    <string name="scanner_family_auto">Automatisch</string>
     <string name="command_failed_unsupported">Niet ondersteund door dit apparaat.</string>
     <string name="command_failed_invalid">Opdracht geweigerd: %1$s</string>
     <string name="command_failed_transport">Opdracht heeft het wiel niet bereikt.</string>

@@ -404,6 +404,10 @@
     <string name="support_limited_firmware">Firmware belum terverifikasi. Kontrol tetap dinonaktifkan.</string>
     <string name="support_limited_layout">Model dikenali, telemetri sebagian.</string>
     <string name="support_limited_generic">Dukungan terbatas: %1$s</string>
+    <string name="support_limited_control">Kontrol dinonaktifkan sampai kontrak kontrol model ini terverifikasi.</string>
+    <string name="support_limited_unidentified">Kendaraan belum dikenali. Kontrol tetap nonaktif sampai model diketahui.</string>
+    <string name="support_limited_reason_unknown">alasan tidak tercatat</string>
+    <string name="scanner_family_auto">Otomatis</string>
     <string name="command_failed_unsupported">Tidak didukung oleh perangkat ini.</string>
     <string name="command_failed_invalid">Perintah ditolak: %1$s</string>
     <string name="command_failed_transport">Perintah tidak sampai ke roda.</string>

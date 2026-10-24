@@ -402,6 +402,10 @@
     <string name="support_limited_firmware">Chưa xác minh firmware. Điều khiển vẫn bị tắt.</string>
     <string name="support_limited_layout">Đã nhận diện kiểu xe, dữ liệu chỉ một phần.</string>
     <string name="support_limited_generic">Hỗ trợ hạn chế: %1$s</string>
+    <string name="support_limited_control">Điều khiển bị tắt cho đến khi hợp đồng điều khiển của kiểu xe này được xác minh.</string>
+    <string name="support_limited_unidentified">Chưa nhận diện được xe. Điều khiển vẫn bị tắt cho đến khi biết kiểu xe.</string>
+    <string name="support_limited_reason_unknown">lý do chưa được ghi</string>
+    <string name="scanner_family_auto">Tự động</string>
     <string name="command_failed_unsupported">Thiết bị này không hỗ trợ.</string>
     <string name="command_failed_invalid">Lệnh bị từ chối: %1$s</string>
     <string name="command_failed_transport">Lệnh không đến được bánh xe.</string>

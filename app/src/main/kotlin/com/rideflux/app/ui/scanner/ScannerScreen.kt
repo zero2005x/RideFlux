@@ -578,7 +578,7 @@ private fun SavedVehiclesCard(
                             FilterChip(
                                 selected = family == null,
                                 onClick = { family = null },
-                                label = { Text("Auto") },
+                                label = { Text(stringResource(R.string.scanner_family_auto)) },
                             )
                         }
                         items(ScannerBrand.entries) { brand ->

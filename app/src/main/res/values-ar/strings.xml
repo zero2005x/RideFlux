@@ -413,6 +413,10 @@
     <string name="support_limited_firmware">لم يتم التحقق من البرنامج الثابت. يبقى التحكم معطلاً.</string>
     <string name="support_limited_layout">تم التعرف على الطراز، والقياسات جزئية.</string>
     <string name="support_limited_generic">دعم محدود: %1$s</string>
+    <string name="support_limited_control">التحكم معطل حتى يتم التحقق من عقد التحكم لهذا الطراز.</string>
+    <string name="support_limited_unidentified">لم يتم التعرف على المركبة بعد. يبقى التحكم معطلاً حتى يُعرف الطراز.</string>
+    <string name="support_limited_reason_unknown">السبب غير مسجل</string>
+    <string name="scanner_family_auto">تلقائي</string>
     <string name="command_failed_unsupported">غير مدعوم على هذا الجهاز.</string>
     <string name="command_failed_invalid">تم رفض الأمر: %1$s</string>
     <string name="command_failed_transport">لم يصل الأمر إلى العجلة.</string>

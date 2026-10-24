@@ -408,6 +408,10 @@
     <string name="support_limited_firmware">Прошивка не подтверждена. Управление остаётся отключённым.</string>
     <string name="support_limited_layout">Модель распознана, телеметрия частичная.</string>
     <string name="support_limited_generic">Ограниченная поддержка: %1$s</string>
+    <string name="support_limited_control">Управление отключено до проверки контракта управления этой модели.</string>
+    <string name="support_limited_unidentified">Транспортное средство ещё не определено. Управление остаётся отключённым, пока модель не известна.</string>
+    <string name="support_limited_reason_unknown">причина не записана</string>
+    <string name="scanner_family_auto">Авто</string>
     <string name="command_failed_unsupported">Не поддерживается этим устройством.</string>
     <string name="command_failed_invalid">Команда отклонена: %1$s</string>
     <string name="command_failed_transport">Команда не дошла до колеса.</string>

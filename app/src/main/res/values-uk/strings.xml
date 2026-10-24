@@ -408,6 +408,10 @@
     <string name="support_limited_firmware">Прошивку не підтверджено. Керування залишається вимкненим.</string>
     <string name="support_limited_layout">Модель розпізнано, телеметрія часткова.</string>
     <string name="support_limited_generic">Обмежена підтримка: %1$s</string>
+    <string name="support_limited_control">Керування вимкнено до перевірки контракту керування цієї моделі.</string>
+    <string name="support_limited_unidentified">Транспортний засіб ще не визначено. Керування лишається вимкненим, доки модель не відома.</string>
+    <string name="support_limited_reason_unknown">причину не записано</string>
+    <string name="scanner_family_auto">Авто</string>
     <string name="command_failed_unsupported">Не підтримується цим пристроєм.</string>
     <string name="command_failed_invalid">Команду відхилено: %1$s</string>
     <string name="command_failed_transport">Команда не дійшла до колеса.</string>

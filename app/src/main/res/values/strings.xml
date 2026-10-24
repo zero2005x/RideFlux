@@ -448,6 +448,10 @@
     <string name="support_limited_firmware">Firmware not verified. Controls stay disabled until the version is known.</string>
     <string name="support_limited_layout">Recognised model with a partial telemetry layout. Unsupported fields stay blank.</string>
     <string name="support_limited_generic">Limited support: %1$s</string>
+    <string name="support_limited_control">Controls are disabled until this model\'s control contract is verified.</string>
+    <string name="support_limited_unidentified">Vehicle not identified yet. Controls stay disabled until the model is known.</string>
+    <string name="support_limited_reason_unknown">reason not recorded</string>
+    <string name="scanner_family_auto">Auto</string>
     <string name="command_failed_unsupported">Not supported by this device.</string>
     <string name="command_failed_invalid">Command rejected: %1$s</string>
     <string name="command_failed_transport">Command did not reach the wheel.</string>

@@ -404,6 +404,10 @@
     <string name="support_limited_firmware">फ़र्मवेयर सत्यापित नहीं है। नियंत्रण बंद रहेंगे।</string>
     <string name="support_limited_layout">मॉडल पहचाना गया, टेलीमेट्री आंशिक है।</string>
     <string name="support_limited_generic">सीमित समर्थन: %1$s</string>
+    <string name="support_limited_control">इस मॉडल का नियंत्रण अनुबंध सत्यापित होने तक नियंत्रण बंद हैं।</string>
+    <string name="support_limited_unidentified">वाहन अभी पहचाना नहीं गया। मॉडल ज्ञात होने तक नियंत्रण बंद रहेंगे।</string>
+    <string name="support_limited_reason_unknown">कारण दर्ज नहीं है</string>
+    <string name="scanner_family_auto">स्वतः</string>
     <string name="command_failed_unsupported">यह डिवाइस इसे समर्थित नहीं करता।</string>
     <string name="command_failed_invalid">कमांड अस्वीकृत: %1$s</string>
     <string name="command_failed_transport">कमांड व्हील तक नहीं पहुँचा।</string>

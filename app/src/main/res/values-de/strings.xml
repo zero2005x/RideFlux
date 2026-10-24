@@ -404,6 +404,10 @@
     <string name="support_limited_firmware">Firmware nicht bestätigt. Steuerung bleibt deaktiviert.</string>
     <string name="support_limited_layout">Modell erkannt, Telemetrie nur teilweise.</string>
     <string name="support_limited_generic">Eingeschränkte Unterstützung: %1$s</string>
+    <string name="support_limited_control">Steuerung deaktiviert, bis der Steuerungsvertrag dieses Modells geprüft ist.</string>
+    <string name="support_limited_unidentified">Fahrzeug noch nicht erkannt. Steuerung bleibt deaktiviert, bis das Modell bekannt ist.</string>
+    <string name="support_limited_reason_unknown">Grund nicht erfasst</string>
+    <string name="scanner_family_auto">Automatisch</string>
     <string name="command_failed_unsupported">Von diesem Gerät nicht unterstützt.</string>
     <string name="command_failed_invalid">Befehl abgelehnt: %1$s</string>
     <string name="command_failed_transport">Befehl hat das Rad nicht erreicht.</string>
