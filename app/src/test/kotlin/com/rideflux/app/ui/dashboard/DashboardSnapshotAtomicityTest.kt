@@ -35,6 +35,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -74,6 +75,7 @@ class DashboardSnapshotAtomicityTest {
     private val scheduler = TestCoroutineScheduler()
     private val collectors = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
     private val stores = mutableListOf<ViewModelStore>()
+    private val subscriptions = mutableMapOf<DashboardViewModel, Job>()
     private val settingsFlow = MutableStateFlow(AppSettings())
     private val settings = mockk<SettingsRepository>()
 
@@ -217,6 +219,17 @@ class DashboardSnapshotAtomicityTest {
 
         assertEquals("Session two", second.uiState.value.identity?.modelName)
         assertEquals("Session one", first.uiState.value.identity?.modelName)
+
+        // The retired connection must not be able to touch the new session.
+        firstConnection.state.value = ConnectionState.Failed(
+            ConnectionState.Failed.Reason.BLE_LINK_LOST,
+            "old session ended",
+        )
+        firstConnection.sessionSnapshot.value =
+            snapshot(11, publication("Ghost of session one", headlight = false))
+        settle()
+
+        assertEquals("Session two", second.uiState.value.identity?.modelName)
     }
 
     // ---- 5. Teardown and failure leave nothing behind ---------------------
@@ -247,29 +260,161 @@ class DashboardSnapshotAtomicityTest {
     }
 
     @Test
-    fun `a failed session shows neither identity nor controls`() {
+    fun `a failed session clears the facts without the producer clearing the snapshot`() {
         val connection = SnapshotConnection()
         val viewModel = viewModel(connection)
         val publication = publication("Failed wheel", headlight = true)
 
         connection.identity.value = publication.identity
         connection.capabilities.value = publication.capabilities
+        connection.support.value = publication.support
         connection.sessionSnapshot.value = snapshot(2, publication)
         await("the publication") {
             viewModel.uiState.value.identity?.modelName?.takeIf { it == "Failed wheel" }
         }
 
+        // WheelConnectionImpl.onLinkLost publishes Failed but leaves the
+        // session snapshot in place, so the UI cannot wait for a cleared
+        // snapshot to drop the facts.
         connection.state.value = ConnectionState.Failed(
             ConnectionState.Failed.Reason.BLE_LINK_LOST,
             "link dropped",
         )
-        connection.sessionSnapshot.value = null
-
         await("the failed state") {
             if (viewModel.uiState.value.connectionState is ConnectionState.Failed) true else null
         }
+
+        assertNull("identity must not survive a failure", viewModel.uiState.value.identity)
+        assertNull("capabilities must not survive a failure", viewModel.uiState.value.capabilities)
+        assertNull("support must not survive a failure", viewModel.uiState.value.support)
+
+        // A retained snapshot with a higher sequence cannot revive the same
+        // connection once it has failed.
+        connection.sessionSnapshot.value =
+            snapshot(9, publication("Revived wheel", headlight = false))
+        settle()
+
         assertNull(viewModel.uiState.value.identity)
         assertNull(viewModel.uiState.value.capabilities)
+    }
+
+    @Test
+    fun `a terminated disconnected session clears the facts`() {
+        val connection = SnapshotConnection()
+        val viewModel = viewModel(connection)
+        val publication = publication("Rode wheel", headlight = true)
+
+        connection.state.value = ConnectionState.Ready
+        connection.sessionSnapshot.value = snapshot(1, publication)
+        await("the publication") {
+            viewModel.uiState.value.identity?.modelName?.takeIf { it == "Rode wheel" }
+        }
+
+        connection.state.value = ConnectionState.Disconnected
+        await("the disconnected state") {
+            if (viewModel.uiState.value.connectionState is ConnectionState.Disconnected) true else null
+        }
+
+        assertNull("identity must not survive a terminated link", viewModel.uiState.value.identity)
+        assertNull(
+            "capabilities must not survive a terminated link",
+            viewModel.uiState.value.capabilities,
+        )
+    }
+
+    @Test
+    fun `an initial disconnected state does not close the session`() {
+        // Disconnected is also the starting state; it must not be mistaken for
+        // a terminated session before anything was ever connected.
+        val connection = SnapshotConnection().apply {
+            state.value = ConnectionState.Disconnected
+        }
+        val viewModel = viewModel(connection)
+
+        connection.sessionSnapshot.value = snapshot(1, publication("First wheel", headlight = true))
+
+        await("the first publication") {
+            viewModel.uiState.value.identity?.modelName?.takeIf { it == "First wheel" }
+        }
+        assertEquals(true, viewModel.uiState.value.capabilities?.headlight)
+    }
+
+    @Test
+    fun `a paused subscription keeps the accepted sequence`() {
+        val connection = SnapshotConnection()
+        val viewModel = viewModel(connection)
+        connection.sessionSnapshot.value =
+            snapshot(5, publication("Accepted wheel", headlight = true))
+        await("the accepted publication") {
+            viewModel.uiState.value.identity?.modelName?.takeIf { it == "Accepted wheel" }
+        }
+
+        pauseSubscription(viewModel)
+
+        // The same StateFlow still holds a retained, older publication while
+        // nobody is collecting.
+        connection.sessionSnapshot.value =
+            snapshot(4, publication("Stale wheel", headlight = false))
+        resumeSubscription(viewModel)
+        settle()
+
+        assertEquals("Accepted wheel", viewModel.uiState.value.identity?.modelName)
+        assertEquals(true, viewModel.uiState.value.capabilities?.headlight)
+    }
+
+    @Test
+    fun `a paused subscription keeps the session closed`() {
+        val connection = SnapshotConnection()
+        val viewModel = viewModel(connection)
+        connection.sessionSnapshot.value =
+            snapshot(1, publication("Ended wheel", headlight = true))
+        await("the publication") {
+            viewModel.uiState.value.identity?.modelName?.takeIf { it == "Ended wheel" }
+        }
+
+        connection.sessionSnapshot.value = null
+        await("the cleared identity") {
+            if (viewModel.uiState.value.identity == null) true else null
+        }
+
+        pauseSubscription(viewModel)
+
+        connection.sessionSnapshot.value =
+            snapshot(2, publication("Ghost wheel", headlight = false))
+        resumeSubscription(viewModel)
+        settle()
+
+        assertNull("a closed session must not be revived", viewModel.uiState.value.identity)
+        assertNull(viewModel.uiState.value.capabilities)
+    }
+
+    @Test
+    fun `a terminal failure while unsubscribed is still applied`() {
+        val connection = SnapshotConnection()
+        val viewModel = viewModel(connection)
+        connection.sessionSnapshot.value =
+            snapshot(3, publication("Unwatched wheel", headlight = true))
+        await("the publication") {
+            viewModel.uiState.value.identity?.modelName?.takeIf { it == "Unwatched wheel" }
+        }
+
+        pauseSubscription(viewModel)
+
+        // No subscriber is alive for this transition; the connection retains
+        // its snapshot, so only the current lifecycle can tell us it ended.
+        connection.state.value = ConnectionState.Failed(
+            ConnectionState.Failed.Reason.BLE_LINK_LOST,
+            "dropped while backgrounded",
+        )
+
+        resumeSubscription(viewModel)
+        await("the failed state after resubscribe") {
+            if (viewModel.uiState.value.connectionState is ConnectionState.Failed) true else null
+        }
+
+        assertNull(viewModel.uiState.value.identity)
+        assertNull(viewModel.uiState.value.capabilities)
+        assertNull(viewModel.uiState.value.support)
     }
 
     @Test
@@ -375,8 +520,22 @@ class DashboardSnapshotAtomicityTest {
                     ) as T
             },
         )[DashboardViewModel::class.java]
-        collectors.launch { viewModel.uiState.collect { } }
+        subscriptions[viewModel] = collectors.launch { viewModel.uiState.collect { } }
         return viewModel
+    }
+
+    /**
+     * Drops the only `uiState` subscriber and lets `WhileSubscribed` time out
+     * on the test scheduler, so the upstream stops without real sleeping.
+     */
+    private fun pauseSubscription(viewModel: DashboardViewModel) {
+        subscriptions.remove(viewModel)?.cancel()
+        scheduler.advanceTimeBy(6_000L)
+        scheduler.runCurrent()
+    }
+
+    private fun resumeSubscription(viewModel: DashboardViewModel) {
+        subscriptions[viewModel] = collectors.launch { viewModel.uiState.collect { } }
     }
 
     private fun settle() {

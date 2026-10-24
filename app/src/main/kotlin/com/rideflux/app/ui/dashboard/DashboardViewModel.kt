@@ -387,6 +387,12 @@ class DashboardViewModel @Inject constructor(
      * user's own toggle via [setHeadlight] and surface it on
      * [DashboardUiState.headlightOn] for UI feedback.
      */
+    private val trackerLock = Any()
+
+    /** Acceptance state for the connection currently held by this screen. */
+    @Volatile
+    private var tracker: SessionFactsTracker? = null
+
     private val headlightOnFlow = MutableStateFlow(false)
     private val headlightPendingFlow = MutableStateFlow(false)
 
@@ -887,30 +893,85 @@ class DashboardViewModel @Inject constructor(
      * The one publication of identity, capabilities and support for [conn],
      * or `null` for a connection that predates [WheelConnection.sessionSnapshot].
      *
-     * Sequence rules are scoped to one connection session: a stale or repeated
-     * snapshot is ignored, a cleared snapshot empties the facts for good (a new
-     * session arrives as a new connection, so it starts from its own sequence),
-     * and the fold restarts on every collection rather than living in a field.
+     * The acceptance state belongs to the connection instance, not to a
+     * collection: `uiState` stops its upstream after the
+     * `WhileSubscribed` timeout, and restarting the collection must not
+     * forget the last accepted sequence or that the session already ended.
      */
-    private fun atomicFacts(conn: WheelConnection): kotlinx.coroutines.flow.Flow<IdentityFacts>? {
+    private fun sessionFacts(conn: WheelConnection): kotlinx.coroutines.flow.Flow<IdentityFacts>? {
         val snapshots = conn.sessionSnapshot ?: return null
-        return snapshots
-            .runningFold(AcceptedFacts()) { accepted, next -> acceptSnapshot(accepted, next) }
-            .map { it.facts }
-            .distinctUntilChanged()
+        val tracker = trackerFor(conn)
+        // [WheelConnection.state] is a StateFlow, so a terminal transition that
+        // happens while the UI is not collecting is still its current value
+        // when collection resumes.
+        return kotlinx.coroutines.flow.combine(snapshots, conn.state) { snapshot, state ->
+            tracker.observe(snapshot, state)
+        }.distinctUntilChanged()
     }
 
-    private fun acceptSnapshot(accepted: AcceptedFacts, next: WheelSessionSnapshot?): AcceptedFacts = when {
-        accepted.closed -> accepted
-        // The StateFlow starts null; that is "not published yet", not a teardown.
-        next == null -> if (!accepted.seen) accepted
-            else accepted.copy(facts = IdentityFacts(), closed = true)
-        next.sequence <= accepted.sequence -> accepted
-        else -> AcceptedFacts(
-            sequence = next.sequence,
-            facts = IdentityFacts(next.identity, next.capabilities, next.support),
-            seen = true,
-        )
+    private fun trackerFor(conn: WheelConnection): SessionFactsTracker =
+        synchronized(trackerLock) {
+            tracker?.takeIf { it.connection === conn }
+                ?: SessionFactsTracker(conn).also { tracker = it }
+        }
+
+    /**
+     * Sequence and lifecycle acceptance for one connection instance.
+     *
+     * A snapshot is accepted only once per sequence and never after the
+     * session ended. Ending happens on [ConnectionState.Failed] or on a
+     * [ConnectionState.Disconnected] that follows an active state — the
+     * initial `Disconnected` must not close a session before it starts.
+     * Once closed, neither a retained nor a late snapshot can revive it, and
+     * a replacement connection gets its own tracker, so it may start at any
+     * sequence.
+     */
+    private class SessionFactsTracker(val connection: WheelConnection) {
+        private val lock = Any()
+        private var lastSequence = Long.MIN_VALUE
+        private var accepted = false
+        private var seenActive = false
+        private var closed = false
+        private var facts = IdentityFacts()
+
+        fun observe(snapshot: WheelSessionSnapshot?, state: ConnectionState): IdentityFacts =
+            synchronized(lock) {
+                if (closed) return facts
+
+                if (state is ConnectionState.Connecting ||
+                    state is ConnectionState.Ready ||
+                    state is ConnectionState.Handshaking ||
+                    state is ConnectionState.ScooterHandshaking
+                ) {
+                    seenActive = true
+                }
+                if (state is ConnectionState.Failed ||
+                    (state is ConnectionState.Disconnected && seenActive)
+                ) {
+                    return close()
+                }
+
+                when {
+                    snapshot == null -> if (accepted) close() else facts
+                    snapshot.sequence <= lastSequence -> facts
+                    else -> {
+                        lastSequence = snapshot.sequence
+                        accepted = true
+                        facts = IdentityFacts(
+                            snapshot.identity,
+                            snapshot.capabilities,
+                            snapshot.support,
+                        )
+                        facts
+                    }
+                }
+            }
+
+        private fun close(): IdentityFacts {
+            closed = true
+            facts = IdentityFacts()
+            return facts
+        }
     }
 
     private fun combineDashboardFlows(handle: PlevConnectionHandle): kotlinx.coroutines.flow.Flow<DashboardUiState> {
@@ -949,7 +1010,7 @@ class DashboardViewModel @Inject constructor(
             // connection that predates sessionSnapshot keeps the legacy
             // three-flow view; otherwise the snapshot is the only source, so
             // the screen can never combine facts from two Identified events.
-            val facts = atomicFacts(conn)
+            val facts = sessionFacts(conn)
                 ?: kotlinx.coroutines.flow.combine(identity, capabilities, support) { id, caps, sup ->
                     IdentityFacts(id, caps, sup)
                 }
@@ -1033,13 +1094,6 @@ class DashboardViewModel @Inject constructor(
         val telemetry: WheelTelemetry,
     )
 
-    /** Running acceptance of one connection session's snapshots. */
-    private data class AcceptedFacts(
-        val sequence: Long = Long.MIN_VALUE,
-        val facts: IdentityFacts = IdentityFacts(),
-        val seen: Boolean = false,
-        val closed: Boolean = false,
-    )
 
     private data class DashboardExtras(
         val maxSpeedKmh: Float?,
