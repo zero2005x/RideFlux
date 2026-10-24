@@ -36,6 +36,7 @@ import com.rideflux.domain.settings.AlertThresholds
 import com.rideflux.domain.settings.SettingsRepository
 import com.rideflux.domain.telemetry.RideMode
 import com.rideflux.domain.telemetry.WheelAlert
+import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.wheel.BegodeProfileStore
 import com.rideflux.domain.wheel.BegodeProtocolProfile
 import com.rideflux.domain.wheel.WheelBatteryPackStore
@@ -68,7 +69,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -880,6 +883,36 @@ class DashboardViewModel @Inject constructor(
 
     // ---- Helpers -------------------------------------------------------
 
+    /**
+     * The one publication of identity, capabilities and support for [conn],
+     * or `null` for a connection that predates [WheelConnection.sessionSnapshot].
+     *
+     * Sequence rules are scoped to one connection session: a stale or repeated
+     * snapshot is ignored, a cleared snapshot empties the facts for good (a new
+     * session arrives as a new connection, so it starts from its own sequence),
+     * and the fold restarts on every collection rather than living in a field.
+     */
+    private fun atomicFacts(conn: WheelConnection): kotlinx.coroutines.flow.Flow<IdentityFacts>? {
+        val snapshots = conn.sessionSnapshot ?: return null
+        return snapshots
+            .runningFold(AcceptedFacts()) { accepted, next -> acceptSnapshot(accepted, next) }
+            .map { it.facts }
+            .distinctUntilChanged()
+    }
+
+    private fun acceptSnapshot(accepted: AcceptedFacts, next: WheelSessionSnapshot?): AcceptedFacts = when {
+        accepted.closed -> accepted
+        // The StateFlow starts null; that is "not published yet", not a teardown.
+        next == null -> if (!accepted.seen) accepted
+            else accepted.copy(facts = IdentityFacts(), closed = true)
+        next.sequence <= accepted.sequence -> accepted
+        else -> AcceptedFacts(
+            sequence = next.sequence,
+            facts = IdentityFacts(next.identity, next.capabilities, next.support),
+            seen = true,
+        )
+    }
+
     private fun combineDashboardFlows(handle: PlevConnectionHandle): kotlinx.coroutines.flow.Flow<DashboardUiState> {
         if (handle is PlevConnectionHandle.Scooter) {
             val scooter = handle.connection
@@ -912,17 +945,23 @@ class DashboardViewModel @Inject constructor(
         return with(conn) {
             // Keep each combine at or below the five-flow arity limit while
             // still reading the consolidated telemetry snapshot once.
-            val live = kotlinx.coroutines.flow.combine(state, identity, telemetry) { s, id, t ->
-                Triple(s, id, t)
+            // Identity, capabilities and support are one publication. A
+            // connection that predates sessionSnapshot keeps the legacy
+            // three-flow view; otherwise the snapshot is the only source, so
+            // the screen can never combine facts from two Identified events.
+            val facts = atomicFacts(conn)
+                ?: kotlinx.coroutines.flow.combine(identity, capabilities, support) { id, caps, sup ->
+                    IdentityFacts(id, caps, sup)
+                }
+            val live = kotlinx.coroutines.flow.combine(state, facts, telemetry) { s, f, t ->
+                LiveState(s, f, t)
             }
             val controls = kotlinx.coroutines.flow.combine(
-                capabilities,
-                support,
                 headlightOnFlow,
                 headlightPendingFlow,
                 commandFailureFlow,
-            ) { caps, sup, headlight, pending, failure ->
-                ControlExtras(caps, sup, headlight, pending, failure)
+            ) { headlight, pending, failure ->
+                ControlExtras(headlight, pending, failure)
             }
             val metrics = kotlinx.coroutines.flow.combine(
                 maxSpeedFlow,
@@ -933,13 +972,14 @@ class DashboardViewModel @Inject constructor(
                 DashboardExtras(mx, av, rt, settings.useMetric, settings.keepScreenOnDashboard)
             }
             kotlinx.coroutines.flow.combine(live, controls, metrics, _vehicleProfile) {
-                    (connState, id, t), control, metric, profile ->
+                    current, control, metric, profile ->
+                val t = current.telemetry
                 val calibration = profile?.calibration ?: VehicleCalibration()
                 DashboardUiState(
-                    connectionState = connState,
-                    identity = id,
-                    capabilities = control.capabilities,
-                    support = control.support,
+                    connectionState = current.state,
+                    identity = current.facts.identity,
+                    capabilities = current.facts.capabilities,
+                    support = current.facts.support,
                     vehicleProfile = profile,
                     calibration = calibration,
                     commandFailure = control.commandFailure,
@@ -974,11 +1014,31 @@ class DashboardViewModel @Inject constructor(
     }
 
     private data class ControlExtras(
-        val capabilities: WheelCapabilities?,
-        val support: WheelSupport?,
         val headlightOn: Boolean,
         val headlightPending: Boolean,
         val commandFailure: CommandFailure?,
+    )
+
+    /** The three identity facts that must always come from one publication. */
+    private data class IdentityFacts(
+        val identity: WheelIdentity? = null,
+        val capabilities: WheelCapabilities? = null,
+        val support: WheelSupport? = null,
+    )
+
+    /** Connection state plus one identity publication and its telemetry. */
+    private data class LiveState(
+        val state: ConnectionState,
+        val facts: IdentityFacts,
+        val telemetry: WheelTelemetry,
+    )
+
+    /** Running acceptance of one connection session's snapshots. */
+    private data class AcceptedFacts(
+        val sequence: Long = Long.MIN_VALUE,
+        val facts: IdentityFacts = IdentityFacts(),
+        val seen: Boolean = false,
+        val closed: Boolean = false,
     )
 
     private data class DashboardExtras(
