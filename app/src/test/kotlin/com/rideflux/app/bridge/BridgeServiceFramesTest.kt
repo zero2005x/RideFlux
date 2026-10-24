@@ -12,6 +12,7 @@ import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.DiagnosticLog
 import com.rideflux.data.bridge.DiagnosticLogs
 import com.rideflux.data.bridge.SignalLevel
+import com.rideflux.data.bridge.VehicleType
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
 import com.rideflux.domain.connection.ScooterConnection
@@ -137,6 +138,72 @@ class BridgeServiceFramesTest {
         assertEquals(SignalLevel.GOOD, frame.signal)
         assertEquals(BridgeState.RELAYING, BridgeService.state.value)
         coVerify(exactly = 1) { connection.close() }
+    }
+
+    /**
+     * The v3 frame is the #103 half of the integration: a relayed wheel must
+     * arrive with its category and the wheel's aux meanings (current, PWM,
+     * biased MOS temperature), not merely v2 speed/battery.
+     */
+    @Test
+    fun relayedWheelFrameCarriesTheWheelCategoryAndSlots() = runBlocking {
+        val address = "AA:BB:CC:DD:EE:FD"
+        val connection = mockk<WheelConnection>()
+        every { connection.state } returns MutableStateFlow(ConnectionState.Ready)
+        every { connection.telemetry } returns MutableStateFlow(
+            WheelTelemetry(
+                timestampMillis = System.currentTimeMillis(),
+                speedKmh = 10f,
+                currentA = 12.5f,
+                pwmPercent = 61.4f,
+                mosTemperatureC = 41f,
+            ),
+        )
+        coEvery { connection.close() } returns Unit
+        coEvery { wheelRepository.connect(address, WheelFamily.K) } returns connection
+        val target = readTarget(
+            Intent().putExtra(BridgeService.EXTRA_MAC, address)
+                .putExtra(BridgeService.EXTRA_FAMILY, WheelFamily.K.name),
+        )!!
+        setTarget(target)
+
+        val frame = withTimeout(5_000) { frames().first { it.ready } }
+
+        assertEquals(VehicleType.WHEEL, frame.vehicleType)
+        assertEquals(12.5f, frame.aux1)
+        assertEquals(61, frame.aux2)
+        assertEquals("41 °C + the producer's +64 bias", 105, frame.aux3)
+        coVerify(exactly = 1) { connection.close() }
+    }
+
+    /** A scooter's aux2 is a gear; it must not arrive as PWM. */
+    @Test
+    fun relayedScooterFrameCarriesTheScooterCategoryAndSlots() = runBlocking {
+        val address = "C7:B8:DC:3B:A1:B3"
+        val scooter = mockk<ScooterConnection>()
+        every { scooter.state } returns MutableStateFlow(ConnectionState.Ready)
+        every { scooter.telemetry } returns MutableStateFlow(
+            ScooterTelemetry(
+                timestampMillis = System.currentTimeMillis(),
+                speedKmh = 17.6f,
+                batteryPercent = 60f,
+                gear = 2,
+                throttlePercent = 41f,
+                frameTemperatureC = -4.5f,
+            ),
+        )
+        coEvery { scooter.close() } returns Unit
+        every { scooterRepository.isDiscovered(address) } returns true
+        coEvery { scooterRepository.connect(address) } returns scooter
+        setTarget(readTarget(Intent().putExtra(BridgeService.EXTRA_MAC, address))!!)
+
+        val frame = withTimeout(5_000) { frames().first { it.ready } }
+
+        assertEquals(VehicleType.SCOOTER, frame.vehicleType)
+        assertEquals(-4.5f, frame.aux1)
+        assertEquals("gear, not PWM", 2, frame.aux2)
+        assertEquals(41, frame.aux3)
+        coVerify(exactly = 0) { wheelRepository.connect(any(), any()) }
     }
 
     @Test
