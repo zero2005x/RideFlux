@@ -33,10 +33,18 @@ sealed class DecodeEvent {
      *
      * Null fields in [snapshot] are partial updates. [invalidated] names fields
      * whose previous value must be cleared because it is no longer evidence.
+     *
+     * [freshSpeed] is true only when [snapshot]'s speed was decoded from the
+     * frame that produced this event. A speed carried over from an earlier
+     * frame for display leaves it false, and the motion interlock ignores it:
+     * one measured sample must never count as several, nor stay fresh after
+     * the speed frames stop. False is the default so a codec that does not
+     * say otherwise cannot unlock a critical command.
      */
     data class TelemetryUpdate(
         val snapshot: WheelTelemetry,
         val invalidated: Set<TelemetryField> = emptySet(),
+        val freshSpeed: Boolean = false,
     ) : DecodeEvent()
 
     /** Uninterpreted BMS bytes; never a fresh speed reading or identification evidence. */

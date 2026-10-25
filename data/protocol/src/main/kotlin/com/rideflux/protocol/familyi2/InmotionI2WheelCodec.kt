@@ -231,10 +231,13 @@ class InmotionI2WheelCodec(
             voltageV = core.voltageV.toFloat(),
             currentA = core.currentA.toFloat(),
         )
+        // Speed is fresh only when this record was long enough to decode it.
+        var freshSpeed = false
         // Gate V11 early layout on exact model "v11" AND verified firmware < 1.4.
         // Unidentified firmware or FW >= 1.4 must NOT apply early layout offsets.
         if (isV11EarlyLayout(s)) {
             if (frame.data.size >= InmotionI2RealtimeV11Early.MIN_DATA_SIZE) {
+                freshSpeed = true
                 val t = InmotionI2RealtimeV11Early.parse(frame.data)
                 merged = merged.copy(
                     speedKmh = t.speedKmh.toFloat(),
@@ -256,7 +259,7 @@ class InmotionI2WheelCodec(
             }
         }
         s.last = merged
-        return DecodeEvent.TelemetryUpdate(merged)
+        return DecodeEvent.TelemetryUpdate(merged, freshSpeed = freshSpeed)
     }
 
     /**

@@ -358,7 +358,7 @@ class WheelConnectionImpl(
             when (event) {
                 is DecodeEvent.TelemetryUpdate -> {
                     // Only a fresh decoded speed frame counts; retained snapshot values do not.
-                    event.snapshot.speedKmh?.let { motionInterlock.observe(it, clock()) }
+                    if (event.freshSpeed) event.snapshot.speedKmh?.let { motionInterlock.observe(it, clock()) }
                     _telemetry.update { current ->
                         WheelTelemetryMerge.merge(
                             base = current,

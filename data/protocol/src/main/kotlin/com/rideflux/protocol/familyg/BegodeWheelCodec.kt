@@ -136,6 +136,7 @@ class BegodeWheelCodec(
             ),
             invalidated,
             events,
+            freshSpeed = true,
         )
         s.hasLiveFrame = true
     }
@@ -155,6 +156,7 @@ class BegodeWheelCodec(
                 s.last.copy(timestampMillis = now),
                 standingWithdrawals(active, s),
                 events,
+                freshSpeed = false,
             )
             return
         }
@@ -175,6 +177,7 @@ class BegodeWheelCodec(
             ),
             invalidated,
             events,
+            freshSpeed = false,
         )
     }
 
@@ -216,11 +219,13 @@ class BegodeWheelCodec(
         return active
     }
 
+    /** [freshSpeed]: only packet 0x00 carries speed; every other packet re-sends the last one. */
     private fun publish(
         s: BegodeState,
         snapshot: WheelTelemetry,
         invalidated: Set<TelemetryField>,
         events: MutableList<DecodeEvent>,
+        freshSpeed: Boolean,
     ) {
         val cleared = snapshot.copy(
             currentA = if (TelemetryField.CURRENT in invalidated) null else snapshot.currentA,
@@ -230,7 +235,7 @@ class BegodeWheelCodec(
             imuTemperatureC = if (TelemetryField.IMU_TEMPERATURE in invalidated) null else snapshot.imuTemperatureC,
         )
         s.last = cleared
-        events.add(DecodeEvent.TelemetryUpdate(cleared, invalidated))
+        events.add(DecodeEvent.TelemetryUpdate(cleared, invalidated, freshSpeed))
     }
 
     private fun onSettingsAndOdometer(
@@ -250,6 +255,7 @@ class BegodeWheelCodec(
             ),
             standingWithdrawals(noteProfile(s), s),
             events,
+            freshSpeed = false,
         )
 
         // Fault-set change alert.
