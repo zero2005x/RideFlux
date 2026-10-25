@@ -228,6 +228,10 @@ internal fun BridgeFrame.toHudTelemetryFrame(): HudTelemetryFrame {
         phoneBatteryPercent = phoneBatteryPercent,
         tripDurationSeconds = tripDurationSeconds,
         hudHiddenByPhone = hudHidden,
+        vehicleType = vehicleType,
+        aux1 = aux1,
+        aux2 = aux2,
+        aux3 = aux3,
         bridgeLinkState = if (state == ConnectionState.Ready) {
             BridgeLinkState.WHEEL_LIVE
         } else {

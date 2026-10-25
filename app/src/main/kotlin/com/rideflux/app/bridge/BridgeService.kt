@@ -29,6 +29,7 @@ import com.rideflux.data.bridge.BridgeFrame
 import com.rideflux.data.bridge.BridgePairingToken
 import com.rideflux.data.bridge.DiagnosticLogs
 import com.rideflux.data.bridge.SignalLevel
+import com.rideflux.data.bridge.VehicleType
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
 import com.rideflux.domain.connection.ScooterConnection
@@ -64,6 +65,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /** Phone bridge lifecycle, independent from the selected wheel's BLE lifecycle. */
 enum class BridgeState { STOPPED, STANDBY, ATTACHING, RELAYING, DEGRADED }
@@ -80,6 +82,13 @@ private data class BridgeReading(
     val batteryPercent: Float?,
     val voltageV: Float?,
     val tripDistanceMetres: Int?,
+    val vehicleType: VehicleType,
+    /** 0.1-resolution category measurement: pack current A for a wheel, °C for a scooter. */
+    val aux1: Float? = null,
+    /** Category code: PWM percent for a wheel, gear for a scooter. */
+    val aux2: Int? = null,
+    /** Category code: MOS temperature + 64 for a wheel, throttle percent for a scooter. */
+    val aux3: Int? = null,
 )
 
 private class VehicleLink(
@@ -507,7 +516,23 @@ class BridgeService : Service() {
     private fun WheelConnection.snapshotFlow(): Flow<WheelSnapshot> = snapshotFlow(
         state,
         telemetry.map {
-            BridgeReading(it.timestampMillis, it.speedKmh, it.batteryPercent, it.voltageV, it.tripDistanceMetres)
+            BridgeReading(
+                timestampMillis = it.timestampMillis,
+                speedKmh = it.speedKmh,
+                batteryPercent = it.batteryPercent,
+                voltageV = it.voltageV,
+                tripDistanceMetres = it.tripDistanceMetres,
+                vehicleType = VehicleType.WHEEL,
+                aux1 = it.currentA,
+                aux2 = it.pwmPercent?.roundToInt()?.coerceIn(0, BridgeFrame.MAX_AUX_CODE),
+                // 0 °C is a real reading, so the wire slot is biased; an
+                // out-of-range temperature degrades to absent instead of
+                // saturating into a plausible-looking value.
+                aux3 = it.mosTemperatureC
+                    ?.plus(TEMPERATURE_BIAS)
+                    ?.roundToInt()
+                    ?.takeIf { code -> code in 0..BridgeFrame.MAX_AUX_CODE },
+            )
         },
     )
 
@@ -516,13 +541,17 @@ class BridgeService : Service() {
         telemetry.map { t ->
             t?.let {
                 BridgeReading(
-                    it.timestampMillis,
-                    it.speedKmh,
-                    it.batteryPercent,
+                    timestampMillis = it.timestampMillis,
+                    speedKmh = it.speedKmh,
+                    batteryPercent = it.batteryPercent,
                     voltageV = null,
                     tripDistanceMetres = it.tripDistanceMetres?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt(),
+                    vehicleType = VehicleType.SCOOTER,
+                    aux1 = it.frameTemperatureC,
+                    aux2 = it.gear?.coerceIn(0, BridgeFrame.MAX_AUX_CODE),
+                    aux3 = it.throttlePercent?.roundToInt()?.coerceIn(0, BridgeFrame.MAX_AUX_CODE),
                 )
-            } ?: BridgeReading(0L, null, null, null, null)
+            } ?: BridgeReading(0L, null, null, null, null, VehicleType.SCOOTER)
         },
     )
 
@@ -572,6 +601,10 @@ class BridgeService : Service() {
                     },
                     stale = stale,
                     ready = connState == ConnectionState.Ready && !stale,
+                    vehicleType = telemetry.vehicleType,
+                    aux1 = telemetry.aux1,
+                    aux2 = telemetry.aux2,
+                    aux3 = telemetry.aux3,
                 ),
             )
         }
@@ -1008,6 +1041,16 @@ internal fun standbyFrame(
  * there is nothing to gain by spending another minute proving it twice.
  */
 private const val CXR_OPEN_FAILURE_LIMIT = 1
+
+/**
+ * Offset added before a wheel's MOS temperature is written to the one-byte
+ * aux slot.
+ *
+ * The wire slot reserves `0xFF` for "absent", and 0 °C is a legitimate
+ * reading on a cold morning, so the producer biases the value instead of
+ * letting zero collide with the sentinel. The HUD subtracts it back.
+ */
+private const val TEMPERATURE_BIAS = 64f
 
 internal fun shouldDegradeFromCxr(consecutiveFailures: Int): Boolean =
     consecutiveFailures >= CXR_OPEN_FAILURE_LIMIT

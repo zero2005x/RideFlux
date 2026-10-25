@@ -5,6 +5,7 @@
   Modern Standard Arabic (العربية) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">الترس %1$d</string>
     <string name="hud_language">اللغة</string>
     <string name="hud_follow_system">اتباع لغة النظام</string>
     <string name="hud_waiting_phone_title">بانتظار\nالهاتف</string>

@@ -5,6 +5,7 @@
   Ukrainian (Українська) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">Передача %1$d</string>
     <string name="hud_language">Мова</string>
     <string name="hud_follow_system">Використовувати мову системи</string>
     <string name="hud_waiting_phone_title">ЧЕКАЄМО\nТЕЛЕФОН</string>

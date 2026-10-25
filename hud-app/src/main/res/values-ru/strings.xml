@@ -5,6 +5,7 @@
   Russian (Русский) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">Передача %1$d</string>
     <string name="hud_language">Язык</string>
     <string name="hud_follow_system">Использовать язык системы</string>
     <string name="hud_waiting_phone_title">ЖДЁМ\nТЕЛЕФОН</string>

@@ -5,6 +5,7 @@
   French (Français) translations for :hud-app.
 -->
 <resources>
+    <string name="hud_gear_value">Rapport %1$d</string>
     <string name="hud_language">Langue</string>
     <string name="hud_follow_system">Suivre la langue du système</string>
     <string name="hud_waiting_phone_title">ATTENTE\nTÉLÉPHONE</string>
