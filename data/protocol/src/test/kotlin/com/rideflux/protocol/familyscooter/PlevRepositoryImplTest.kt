@@ -5,10 +5,12 @@ import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.ScooterConnection
 import com.rideflux.domain.connection.ScooterHandshakeState
 import com.rideflux.domain.connection.WheelConnection
+import com.rideflux.domain.device.PlevCategory
 import com.rideflux.domain.device.ScooterDevice
 import com.rideflux.domain.device.WheelDevice
 import com.rideflux.domain.repository.DiscoveredWheel
 import com.rideflux.domain.repository.PlevConnectionHandle
+import com.rideflux.domain.repository.PlevRouteConflictException
 import com.rideflux.domain.repository.ScooterRepository
 import com.rideflux.domain.repository.WheelRepository
 import com.rideflux.domain.telemetry.ScooterTelemetry
@@ -63,6 +65,89 @@ class PlevRepositoryImplTest {
             kotlinx.coroutines.runBlocking { repository.connect("scooter") }
         }
         assertEquals("Scooter profile unavailable", failure.message)
+    }
+
+    @Test fun `a persisted scooter category routes without any process scan`() = runBlocking {
+        val scooter = FakeScooter()
+        val wheels = object : WheelRepository {
+            override fun scan() = flowOf(emptyList<DiscoveredWheel>())
+            override suspend fun connect(address: String, expectedFamily: WheelFamily?): WheelConnection =
+                error("saved scooter must not call wheel connect")
+            override fun activeConnections(): Flow<Map<String, WheelConnection>> = flowOf(emptyMap())
+        }
+        val repository = PlevRepositoryImpl(
+            wheels,
+            connectScooter = { if (it == scooter.device.address) scooter else null },
+        )
+
+        val handle = repository.connect(scooter.device.address, PlevCategory.SCOOTER)
+        assertTrue(handle is PlevConnectionHandle.Scooter)
+        handle.close()
+    }
+
+    @Test fun `a saved scooter that discovery saw as a wheel fails closed`() = runBlocking {
+        val wheels = object : WheelRepository {
+            override fun scan() = flowOf(listOf(DiscoveredWheel("address", "EUC", -40, WheelFamily.G)))
+            override suspend fun connect(address: String, expectedFamily: WheelFamily?): WheelConnection =
+                error("conflict must not open wheel")
+            override fun activeConnections(): Flow<Map<String, WheelConnection>> = flowOf(emptyMap())
+        }
+        val repository = PlevRepositoryImpl(wheels)
+        repository.scan().first()
+
+        val failure = assertThrows(PlevRouteConflictException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                repository.connect("address", PlevCategory.SCOOTER)
+            }
+        }
+        assertEquals(PlevCategory.SCOOTER, failure.requestedCategory)
+    }
+
+    @Test fun `a saved wheel that discovery saw as a scooter fails closed`() = runBlocking {
+        val scooter = FakeScooter()
+        val wheels = object : WheelRepository {
+            override fun scan() = flowOf(emptyList<DiscoveredWheel>())
+            override suspend fun connect(address: String, expectedFamily: WheelFamily?): WheelConnection =
+                error("conflict must not open wheel")
+            override fun activeConnections(): Flow<Map<String, WheelConnection>> = flowOf(emptyMap())
+        }
+        val repository = PlevRepositoryImpl(
+            wheels,
+            scooters = flowOf(listOf(scooter.device)),
+            connectScooter = { scooter },
+        )
+        repository.scan().first()
+
+        val failure = assertThrows(PlevRouteConflictException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                repository.connect(scooter.device.address, PlevCategory.WHEEL)
+            }
+        }
+        assertEquals(PlevCategory.WHEEL, failure.requestedCategory)
+    }
+
+    @Test fun `a persisted scooter transport hint is forwarded only to the scooter provider`() = runBlocking {
+        val scooter = FakeScooter()
+        val hints = mutableListOf<String?>()
+        val wheels = object : WheelRepository {
+            override fun scan() = flowOf(emptyList<DiscoveredWheel>())
+            override suspend fun connect(address: String, expectedFamily: WheelFamily?): WheelConnection =
+                error("hinted scooter must not open wheel transport")
+            override fun activeConnections(): Flow<Map<String, WheelConnection>> = flowOf(emptyMap())
+        }
+        val repository = PlevRepositoryImpl(
+            wheels,
+            scooters = flowOf(listOf(scooter.device)),
+            connectScooterWithModel = { _, hint ->
+                hints += hint
+                scooter
+            },
+        )
+        repository.scan().first()
+        val handle = repository.connect(scooter.device.address, PlevCategory.SCOOTER, modelHint = "ES2")
+        assertTrue(handle is PlevConnectionHandle.Scooter)
+        assertEquals(listOf<String?>("ES2"), hints)
+        handle.close()
     }
 
     private class FakeScooter : ScooterConnection {

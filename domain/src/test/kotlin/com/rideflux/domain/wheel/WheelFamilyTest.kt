@@ -24,7 +24,7 @@ class WheelFamilyTest {
      * `PROTOCOL_SPEC.md` lists them. Changing this list
      * is a persistence-breaking change, not a refactor.
      */
-    private val specFamilyKeys = listOf("G", "GX", "K", "V", "N1", "N2", "I1", "I2")
+    private val specFamilyKeys = listOf("G", "GX", "K", "V", "N1", "N2", "I1", "I2", "VESC")
 
     @Test
     fun `enum names and order match the spec family-key table`() {

@@ -234,4 +234,25 @@ class ScooterRepositoryEdgeTest {
             kotlinx.coroutines.runBlocking { repository.connect("MI") }
         }
     }
+    @Test fun `a persisted transport hint selects the ES2 platform profile on fresh connect`() = runTest {
+        val seen = mutableListOf<String>()
+        val repository = ScooterRepositoryImpl(backgroundScope) { address, model, scope ->
+            seen += model
+            val gate = MotionInterlock()
+            ScooterConnectionImpl(
+                ThrowingTransport(), ScooterDevice(address, model), scope,
+                ScooterHandshakeStateMachine(gate) { testScheduler.currentTime }, gate,
+                clock = { testScheduler.currentTime },
+            )
+        }
+        val es2 = repository.connectWithModel("AA:BB:CC:DD:EE:31", "ES2")
+        runCurrent()
+        assertEquals(listOf("ES2"), seen)
+        es2.close()
+        val generic = repository.connectWithModel("AA:BB:CC:DD:EE:32", null)
+        runCurrent()
+        assertEquals(listOf("ES2", "Ninebot/Xiaomi Scooter"), seen)
+        generic.close()
+    }
+
 }

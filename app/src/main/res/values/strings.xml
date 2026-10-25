@@ -77,6 +77,7 @@
     <string name="scanner_brand_inmotion_i1" translatable="false">Inmotion (Legacy: V5 / V8 / V10 - I1)</string>
     <string name="scanner_brand_ninebot_n1" translatable="false">Ninebot (Legacy: One / E+ / S2 - N1)</string>
     <string name="scanner_brand_ninebot_n2" translatable="false">Ninebot (Modern: Z10 / ZT - N2)</string>
+    <string name="scanner_brand_vesc" translatable="false">VESC (read-only telemetry)</string>
     <string name="scanner_change_brand" translatable="false">Change brand</string>
 
     <!-- ===== HUD bridge card ========================================= -->
@@ -443,4 +444,26 @@
     <string name="settings_diag_subtitle">Recent bridge and glasses events, kept on this phone only. It contains no keys or tokens. Save it to share when something goes wrong.</string>
     <string name="settings_diag_saved">Diagnostic log saved.</string>
     <string name="settings_diag_error">Could not save the diagnostic log: %1$s</string>
+    <string name="support_limited_family">Model not recognised. Controls are disabled; only core telemetry is shown.</string>
+    <string name="support_limited_firmware">Firmware not verified. Controls stay disabled until the version is known.</string>
+    <string name="support_limited_layout">Recognised model with a partial telemetry layout. Unsupported fields stay blank.</string>
+    <string name="support_limited_generic">Limited support: %1$s</string>
+    <string name="support_limited_control">Controls are disabled until this model\'s control contract is verified.</string>
+    <string name="support_limited_unidentified">Vehicle not identified yet. Controls stay disabled until the model is known.</string>
+    <string name="support_limited_reason_unknown">reason not recorded</string>
+    <string name="scanner_family_auto">Auto</string>
+    <string name="command_failed_unsupported">Not supported by this device.</string>
+    <string name="command_failed_invalid">Command rejected: %1$s</string>
+    <string name="command_failed_transport">Command did not reach the wheel.</string>
+    <string name="command_failed_not_connected">Not connected.</string>
+    <string name="scanner_saved_vehicles">Saved vehicles</string>
+    <string name="scanner_saved_vehicles_empty">No saved vehicles yet. Select a device to save it.</string>
+    <string name="scanner_vehicle_edit_title">Edit vehicle</string>
+    <string name="scanner_vehicle_name_label">Name</string>
+    <string name="scanner_vehicle_alerts_override">Use per-vehicle alerts</string>
+    <string name="scanner_vehicle_pitch" translatable="false">Pitch °</string>
+    <string name="scanner_vehicle_roll" translatable="false">Roll °</string>
+    <string name="scanner_vehicle_calibration_note" translatable="false">Display offset only; this does not write wheel calibration.</string>
+    <string name="scanner_vehicle_delete">Remove vehicle</string>
+    <string name="action_save">Save</string>
 </resources>

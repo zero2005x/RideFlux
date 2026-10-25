@@ -237,6 +237,33 @@ class RetainedSpeedInterlockTest {
         rig.assertBlocked(WheelCommand.SetPedalSensitivity(50), 300)
     }
 
+    // ---- InMotion I2, V11Y --------------------------------------------------
+
+    private val i2CarTypeV11Y = i2(
+        InmotionI2CommandBuilder.CMD_MAIN_INFO,
+        byteArrayOf(InmotionI2CommandBuilder.MAIN_INFO_CAR_TYPE.toByte()) + "V11Y".toByteArray(Charsets.US_ASCII),
+    )
+
+    /** A 74-byte V11Y record whose every word, including both candidate speed offsets, is zero. */
+    private val v11yRealtimeZero = i2(InmotionI2CommandBuilder.CMD_REALTIME, ByteArray(74))
+
+    /**
+     * The V11Y speed offset on main is the charge-current word, so its value
+     * must not unlock a critical command. Flip this case to an allowed control
+     * together with the V11Y offset correction.
+     */
+    @Test fun `v11y realtime records do not confirm stationary while the speed offset is unverified`() = runTest {
+        assertPublishes(inmotion(), i2CarTypeV11Y, i2Version13, v11yRealtimeZero)
+        val rig = Rig(inmotion(), this)
+        rig.start()
+        rig.feed(i2CarTypeV11Y, 0)
+        rig.feed(i2Version13, 0)
+        rig.feed(v11yRealtimeZero, 0)
+        rig.feed(v11yRealtimeZero, 100)
+        rig.feed(v11yRealtimeZero, 200)
+        rig.assertBlocked(WheelCommand.SetPedalSensitivity(50), 300)
+    }
+
     private fun hex(s: String): ByteArray =
         s.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 }

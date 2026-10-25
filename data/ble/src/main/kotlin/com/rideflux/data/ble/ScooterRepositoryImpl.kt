@@ -147,14 +147,17 @@ class ScooterRepositoryImpl private constructor(
         }
     }
 
-    override suspend fun connect(address: String): ScooterConnection {
+    override suspend fun connect(address: String): ScooterConnection =
+        connectWithModel(address, null)
+
+    override suspend fun connectWithModel(address: String, modelHint: String?): ScooterConnection {
         while (true) {
             var pendingTeardown: Entry? = null
             var awaitTeardown: CompletableDeferred<Unit>? = null
             val handle = connectMutex.withLock {
                 val existing = entries[address]
                 when {
-                    existing == null -> newEntryLocked(address)
+                    existing == null -> newEntryLocked(address, modelHint)
                     existing.closing != null -> {
                         awaitTeardown = existing.closing
                         null
@@ -178,10 +181,16 @@ class ScooterRepositoryImpl private constructor(
         }
     }
 
-    private fun newEntryLocked(address: String): ScooterConnection {
+    private fun newEntryLocked(address: String, modelHint: String?): ScooterConnection {
         val entryJob = SupervisorJob(rootScope.coroutineContext[Job])
         val entryScope = rootScope + entryJob
-        val model = names[address] ?: "Ninebot/Xiaomi Scooter"
+        // A persisted hint may select a platform profile, but only a name the
+        // classifier can actually route. Unknown text falls back to generic.
+        val usableHint = modelHint?.trim()?.takeIf {
+            it.isNotEmpty() &&
+                (ScooterClassifier.isNinebotRetailCandidate(it) || ScooterClassifier.isXiaomiMiCandidate(it))
+        }
+        val model = usableHint ?: names[address] ?: "Ninebot/Xiaomi Scooter"
         val connection = try {
             connectionFactory?.invoke(address, model, entryScope)
                 ?: createPlatformConnection(address, model, entryScope)

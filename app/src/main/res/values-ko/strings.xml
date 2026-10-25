@@ -391,4 +391,23 @@
     <string name="settings_diag_subtitle">최근 브리지 및 글래스 이벤트를 이 휴대전화에만 보관합니다. 키나 토큰은 포함되지 않습니다. 문제가 생기면 저장해서 공유하세요.</string>
     <string name="settings_diag_saved">진단 로그를 저장했습니다.</string>
     <string name="settings_diag_error">진단 로그를 저장할 수 없습니다: %1$s</string>
+    <string name="scanner_saved_vehicles">저장된 차량</string>
+    <string name="scanner_saved_vehicles_empty">저장된 차량이 없습니다. 기기를 선택하여 저장하세요.</string>
+    <string name="scanner_vehicle_edit_title">차량 편집</string>
+    <string name="scanner_vehicle_name_label">이름</string>
+    <string name="scanner_vehicle_alerts_override">이 차량 알림 사용</string>
+    <string name="scanner_vehicle_delete">차량 삭제</string>
+    <string name="action_save">저장</string>
+    <string name="support_limited_family">모델을 인식하지 못했습니다. 제어가 비활성화되며 기본 텔레메트리만 표시됩니다.</string>
+    <string name="support_limited_firmware">펌웨어가 확인되지 않아 제어가 비활성화됩니다.</string>
+    <string name="support_limited_layout">모델은 인식되었지만 텔레메트리가 일부만 제공됩니다.</string>
+    <string name="support_limited_generic">제한적 지원: %1$s</string>
+    <string name="support_limited_control">이 모델의 제어 계약이 확인될 때까지 제어가 비활성화됩니다.</string>
+    <string name="support_limited_unidentified">차량이 아직 식별되지 않았습니다. 모델을 알 때까지 제어가 비활성화됩니다.</string>
+    <string name="support_limited_reason_unknown">이유가 기록되지 않음</string>
+    <string name="scanner_family_auto">자동</string>
+    <string name="command_failed_unsupported">이 기기에서는 지원되지 않습니다.</string>
+    <string name="command_failed_invalid">명령이 거부되었습니다: %1$s</string>
+    <string name="command_failed_transport">명령이 휠에 도달하지 못했습니다.</string>
+    <string name="command_failed_not_connected">연결되지 않음</string>
 </resources>
