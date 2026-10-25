@@ -191,13 +191,16 @@ class InmotionI2WheelCodecTest {
         codec.decode(state, buildFrame(cmd = InmotionI2CommandBuilder.CMD_MAIN_INFO, data = verData))
 
         val rtData = ByteArray(74)
-        // V11Y vendor layout: voltage @0 (/50), current @2 (/100),
-        // charge current @4, speed @6 (/100), battery ratio @0x1c (/10000).
-        rtData[0] = 0x68; rtData[1] = 0x10 // 4200 -> 84.0 V
+        // V11Y vendor layout: voltage @0 (/100), current @2 (/100),
+        // charge current @6, speed @8 (/100), mileage @0x1c,
+        // battery ratio @0x22 (/10000).
+        rtData[0] = 0xD0.toByte(); rtData[1] = 0x20 // 8400 -> 84.0 V
         rtData[2] = 0xF4.toByte(); rtData[3] = 0x01 // 500 -> 5.00 A
         rtData[4] = 0xAC.toByte(); rtData[5] = 0x26 // 9900 -> would be 99.0 if read as V11 speed
-        rtData[6] = 0xD0.toByte(); rtData[7] = 0x07 // 2000 -> 20.00 km/h
-        rtData[0x1c] = 0x88.toByte(); rtData[0x1d] = 0x13 // 5000 -> 50 %
+        rtData[6] = 0xAC.toByte(); rtData[7] = 0xFE.toByte() // -340 charge current
+        rtData[8] = 0xD0.toByte(); rtData[9] = 0x07 // 2000 -> 20.00 km/h
+        rtData[0x1c] = 0xD2.toByte(); rtData[0x1d] = 0x04 // 1234 mileage
+        rtData[0x22] = 0x88.toByte(); rtData[0x23] = 0x13 // 5000 -> 50 %
 
         val events = codec.decode(state, buildFrame(cmd = InmotionI2CommandBuilder.CMD_REALTIME, data = rtData))
         val telem = events.filterIsInstance<DecodeEvent.TelemetryUpdate>().first().snapshot

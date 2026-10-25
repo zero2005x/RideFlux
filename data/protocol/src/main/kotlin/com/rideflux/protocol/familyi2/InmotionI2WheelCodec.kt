@@ -292,10 +292,10 @@ class InmotionI2WheelCodec(
     ): DecodeEvent.TelemetryUpdate? {
         if (frame.data.size < InmotionI2RealtimeCore.MIN_DATA_SIZE) return null
         // CAR_TYPE=V11Y can arrive before the firmware reply. Until the
-        // firmware is verified we cannot distinguish V11Y's /50 voltage from
-        // the core /100 scale, so publish no realtime snapshot rather than a
-        // known-wrong voltage. This is a layout-semantic withhold, not a
-        // "safe" reuse of another generation's scale.
+        // firmware is verified the V11Y-specific 74-byte layout is not
+        // selected, so publish no realtime snapshot rather than a snapshot
+        // built from an unverified layout. This is a layout-selection
+        // withhold, not a "safe" reuse of another generation's scale.
         val model = s.carType?.let(InmotionModelRegistry::find)
         if (model?.key == "v11y" && !firmwareVerified(s)) return null
         val core = InmotionI2RealtimeCore.parse(frame.data)

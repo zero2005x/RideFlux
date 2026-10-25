@@ -31,8 +31,10 @@ class InmotionModelRegistryTest {
         data[1] = 0x27 // 100.00 V core reading
         data[4] = 0xc4.toByte()
         data[5] = 0x09 // V11's offset would mean 25.00 km/h
-        data[6] = 0xe8.toByte()
-        data[7] = 0x03 // V11Y speed offset: 1000 / 100 = 10.00 km/h
+        data[6] = 0xac.toByte()
+        data[7] = 0xfe.toByte() // charge current -340; must not be speed
+        data[8] = 0xe8.toByte()
+        data[9] = 0x03 // V11Y speed offset 0x08: 1000 / 100 = 10.00 km/h
         val frame = InmotionI2CommandBuilder.build(0x14, 0x04, data)
 
         val v11y = codec.newState() as InmotionI2WheelCodec.InmotionI2State
@@ -40,7 +42,7 @@ class InmotionModelRegistryTest {
         v11y.mainBoardMajor = 1
         v11y.mainBoardMinor = 3
         val yTelemetry = codec.decodeSafely(v11y, frame).filterIsInstance<DecodeEvent.TelemetryUpdate>().single().snapshot
-        // V11Y has its own established offset 0x06; the V11 offset 0x04
+        // V11Y has its own established offset 0x08; the V11 offset 0x04
         // (0x09c4 = 25.00 km/h) must not be used.
         assertEquals(10f, yTelemetry.speedKmh!!, 0.01f)
 
