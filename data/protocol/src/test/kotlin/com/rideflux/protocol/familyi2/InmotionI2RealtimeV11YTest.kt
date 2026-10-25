@@ -142,6 +142,24 @@ class InmotionI2RealtimeV11YTest {
     }
 
     @Test
+    fun `only a full record is a fresh speed sample for the interlock`() {
+        val codec = InmotionI2WheelCodec("AA:BB:CC:DD:EE:FF")
+        val state = codec.newState() as InmotionI2WheelCodec.InmotionI2State
+        identify(codec, state, "V11Y", major = 1, minor = 3)
+
+        fun update(body: ByteArray) = codec.decode(state, buildFrame(InmotionI2CommandBuilder.CMD_REALTIME, body))
+            .filterIsInstance<DecodeEvent.TelemetryUpdate>().single()
+
+        val full = update(syntheticBody())
+        assertEquals(25.3f, full.snapshot.speedKmh!!, 0.0001f)
+        assertTrue("a decoded 74-byte record carries a fresh speed", full.freshSpeed)
+
+        // A short record after it only re-sends the earlier speed.
+        val short = update(syntheticBody().copyOf(73))
+        assertTrue("a 73-byte record decodes no speed", !short.freshSpeed)
+    }
+
+    @Test
     fun `battery ratio is null above 10000 and maps the exact boundaries`() {
         assertEquals(0.0f, InmotionI2RealtimeV11Y.parse(syntheticBody(batteryRaw = 0)).batteryPercent!!, 0.0001f)
         assertEquals(100.0f, InmotionI2RealtimeV11Y.parse(syntheticBody(batteryRaw = 10000)).batteryPercent!!, 0.0001f)

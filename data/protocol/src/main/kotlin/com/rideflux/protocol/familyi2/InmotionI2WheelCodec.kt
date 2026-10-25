@@ -329,9 +329,9 @@ class InmotionI2WheelCodec(
             // whose scale is established are published; trip and temperatures
             // stay null rather than being copied from V11 or guessed.
             isV11YLayout(s) && frame.data.size >= InmotionI2RealtimeV11Y.MIN_DATA_SIZE -> {
-                // freshSpeed stays false: OFFSET_SPEED (0x06) is the charge-current
-                // word, not speed, so this value must not feed the motion interlock.
-                // Set it to true together with the V11Y offset correction (speed 0x08).
+                // The 74-byte guard passed, so speed was decoded from this record
+                // (vendor `speed` at 0x08; 0x06 is the unexposed charge current).
+                freshSpeed = true
                 val t = InmotionI2RealtimeV11Y.parse(frame.data)
                 merged = merged.copy(
                     voltageV = t.voltageV.toFloat(),

@@ -244,23 +244,72 @@ class RetainedSpeedInterlockTest {
         byteArrayOf(InmotionI2CommandBuilder.MAIN_INFO_CAR_TYPE.toByte()) + "V11Y".toByteArray(Charsets.US_ASCII),
     )
 
-    /** A 74-byte V11Y record whose every word, including both candidate speed offsets, is zero. */
-    private val v11yRealtimeZero = i2(InmotionI2CommandBuilder.CMD_REALTIME, ByteArray(74))
+    /**
+     * A V11Y realtime record at 84.00 V with the given s16LE words at the
+     * vendor speed offset (0x08) and the charge-current offset (0x06). Bytes
+     * are placed by hand, not through the parser's constants.
+     */
+    private fun v11yRealtime(speedHundredths: Int, chargeCurrentHundredths: Int, size: Int = 74) = i2(
+        InmotionI2CommandBuilder.CMD_REALTIME,
+        ByteArray(size).also {
+            it[0x00] = 0xD0.toByte(); it[0x01] = 0x20
+            it[0x06] = (chargeCurrentHundredths and 0xFF).toByte()
+            it[0x07] = ((chargeCurrentHundredths ushr 8) and 0xFF).toByte()
+            it[0x08] = (speedHundredths and 0xFF).toByte()
+            it[0x09] = ((speedHundredths ushr 8) and 0xFF).toByte()
+        },
+    )
+
+    private suspend fun Rig.identifyV11Y() {
+        feed(i2CarTypeV11Y, 0)
+        feed(i2Version13, 0)
+    }
 
     /**
-     * The V11Y speed offset on main is the charge-current word, so its value
-     * must not unlock a critical command. Flip this case to an allowed control
-     * together with the V11Y offset correction.
+     * V11Y is read-only (no closed write contract), so no command can succeed.
+     * The interlock runs before the capability gate: [CommandOutcome.Unsupported]
+     * therefore means the interlock accepted three fresh stationary samples,
+     * and [CommandOutcome.InvalidArgument] means it refused.
      */
-    @Test fun `v11y realtime records do not confirm stationary while the speed offset is unverified`() = runTest {
-        assertPublishes(inmotion(), i2CarTypeV11Y, i2Version13, v11yRealtimeZero)
+    @Test fun `v11y control - three stationary records satisfy the interlock while charging`() = runTest {
+        // A non-zero charge current at 0x06 must not be read as speed.
+        val parked = v11yRealtime(speedHundredths = 0, chargeCurrentHundredths = 1_500)
+        assertPublishes(inmotion(), i2CarTypeV11Y, i2Version13, parked)
         val rig = Rig(inmotion(), this)
         rig.start()
-        rig.feed(i2CarTypeV11Y, 0)
-        rig.feed(i2Version13, 0)
-        rig.feed(v11yRealtimeZero, 0)
-        rig.feed(v11yRealtimeZero, 100)
-        rig.feed(v11yRealtimeZero, 200)
+        rig.identifyV11Y()
+        rig.feed(parked, 0)
+        rig.feed(parked, 100)
+        rig.feed(parked, 200)
+        now = 300
+        val before = rig.transport.writes.size
+        val outcome = rig.connection.dispatch(WheelCommand.SetPedalSensitivity(50))
+        assertEquals(CommandOutcome.Unsupported(WheelCommand.SetPedalSensitivity(50)), outcome)
+        assertEquals("a read-only model writes nothing", before, rig.transport.writes.size)
+    }
+
+    @Test fun `v11y speed at the vendor offset keeps critical commands blocked`() = runTest {
+        // 25.30 km/h at 0x08; the charge-current word at 0x06 reads zero.
+        val moving = v11yRealtime(speedHundredths = 2_530, chargeCurrentHundredths = 0)
+        val rig = Rig(inmotion(), this)
+        rig.start()
+        rig.identifyV11Y()
+        rig.feed(moving, 0)
+        rig.feed(moving, 100)
+        rig.feed(moving, 200)
+        rig.assertBlocked(WheelCommand.SetPedalSensitivity(50), 300)
+    }
+
+    @Test fun `v11y short records do not count as stationary samples`() = runTest {
+        val parked = v11yRealtime(speedHundredths = 0, chargeCurrentHundredths = 0)
+        val short = v11yRealtime(speedHundredths = 0, chargeCurrentHundredths = 0, size = 73)
+        assertPublishes(inmotion(), i2CarTypeV11Y, i2Version13, parked, short)
+        val rig = Rig(inmotion(), this)
+        rig.start()
+        rig.identifyV11Y()
+        rig.feed(parked, 0)
+        rig.feed(short, 100)
+        rig.feed(short, 200)
         rig.assertBlocked(WheelCommand.SetPedalSensitivity(50), 300)
     }
 
