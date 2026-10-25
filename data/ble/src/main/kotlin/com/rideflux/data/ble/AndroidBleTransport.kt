@@ -65,13 +65,28 @@ import kotlin.coroutines.resumeWithException
 class AndroidBleTransport internal constructor(
     private val context: Context,
     private val device: BluetoothDevice,
+    /** Topology used when no resolver is installed (legacy/tests). */
     private val topology: GattTopology,
-) : BleTransport {
+    /**
+     * Resolves the session from the discovered table. Production passes a
+     * resolver; `null` keeps the pre-discovery behaviour for callers that
+     * construct the transport directly.
+     */
+    private val resolveSession: ((GattSnapshot) -> WheelResolution)? = null,
+) : NegotiatingTransport {
 
     // ---- Public flow ---------------------------------------------------
 
     private val receivedPackets = IncomingPackets()
     override val incoming: Flow<ByteArray> = receivedPackets.flow
+
+    @Volatile
+    override var gattSnapshot: GattSnapshot? = null
+        private set
+
+    @Volatile
+    override var resolution: WheelResolution? = null
+        private set
 
     // ---- GATT state (single-writer via opMutex) ------------------------
 
@@ -255,10 +270,40 @@ class AndroidBleTransport internal constructor(
                 failConnect(IOException("onServicesDiscovered status=$status"))
                 return
             }
-            val resolved = resolveCharacteristics(g, topology)
+            val snapshot = GattSnapshot(
+                deviceName = try { device.name } catch (_: SecurityException) { null },
+                services = g.services.orEmpty().associate { svc ->
+                    svc.uuid to (svc.characteristics?.map { it.uuid } ?: emptyList())
+                },
+            )
+            gattSnapshot = snapshot
+            val sessionResolution = resolveSession?.invoke(snapshot)
+            val effectiveTopology = if (sessionResolution != null) {
+                resolution = sessionResolution
+                if (!sessionResolution.usable) {
+                    Log.e(
+                        TAG,
+                        "family unresolved: ${sessionResolution.confidence} " +
+                            "candidates=${sessionResolution.candidates} ${sessionResolution.reason}",
+                    )
+                    failConnect(FamilyResolutionException(sessionResolution))
+                    return
+                }
+                sessionResolution.topology ?: topology
+            } else {
+                topology
+            }
+            // Once a resolution exists, bind exactly its topology: falling back
+            // to another topology would pair family X's codec with family Y's
+            // characteristics.
+            val resolved = if (sessionResolution?.usable == true) {
+                resolveExactly(g, effectiveTopology)
+            } else {
+                resolveCharacteristics(g, effectiveTopology)
+            }
             if (resolved == null) {
-                Log.e(TAG, "resolveCharacteristics returned null for topology=$topology -- wheel does not expose the expected service/characteristic UUIDs")
-                failConnect(IOException("required GATT characteristics missing for topology=$topology"))
+                Log.e(TAG, "resolveCharacteristics returned null for topology=$effectiveTopology -- wheel does not expose the expected service/characteristic UUIDs")
+                failConnect(IOException("required GATT characteristics missing for topology=$effectiveTopology"))
                 return
             }
             Log.i(TAG, "resolved notify=${resolved.notify.uuid} write=${resolved.write.uuid}")

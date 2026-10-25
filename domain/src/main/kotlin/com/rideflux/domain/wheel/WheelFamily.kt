@@ -45,4 +45,15 @@ enum class WheelFamily {
     I1,
     /** Inmotion current (V9 / V11 / V12 / V13 / V14) — §2.7 XOR-check framing. */
     I2,
+
+    /**
+     * VESC-based controllers — read-only telemetry.
+     *
+     * Appended after the eight documented families on purpose: the enum
+     * *name* is the persistence key, so new entries go at the end and
+     * existing persisted keys keep parsing. VESC has no `PROTOCOL_SPEC.md`
+     * section yet; its read contract is recorded in
+     * `docs/PROTOCOLS.md` (COMM_GET_VALUES_SETUP 0x2F, Nordic UART).
+     */
+    VESC,
 }

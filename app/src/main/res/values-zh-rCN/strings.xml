@@ -391,4 +391,23 @@
     <string name="settings_diag_subtitle">最近的桥接与眼镜事件，仅保存在这部手机上，不含任何密钥或令牌。出现问题时可保存下来供参考。</string>
     <string name="settings_diag_saved">诊断日志已保存。</string>
     <string name="settings_diag_error">无法保存诊断日志：%1$s</string>
+    <string name="scanner_saved_vehicles">已保存车辆</string>
+    <string name="scanner_saved_vehicles_empty">尚无已保存车辆。选择设备即可保存。</string>
+    <string name="scanner_vehicle_edit_title">编辑车辆</string>
+    <string name="scanner_vehicle_name_label">名称</string>
+    <string name="scanner_vehicle_alerts_override">使用本车告警</string>
+    <string name="scanner_vehicle_delete">移除车辆</string>
+    <string name="action_save">保存</string>
+    <string name="support_limited_family">未识别型号。控制已禁用，仅显示基础遥测。</string>
+    <string name="support_limited_firmware">固件未验证，控制保持禁用。</string>
+    <string name="support_limited_layout">已识别型号，但遥测仅部分可用。</string>
+    <string name="support_limited_generic">有限支持：%1$s</string>
+    <string name="support_limited_control">在验证该型号的控制契约之前，控制保持禁用。</string>
+    <string name="support_limited_unidentified">尚未识别车辆。在确认型号之前，控制保持禁用。</string>
+    <string name="support_limited_reason_unknown">原因未记录</string>
+    <string name="scanner_family_auto">自动</string>
+    <string name="command_failed_unsupported">此设备不支持该操作。</string>
+    <string name="command_failed_invalid">命令被拒绝：%1$s</string>
+    <string name="command_failed_transport">命令未到达车辆。</string>
+    <string name="command_failed_not_connected">未连接</string>
 </resources>

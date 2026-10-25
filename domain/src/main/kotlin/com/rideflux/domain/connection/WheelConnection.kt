@@ -11,6 +11,8 @@ import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.wheel.WheelCapabilities
 import com.rideflux.domain.wheel.WheelIdentity
+import com.rideflux.domain.wheel.WheelSupport
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -69,6 +71,33 @@ interface WheelConnection {
 
     /** Capability matrix; `null` until handshake completes. */
     val capabilities: StateFlow<WheelCapabilities?>
+
+    /**
+     * Evidence statement for this session's identity / telemetry / control
+     * contract.
+     *
+     * `null` means the bound codec has not adopted the support contract yet;
+     * consumers must treat it as the legacy capabilities-only view. A non-null
+     * value that is [WheelSupport.isLimited] must be surfaced by the UI even
+     * when [state] is `Ready` — `Ready` means the handshake produced an
+     * identity, not that the model is fully supported.
+     *
+     * The default implementation keeps existing test doubles source-compatible;
+     * `WheelConnectionImpl` overrides it with a live flow.
+     */
+    val support: StateFlow<WheelSupport?>
+        get() = UNPUBLISHED_SUPPORT
+
+    /**
+     * Atomic identity publication for this connection session.
+     *
+     * `null` means this implementation predates the atomic snapshot contract;
+     * consumers may fall back to the legacy separate flows, but must not treat
+     * them as one publication. `WheelConnectionImpl` overrides this with a
+     * single flow written once per Identified event.
+     */
+    val sessionSnapshot: StateFlow<WheelSessionSnapshot?>?
+        get() = null
 
     /** Connection lifecycle, see [ConnectionState]. */
     val state: StateFlow<ConnectionState>
@@ -218,4 +247,12 @@ interface WheelConnection {
      * [ConnectionState.Disconnected]. Idempotent.
      */
     suspend fun close()
+
+    companion object {
+        /**
+         * Shared "no support statement" flow for implementations that predate
+         * the contract. Read-only on purpose: no consumer may write it.
+         */
+        private val UNPUBLISHED_SUPPORT = MutableStateFlow<WheelSupport?>(null)
+    }
 }

@@ -12,25 +12,52 @@ import com.rideflux.domain.telemetry.WheelAlert
 import com.rideflux.domain.telemetry.WheelFault
 import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.wheel.WheelCapabilities
+import com.rideflux.domain.wheel.WheelControlContract
 import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelIdentity
+import com.rideflux.domain.wheel.WheelIdentityEvidence
+import com.rideflux.domain.wheel.WheelSupport
+import com.rideflux.domain.wheel.WheelTelemetryCoverage
 import com.rideflux.protocol.bytes.ByteReader
 
 /**
- * [WheelCodec] adapter for Family I2 (Inmotion V11 / V12 / V13 /
+ * [WheelCodec] adapter for Family I2 (Inmotion V11Y / V12 / V13 /
  * V14 modern application protocol).
  *
  * Handshake follows §9.5.2: request car-type, serial, version. After
  * `Ready`, the transport layer should drive [keepAliveFrames] at the
  * §9.5.2 25 ms ping cadence.
  *
- * Variant-specific real-time telemetry offsets (§8.8) are not yet
- * resolved here — only the universal "core electrical" fields
- * (voltage @0, current @2) are decoded from the real-time frame. The
- * 7-byte error bitmap offset is variant-dependent; this adapter
- * looks for an error bitmap starting at DATA offset 48 when DATA is
- * long enough (the V11 ≥ 1.4 layout). Callers that need other
- * variants can subclass or replace.
+ * ### Identity and support contract
+ *
+ * A CAR_TYPE response identifies the model, but not the firmware. `Ready` is
+ * therefore split from "fully supported":
+ *
+ *  * blank CAR_TYPE is ignored and reported as [DecodeEvent.Malformed]
+ *    (the raw decoder must stay fail-soft);
+ *  * an unrecognised non-blank model publishes [WheelSupport.FAMILY_ONLY]
+ *    with an all-false capability matrix, so the UI can show a read-only
+ *    preview instead of offering controls;
+ *  * a recognised model without a decoded firmware version publishes
+ *    [WheelIdentityEvidence.MODEL_ONLY] and keeps controls disabled;
+ *  * only a recognised model **and** a decoded firmware version publishes the
+ *    family's closed command set.
+ *
+ * The encoder repeats the same gate with the per-connection state, so a
+ * command cannot reach the wire even if a caller bypasses the UI.
+ *
+ * ### Telemetry
+ *
+ * Offsets 0 (bus voltage) and 2 (signed bus current) are the only fields whose
+ * meaning is constant across every I2 variant. Everything else is applied only
+ * for an exact model/firmware layout:
+ *
+ *  * V11 with verified firmware < 1.4: the established early layout;
+ *  * V11Y: the vendor-static 74-byte Lorin layout (voltage, current, speed,
+ *    battery); its trip/temperature fields are deliberately left `null`
+ *    because their scales are not established;
+ *  * V11 with firmware >= 1.4: core fields + the known fault bitmap;
+ *  * every other recognised model: core fields only.
  */
 class InmotionI2WheelCodec(
     private val deviceAddress: String = "",
@@ -94,7 +121,7 @@ class InmotionI2WheelCodec(
                     val frame = r.frame
                     val now = System.currentTimeMillis()
                     when (frame.cmd) {
-                        InmotionI2CommandBuilder.CMD_MAIN_INFO -> handleMainInfo(s, frame)
+                        InmotionI2CommandBuilder.CMD_MAIN_INFO -> handleMainInfo(s, frame, events)
                         InmotionI2CommandBuilder.CMD_REALTIME -> {
                             val snapshotEvent = handleRealtime(s, frame, now)
                             if (snapshotEvent != null) events.add(snapshotEvent)
@@ -127,8 +154,15 @@ class InmotionI2WheelCodec(
         return events
     }
 
-    override fun encode(state: WheelCodec.State, command: WheelCommand): List<ByteArray> =
-        when (command) {
+    override fun encode(state: WheelCodec.State, command: WheelCommand): List<ByteArray> {
+        val s = state as InmotionI2State
+        // The same evidence gate the connection applies after identification.
+        // Before a model and firmware are both established the family's
+        // command set is not closed for this device, so no control frame may
+        // be emitted. Raw is deliberately included: it is a diagnostic escape
+        // hatch whose danger tier the connection rejects before encode().
+        if (!controlsAllowed(s)) return emptyList()
+        return when (command) {
             is WheelCommand.SetHeadlight -> listOf(InmotionI2CommandBuilder.setHeadlight(command.on))
             is WheelCommand.SetDecorativeLights -> listOf(
                 InmotionI2CommandBuilder.setDaytimeRunningLight(command.on),
@@ -159,16 +193,34 @@ class InmotionI2WheelCodec(
             is WheelCommand.Raw -> listOf(command.bytes)
             else -> emptyList()
         }
+    }
 
     // ---- helpers --------------------------------------------------------
 
-    private fun handleMainInfo(s: InmotionI2State, frame: InmotionI2Frame) {
+    private fun handleMainInfo(
+        s: InmotionI2State,
+        frame: InmotionI2Frame,
+        events: MutableList<DecodeEvent>,
+    ) {
         if (frame.data.isEmpty()) return
         val selector = frame.data[0].toInt() and 0xFF
         val payload = frame.data.copyOfRange(1, frame.data.size)
         when (selector) {
             InmotionI2CommandBuilder.MAIN_INFO_CAR_TYPE -> {
-                s.carType = payload.toAsciiTrim()
+                val model = payload.toAsciiTrim()
+                if (model.isBlank()) {
+                    // Fail soft at the raw-codec boundary: a blank CAR_TYPE is
+                    // malformed wire data, not an identity. Keep any previously
+                    // decoded model so a single corrupt frame cannot erase it.
+                    events.add(
+                        DecodeEvent.Malformed(
+                            reason = "I2: blank CAR_TYPE",
+                            offendingBytes = frame.data.copyOf(),
+                        ),
+                    )
+                } else {
+                    s.carType = model
+                }
             }
             InmotionI2CommandBuilder.MAIN_INFO_SERIAL -> {
                 s.serial = payload.toAsciiTrim()
@@ -186,11 +238,25 @@ class InmotionI2WheelCodec(
                     s.firmware = "$mb1.$mb2.$mb3"
                 } else {
                     val ascii = payload.toAsciiTrim()
-                    s.firmware = ascii
                     val match = Regex("""^(\d+)\.(\d+)""").find(ascii)
-                    if (match != null) {
-                        s.mainBoardMajor = match.groupValues[1].toIntOrNull()
-                        s.mainBoardMinor = match.groupValues[2].toIntOrNull()
+                    val major = match?.groupValues?.get(1)?.toIntOrNull()
+                    val minor = match?.groupValues?.get(2)?.toIntOrNull()
+                    if (major == null || minor == null) {
+                        // Do not publish a new firmware string while retaining
+                        // the previous parsed major/minor (or vice versa): the
+                        // identity, parsed evidence and control contract must
+                        // come from the same accepted frame. Keep the last
+                        // consistent identity and report the wire anomaly.
+                        events.add(
+                            DecodeEvent.Malformed(
+                                reason = "I2: unparsable firmware '$ascii'",
+                                offendingBytes = frame.data.copyOf(),
+                            ),
+                        )
+                    } else {
+                        s.firmware = ascii
+                        s.mainBoardMajor = major
+                        s.mainBoardMinor = minor
                     }
                 }
             }
@@ -198,11 +264,11 @@ class InmotionI2WheelCodec(
     }
 
     private fun maybeEmitIdentified(s: InmotionI2State, events: MutableList<DecodeEvent>) {
-        if (s.carType == null) return
+        val model = s.carType?.takeIf { it.isNotBlank() } ?: return
         val currentIdentity = WheelIdentity(
             address = deviceAddress.ifBlank { "00:00:00:00:00:00" },
             family = WheelFamily.I2,
-            modelName = s.carType ?: "Inmotion",
+            modelName = model,
             serialNumber = s.serial,
             firmwareVersion = s.firmware,
         )
@@ -212,7 +278,8 @@ class InmotionI2WheelCodec(
             events.add(
                 DecodeEvent.Identified(
                     identity = currentIdentity,
-                    capabilities = DEFAULT_CAPABILITIES,
+                    capabilities = capabilitiesFor(s),
+                    support = supportFor(s),
                 ),
             )
         }
@@ -224,6 +291,13 @@ class InmotionI2WheelCodec(
         now: Long,
     ): DecodeEvent.TelemetryUpdate? {
         if (frame.data.size < InmotionI2RealtimeCore.MIN_DATA_SIZE) return null
+        // CAR_TYPE=V11Y can arrive before the firmware reply. Until the
+        // firmware is verified we cannot distinguish V11Y's /50 voltage from
+        // the core /100 scale, so publish no realtime snapshot rather than a
+        // known-wrong voltage. This is a layout-semantic withhold, not a
+        // "safe" reuse of another generation's scale.
+        val model = s.carType?.let(InmotionModelRegistry::find)
+        if (model?.key == "v11y" && !firmwareVerified(s)) return null
         val core = InmotionI2RealtimeCore.parse(frame.data)
 
         var merged = s.last.copy(
@@ -231,28 +305,44 @@ class InmotionI2WheelCodec(
             voltageV = core.voltageV.toFloat(),
             currentA = core.currentA.toFloat(),
         )
-        // Gate V11 early layout on exact model "v11" AND verified firmware < 1.4.
-        // Unidentified firmware or FW >= 1.4 must NOT apply early layout offsets.
-        if (isV11EarlyLayout(s)) {
-            if (frame.data.size >= InmotionI2RealtimeV11Early.MIN_DATA_SIZE) {
-                val t = InmotionI2RealtimeV11Early.parse(frame.data)
+        when {
+            // V11 early layout: exact model + verified firmware < 1.4.
+            isV11EarlyLayout(s) -> {
+                if (frame.data.size >= InmotionI2RealtimeV11Early.MIN_DATA_SIZE) {
+                    val t = InmotionI2RealtimeV11Early.parse(frame.data)
+                    merged = merged.copy(
+                        speedKmh = t.speedKmh.toFloat(),
+                        tripDistanceMetres = t.tripDistanceMetres,
+                        batteryPercent = t.batteryPercent?.toFloat(),
+                        mosTemperatureC = t.mosTempCelsius?.toFloat(),
+                        pitchAngleDegrees = t.pitchAngleDegrees?.toFloat(),
+                        rollAngleDegrees = t.rollAngleDegrees?.toFloat(),
+                        // phaseCurrentA remains null: offset 2 is bus current (currentA), not phase current.
+                    )
+                }
+                // Error bitmap at offset 48 is NOT evaluated for early layout (§3.5.4.A).
+            }
+            // V11Y uses the vendor-static 74-byte Lorin layout. Only fields
+            // whose scale is established are published; trip and temperatures
+            // stay null rather than being copied from V11 or guessed.
+            isV11YLayout(s) && frame.data.size >= InmotionI2RealtimeV11Y.MIN_DATA_SIZE -> {
+                val t = InmotionI2RealtimeV11Y.parse(frame.data)
                 merged = merged.copy(
+                    voltageV = t.voltageV.toFloat(),
+                    currentA = t.currentA.toFloat(),
                     speedKmh = t.speedKmh.toFloat(),
-                    tripDistanceMetres = t.tripDistanceMetres,
-                    batteryPercent = t.batteryPercent?.toFloat(),
-                    mosTemperatureC = t.mosTempCelsius?.toFloat(),
-                    pitchAngleDegrees = t.pitchAngleDegrees?.toFloat(),
-                    rollAngleDegrees = t.rollAngleDegrees?.toFloat(),
-                    // phaseCurrentA remains null: offset 2 is bus current (currentA), not phase current.
+                    batteryPercent = t.batteryPercent,
                 )
             }
-            // Error bitmap at offset 48 is NOT evaluated for early layout (§3.5.4.A).
-        } else {
-            // Error bitmap at offset 48 is evaluated only for newer models or FW >= 1.4.
-            val off = s.errorBitmapOffset
-            if (frame.data.size - off >= InmotionI2ErrorBitmap.SIZE) {
-                val bmp = InmotionI2ErrorBitmap.parse(frame.data, off)
-                merged = merged.copy(faults = faultsFromBitmap(bmp))
+            // Only the V11 >= 1.4 layout has an established error-bitmap
+            // offset. Applying offset 48 to another model would decode a
+            // plausible fault set from unrelated bytes.
+            isV11PostEarly(s) -> {
+                val off = s.errorBitmapOffset
+                if (frame.data.size - off >= InmotionI2ErrorBitmap.SIZE) {
+                    val bmp = InmotionI2ErrorBitmap.parse(frame.data, off)
+                    merged = merged.copy(faults = faultsFromBitmap(bmp))
+                }
             }
         }
         s.last = merged
@@ -269,6 +359,100 @@ class InmotionI2WheelCodec(
         val major = s.mainBoardMajor ?: return false
         val minor = s.mainBoardMinor ?: return false
         return major < 1 || (major == 1 && minor < 4)
+    }
+
+    private fun isV11YLayout(s: InmotionI2State): Boolean {
+        val model = s.carType?.let { InmotionModelRegistry.find(it) }
+        return model?.key == "v11y" && firmwareVerified(s)
+    }
+
+    private fun isV11PostEarly(s: InmotionI2State): Boolean {
+        val model = s.carType?.let { InmotionModelRegistry.find(it) }
+        return model?.key == "v11" && firmwareVerified(s) && !isV11EarlyLayout(s)
+    }
+
+    private fun firmwareVerified(s: InmotionI2State): Boolean =
+        s.mainBoardMajor != null && s.mainBoardMinor != null
+
+    private fun controlsAllowed(s: InmotionI2State): Boolean {
+        val model = s.carType?.let { InmotionModelRegistry.find(it) } ?: return false
+        if (model.key.isBlank()) return false
+        if (model.generation != InmotionModelRegistry.Generation.LORIN) return false
+        if (model.key !in CLOSED_CONTROL_MODELS) return false
+        return firmwareVerified(s)
+    }
+
+    private fun capabilitiesFor(s: InmotionI2State): WheelCapabilities =
+        if (controlsAllowed(s)) DEFAULT_CAPABILITIES else READ_ONLY_CAPABILITIES
+
+    private fun supportFor(s: InmotionI2State): WheelSupport {
+        val model = s.carType?.let { InmotionModelRegistry.find(it) }
+            ?: return WheelSupport.FAMILY_ONLY
+        if (!firmwareVerified(s)) {
+            val v11yAwaitingFirmware = model.key == "v11y"
+            return WheelSupport(
+                identityEvidence = WheelIdentityEvidence.MODEL_ONLY,
+                telemetryCoverage = if (v11yAwaitingFirmware) {
+                    WheelTelemetryCoverage.NONE
+                } else {
+                    WheelTelemetryCoverage.CORE_ELECTRICAL
+                },
+                controlContract = WheelControlContract.NONE,
+                reason = "firmware-unknown",
+                detail = if (v11yAwaitingFirmware) {
+                    "V11Y recognised, but firmware is unknown: realtime is withheld " +
+                        "because the /50 layout cannot be distinguished from the core scale."
+                } else {
+                    "Model ${model.key} recognised, but firmware is unknown; " +
+                        "controls are disabled and telemetry is core-only."
+                },
+            )
+        }
+        val coverage = when {
+            model.key == "v11" && isV11EarlyLayout(s) -> WheelTelemetryCoverage.MODEL_LAYOUT
+            model.key == "v11y" -> WheelTelemetryCoverage.MODEL_LAYOUT
+            model.key == "v11" -> WheelTelemetryCoverage.CORE_AND_FAULTS
+            else -> WheelTelemetryCoverage.CORE_ELECTRICAL
+        }
+        val detail = when {
+            model.key == "v11" && isV11EarlyLayout(s) ->
+                "V11 firmware < 1.4 early layout; phase current remains unavailable."
+            model.key == "v11y" ->
+                "V11Y vendor-static 74-byte layout: voltage, current, speed and battery. " +
+                    "Trip and temperatures are not published (scale not established)."
+            model.key == "v11" ->
+                "V11 firmware >= 1.4: core fields and the established fault bitmap; " +
+                    "the early telemetry layout is withheld."
+            else ->
+                "Model ${model.key} recognised; model-specific telemetry offsets are not " +
+                    "established, so only core voltage/current are published."
+        }
+        val controlsClosed = controlsAllowed(s)
+        return WheelSupport(
+            identityEvidence = WheelIdentityEvidence.MODEL_AND_FIRMWARE,
+            telemetryCoverage = coverage,
+            controlContract = if (controlsClosed) {
+                WheelControlContract.FAMILY_CLOSED
+            } else {
+                WheelControlContract.NONE
+            },
+            reason = when {
+                !controlsClosed -> "control-contract-not-closed"
+                coverage == WheelTelemetryCoverage.CORE_ELECTRICAL -> "layout-unestablished"
+                coverage == WheelTelemetryCoverage.CORE_AND_FAULTS -> "layout-partial"
+                else -> null
+            },
+            detail = if (!controlsClosed) {
+                "Model ${model.key} is catalogued but its I2 command contract is not " +
+                    "closed for this generation/function set; controls are disabled."
+            } else {
+                detail
+            },
+            // Only the V11 early layout is complete for the fields it claims.
+            // V11Y is explicitly partial, and V11 >= 1.4 / other models carry
+            // core-only or core-plus-faults coverage.
+            telemetryComplete = model.key == "v11" && isV11EarlyLayout(s),
+        )
     }
 
     private fun maybeEmitFaultChange(s: InmotionI2State, now: Long): DecodeEvent.Alert? {
@@ -314,6 +498,20 @@ class InmotionI2WheelCodec(
     }
 
     companion object {
+        /**
+         * Models whose I2 command frames are actually established. Catalog
+         * membership alone is not evidence: V5/V8/V10 are EZCAN/I1 entries,
+         * and other Lorin model rows have no closed I2 command contract yet.
+         * V11 >= 1.4 uses the newer 0x50 headlight subcommand; V12+ are the
+         * "and newer" path documented in [InmotionI2CommandBuilder].
+         */
+        private val CLOSED_CONTROL_MODELS = setOf(
+            // V11Y has a vendor-static telemetry layout, but no closed write
+            // contract of its own; keep it read-only until commands are
+            // evidenced for that generation.
+            "v11", "v12", "v12pro", "v12s", "v13", "v13pro", "v14",
+        )
+
         val DEFAULT_CAPABILITIES: WheelCapabilities = WheelCapabilities(
             headlight = true,
             horn = false,
@@ -331,6 +529,26 @@ class InmotionI2WheelCodec(
             playSound = true,
             pinUnlock = false,
             asyncAlerts = true,
+        )
+
+        /** No control is closed for an unknown model or an unknown firmware. */
+        val READ_ONLY_CAPABILITIES: WheelCapabilities = WheelCapabilities(
+            headlight = false,
+            horn = false,
+            beep = false,
+            ledStrip = false,
+            decorativeLights = false,
+            rideModes = false,
+            maxSpeed = false,
+            tiltback = false,
+            pedalSensitivity = false,
+            pedalHorizontal = false,
+            calibration = false,
+            powerOff = false,
+            volume = false,
+            playSound = false,
+            pinUnlock = false,
+            asyncAlerts = false,
         )
     }
 }

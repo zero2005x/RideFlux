@@ -9,8 +9,10 @@ import com.rideflux.domain.codec.DecodeEvent
 import com.rideflux.domain.codec.WheelCodec
 import com.rideflux.domain.command.CommandOutcome
 import com.rideflux.domain.command.WheelCommand
+import com.rideflux.domain.command.supports
 import com.rideflux.domain.connection.ConnectionState
 import com.rideflux.domain.connection.WheelConnection
+import com.rideflux.domain.connection.WheelSessionSnapshot
 import com.rideflux.domain.safety.DangerTier
 import com.rideflux.domain.safety.MotionInterlock
 import com.rideflux.domain.telemetry.WheelAlert
@@ -18,7 +20,9 @@ import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.domain.telemetry.WheelTelemetryMerge
 import com.rideflux.domain.transport.BleTransport
 import com.rideflux.domain.wheel.WheelCapabilities
+import com.rideflux.domain.wheel.WheelFamily
 import com.rideflux.domain.wheel.WheelIdentity
+import com.rideflux.domain.wheel.WheelSupport
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -75,12 +79,58 @@ private const val HANDSHAKE_TIMEOUT_MILLIS = 15_000L
  */
 class WheelConnectionImpl(
     private val transport: BleTransport,
-    val codec: WheelCodec,
+    codec: WheelCodec?,
     private val scope: CoroutineScope,
     private val clock: () -> Long = { System.currentTimeMillis() },
+    /**
+     * When set, the codec is built from the discovery resolution instead of
+     * the provisional `codec` argument. This is what makes the discovered
+     * GATT table, rather than the pre-connect guess, decide the family.
+     */
+    private val codecForResolution: ((WheelResolution) -> WheelCodec)? = null,
 ) : WheelConnection {
 
-    private val codecState: WheelCodec.State = codec.newState()
+    /**
+     * The one immutable binding of a live session: codec, its state, the
+     * family and the discovery resolution that produced it.
+     *
+     * Read as a single object by `dispatch`, the ingest loop and the
+     * keep-alive loop, so they can never mix a codec from one session with the
+     * state of another. Only the *final* binding is ever published: the
+     * provisional codec passed to the constructor is stored in
+     * [initialCodec] and is never exposed as a session binding.
+     */
+    private class SessionBinding(
+        val epoch: Long,
+        val codec: WheelCodec,
+        val codecState: WheelCodec.State,
+        val family: WheelFamily,
+        val resolution: WheelResolution?,
+    )
+
+    /** Pre-connect codec, used only when no discovery resolution exists. */
+    private val initialCodec: WheelCodec? = codec
+
+    @Volatile
+    private var binding: SessionBinding? = null
+
+    /** Family bound to the live session; `null` before binding and after close. */
+    val resolvedFamily: WheelFamily?
+        get() = binding?.family
+
+    /** Discovery resolution of the live session; `null` when none was used. */
+    val resolution: WheelResolution?
+        get() = binding?.resolution
+
+    /**
+     * Codec bound to the live session.
+     *
+     * Throws before the final binding exists and after close: unlike the old
+     * field, this can never hand out the provisional codec to a caller that
+     * is about to encode a command for the wrong family.
+     */
+    val codec: WheelCodec
+        get() = binding?.codec ?: error("codec is not resolved yet")
 
     /**
      * Serialises every touch of [codecState].
@@ -105,6 +155,14 @@ class WheelConnectionImpl(
 
     private val _capabilities = MutableStateFlow<WheelCapabilities?>(null)
     override val capabilities: StateFlow<WheelCapabilities?> = _capabilities.asStateFlow()
+
+    private val _support = MutableStateFlow<WheelSupport?>(null)
+    override val support: StateFlow<WheelSupport?> = _support.asStateFlow()
+
+    private val _sessionSnapshot = MutableStateFlow<WheelSessionSnapshot?>(null)
+    override val sessionSnapshot: StateFlow<WheelSessionSnapshot?> =
+        _sessionSnapshot.asStateFlow()
+    private var snapshotSequence = 0L
 
     private val _telemetry = MutableStateFlow(WheelTelemetry.EMPTY)
     override val telemetry: StateFlow<WheelTelemetry> = _telemetry.asStateFlow()
@@ -158,6 +216,16 @@ class WheelConnectionImpl(
     @Volatile private var closed: Boolean = false
 
     /**
+     * Monotonic session epoch, mutated under [lifecycleMutex].
+     *
+     * [start] takes a fresh epoch; [close] increments it again to retire any
+     * start that is still in flight. A binding (or a state write) is published
+     * only while its epoch is current, so a codec factory that finishes after
+     * close cannot republish a retired session.
+     */
+    @Volatile private var sessionEpoch: Long = 0
+
+    /**
      * Set once the codec has decoded anything usable from the wheel.
      *
      * The handshake watchdog only fires on a *silent* link. Several
@@ -179,12 +247,17 @@ class WheelConnectionImpl(
      * Idempotent: additional calls after the first return immediately.
      */
     suspend fun start() {
-        lifecycleMutex.withLock {
+        val epoch = lifecycleMutex.withLock {
             if (started || closed) return
             started = true
+            ++sessionEpoch
+            // Published under the same lock that retires the session: a
+            // concurrent close() either happens before this line (then we
+            // return above) or after it (then it overwrites Connecting with
+            // its terminal state).
+            _state.value = ConnectionState.Connecting
+            sessionEpoch
         }
-
-        _state.value = ConnectionState.Connecting
         try {
             transport.connect()
         } catch (_: TimeoutCancellationException) {
@@ -192,17 +265,90 @@ class WheelConnectionImpl(
             // cancelled: report it as a link failure (must be caught
             // before CancellationException, which it extends) and make
             // sure the half-open GATT is released.
-            onLinkLost("BLE connection timed out")
+            publishFailure(
+                ConnectionState.Failed(
+                    ConnectionState.Failed.Reason.BLE_LINK_LOST,
+                    "BLE connection timed out",
+                ),
+                epoch = epoch,
+            )
+            try { transport.disconnect() } catch (_: Throwable) { /* best-effort */ }
+            return
+        } catch (e: FamilyResolutionException) {
+            // The discovered table could not select a family: fail with the
+            // diagnostic and do NOT send any bootstrap for a guessed family.
+            publishFailure(
+                ConnectionState.Failed(
+                    ConnectionState.Failed.Reason.UNKNOWN_FAMILY,
+                    e.resolution.reason,
+                ),
+                epoch = epoch,
+            )
             try { transport.disconnect() } catch (_: Throwable) { /* best-effort */ }
             return
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            _state.value = ConnectionState.Failed(
-                ConnectionState.Failed.Reason.BLE_LINK_LOST,
-                e.message,
+            publishFailure(
+                ConnectionState.Failed(
+                    ConnectionState.Failed.Reason.BLE_LINK_LOST,
+                    e.message,
+                ),
+                epoch = epoch,
             )
             return
+        }
+
+        // Bind the final codec from the discovered table. This runs before
+        // any handshake frame is computed, so an unresolved or contradictory
+        // table can never put another family's bootstrap on the wire. The
+        // provisional codec is deliberately *not* published: until this
+        // method returns a binding, dispatch() has nothing to encode with and
+        // therefore cannot write another family's command.
+        val bound: SessionBinding = if (codecForResolution != null) {
+            val resolved = (transport as? NegotiatingTransport)?.resolution
+            if (resolved == null || !resolved.usable || resolved.family == null) {
+                val reason = resolved?.reason ?: "transport reported no GATT resolution"
+                publishFailure(
+                    ConnectionState.Failed(ConnectionState.Failed.Reason.UNKNOWN_FAMILY, reason),
+                    epoch = epoch,
+                )
+                try { transport.disconnect() } catch (_: Throwable) { /* best-effort */ }
+                return
+            }
+            val finalCodec = try {
+                codecForResolution.invoke(resolved)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                // A binding that cannot be built is a failed session, not a
+                // half-bound one: no codec is published, so dispatch stays
+                // unavailable and nothing is written.
+                publishFailure(
+                    ConnectionState.Failed(
+                        ConnectionState.Failed.Reason.BLE_LINK_LOST,
+                        "codec binding failed: ${e.message}",
+                    ),
+                    epoch = epoch,
+                )
+                try { transport.disconnect() } catch (_: Throwable) { /* best-effort */ }
+                return
+            }
+            publishBinding(epoch, finalCodec, resolved.family, resolved) ?: return
+        } else {
+            val initial = initialCodec
+            if (initial == null) {
+                publishFailure(
+                    ConnectionState.Failed(
+                        ConnectionState.Failed.Reason.UNKNOWN_FAMILY,
+                        "no codec was supplied and the session did not negotiate one",
+                    ),
+                    epoch = epoch,
+                )
+                try { transport.disconnect() } catch (_: Throwable) { /* best-effort */ }
+                return
+            }
+            publishBinding(epoch, initial, initial.family, null) ?: return
         }
 
         // Compute all codec metadata BEFORE launching any job so that a
@@ -214,29 +360,32 @@ class WheelConnectionImpl(
         // permanently blocking a retry.
         val keepAlivePeriodMillis: Long?
         val handshake: List<ByteArray>
-        val family: com.rideflux.domain.wheel.WheelFamily
         try {
             // A non-positive period means no timer. Do not invoke
             // keepAliveFrames here: codecs may compute those frames
             // dynamically and a transient encoder failure must be
             // contained by the timer loop rather than aborting start().
-            keepAlivePeriodMillis = codec.keepAlivePeriodMillis.takeIf { it > 0L }
-            handshake = codecMutex.withLock { codec.handshakeFrames(codecState) }
-            family = codec.family
+            keepAlivePeriodMillis = bound.codec.keepAlivePeriodMillis.takeIf { it > 0L }
+            handshake = codecMutex.withLock { bound.codec.handshakeFrames(bound.codecState) }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
             try { transport.disconnect() } catch (_: Throwable) { /* best-effort */ }
-            _state.value = ConnectionState.Failed(
-                ConnectionState.Failed.Reason.BLE_LINK_LOST,
-                e.message,
+            publishFailure(
+                ConnectionState.Failed(
+                    ConnectionState.Failed.Reason.BLE_LINK_LOST,
+                    e.message,
+                ),
+                epoch = epoch,
             )
             return
         }
 
         lifecycleMutex.withLock {
-            if (closed) return
-            _state.value = ConnectionState.Handshaking(family)
+            // Do not start any work for a session that close() retired while
+            // the binding or its handshake frames were being built.
+            if (closed || sessionEpoch != epoch) return
+            _state.value = ConnectionState.Handshaking(bound.family)
             // Arm the watchdog before the ingest loop: an UNDISPATCHED
             // ingest can decode a buffered reply synchronously, and its
             // Identified branch must find a job here to cancel.
@@ -247,11 +396,12 @@ class WheelConnectionImpl(
                 // telemetry without completing identification keeps its
                 // connection.
                 if (closed || sawWheelData) return@launch
-                if (_state.compareAndSet(
-                        ConnectionState.Handshaking(family),
-                        ConnectionState.Failed(ConnectionState.Failed.Reason.HANDSHAKE_TIMEOUT),
-                    )
-                ) {
+                val timedOut = publishFailure(
+                    ConnectionState.Failed(ConnectionState.Failed.Reason.HANDSHAKE_TIMEOUT),
+                    epoch = epoch,
+                    expected = ConnectionState.Handshaking(bound.family),
+                )
+                if (timedOut) {
                     ingestJob?.cancel()
                     keepAliveJob?.cancel()
                     _telemetry.value = WheelTelemetry.EMPTY
@@ -266,7 +416,9 @@ class WheelConnectionImpl(
         for (frame in handshake) {
             if (closed || _state.value is ConnectionState.Failed) return
             try {
-                transport.write(frame)
+                // The epoch is re-checked while writing, so a close() that
+                // starts between two frames stops the remaining ones.
+                if (!writeIfCurrent(bound, frame)) return
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -274,7 +426,17 @@ class WheelConnectionImpl(
                 // Previously this was swallowed and the connection sat
                 // in Handshaking until something else happened to tear
                 // it down; make it terminal instead.
-                onLinkLost("Handshake write failed: ${e.message}")
+                if (publishFailure(
+                        ConnectionState.Failed(
+                            ConnectionState.Failed.Reason.BLE_LINK_LOST,
+                            "Handshake write failed: ${e.message}",
+                        ),
+                        epoch = epoch,
+                    )
+                ) {
+                    _telemetry.value = WheelTelemetry.EMPTY
+                    motionInterlock.reset()
+                }
                 ingestJob?.cancel()
                 try { transport.disconnect() } catch (_: Throwable) { /* best-effort */ }
                 return
@@ -287,17 +449,11 @@ class WheelConnectionImpl(
         // disconnected the transport); a close() that loses the race
         // will cancel the jobs we just registered.
         lifecycleMutex.withLock {
-            if (closed) {
-                // A close() that won the race already disconnected the
-                // transport and published Disconnected, but this
-                // coroutine has since overwritten _state with
-                // Handshaking. Restore the terminal state so a closed
-                // connection is never reported as Handshaking/Failed.
-                _state.value = ConnectionState.Disconnected
-                return
-            }
+            // Nothing may be launched for a retired session: close() owns the
+            // terminal state and has already disconnected the transport.
+            if (closed || sessionEpoch != epoch) return
             if (_state.value !is ConnectionState.Failed && keepAlivePeriodMillis != null) {
-                keepAliveJob = scope.launch { runKeepAliveLoop(keepAlivePeriodMillis) }
+                keepAliveJob = scope.launch { runKeepAliveLoop(keepAlivePeriodMillis, bound) }
             }
         }
     }
@@ -323,16 +479,26 @@ class WheelConnectionImpl(
     }
 
     /**
-     * Single failure path for a lost link: flips [state] to Failed and
-     * stops the keep-alive loop so it does not keep writing frames to a
-     * dead transport every period until close() happens to be called.
+     * Single failure path for a lost link: retires the session and publishes
+     * [ConnectionState.Failed], then stops the keep-alive loop so it does not
+     * keep writing frames to a dead transport every period until close()
+     * happens to be called.
+     *
+     * Retirement and the terminal state are one critical section inside
+     * [publishFailure], so a command or poll frame can never be admitted
+     * after the link was declared lost — including while the transport has
+     * not finished tearing the writable link down.
      */
-    private fun onLinkLost(message: String?) {
-        if (closed || _state.value is ConnectionState.Failed) return
-        _state.value = ConnectionState.Failed(
-            ConnectionState.Failed.Reason.BLE_LINK_LOST,
-            message,
-        )
+    private suspend fun onLinkLost(message: String?) {
+        if (!publishFailure(
+                ConnectionState.Failed(
+                    ConnectionState.Failed.Reason.BLE_LINK_LOST,
+                    message,
+                ),
+            )
+        ) {
+            return
+        }
         keepAliveJob?.cancel()
         keepAliveJob = null
         handshakeTimeoutJob?.cancel()
@@ -344,7 +510,11 @@ class WheelConnectionImpl(
         // decodeSafely (not decode): wire data is untrusted and a missed
         // bounds check inside a family parser must degrade to a Malformed
         // event rather than kill the ingest loop.
-        val events = codecMutex.withLock { codec.decodeSafely(codecState, bytes) }
+        // The binding is read once, so a session that is closed between these
+        // lines cannot swap codec/state underneath the decoder.
+        val bound = binding ?: return
+        if (!isLive(bound)) return
+        val events = codecMutex.withLock { bound.codec.decodeSafely(bound.codecState, bytes) }
         for (event in events) {
             // close() cancels this job but cancellation is only observed
             // at suspension points; the flow mutations below are not
@@ -374,6 +544,16 @@ class WheelConnectionImpl(
                 is DecodeEvent.Identified -> {
                     _identity.value = event.identity
                     _capabilities.value = event.capabilities
+                    _support.value = event.support
+                    // One immutable publication for identity + its evidence.
+                    // The legacy flows remain for compatibility, but no
+                    // consumer should pair them across this boundary.
+                    _sessionSnapshot.value = WheelSessionSnapshot(
+                        sequence = ++snapshotSequence,
+                        identity = event.identity,
+                        capabilities = event.capabilities,
+                        support = event.support,
+                    )
                     _state.value = ConnectionState.Ready
                     handshakeTimeoutJob?.cancel()
                 }
@@ -386,20 +566,22 @@ class WheelConnectionImpl(
         }
     }
 
-    private suspend fun runKeepAliveLoop(periodMillis: Long) {
+    private suspend fun runKeepAliveLoop(periodMillis: Long, bound: SessionBinding) {
         while (scope.isActive) {
             delay(periodMillis)
             // Bail out when the link is gone: once the ingest loop
             // detects link loss and flips state to Failed, writing
             // keep-alives to the dead transport is pointless churn.
             val st = _state.value
-            if (closed || (st !is ConnectionState.Ready && st !is ConnectionState.Handshaking)) return
+            if (!isLive(bound) || (st !is ConnectionState.Ready && st !is ConnectionState.Handshaking)) {
+                return
+            }
             // Guard the codec call like the transport write below: an
             // escaping exception would kill the keep-alive timer and,
             // depending on the scope's job type, cancel the caller's
             // scope or crash the process.
             val frames = try {
-                codecMutex.withLock { codec.keepAliveFrames(codecState) }
+                codecMutex.withLock { bound.codec.keepAliveFrames(bound.codecState) }
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Throwable) {
@@ -409,7 +591,8 @@ class WheelConnectionImpl(
             }
             for (frame in frames) {
                 try {
-                    transport.write(frame)
+                    // Never write on behalf of a retired session.
+                    if (!writeIfCurrent(bound, frame)) return
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Throwable) {
@@ -439,8 +622,28 @@ class WheelConnectionImpl(
             return CommandOutcome.InvalidArgument(command, e.message ?: "Safety interlock rejected command")
         }
 
+        // Final-binding gate: the session binding is published atomically
+        // after the discovery resolution produced the real codec. Before that
+        // point (and after close) there is no codec to encode with, so a
+        // command must stay unavailable and produce **zero** transport writes
+        // — the provisional codec from the constructor must never reach the
+        // wire for a family discovery has already contradicted.
+        val bound = binding ?: return CommandOutcome.Unsupported(command)
+        if (!isLive(bound)) return CommandOutcome.Unsupported(command)
+
+        // Capability gate. Before identification the matrix is unknown and
+        // the codec remains the authority (some families accept a command
+        // during their handshake). Once identification has published a
+        // matrix, a command whose flag is false must not reach the encoder:
+        // this is the second line of defence behind the UI and the codec.
+        _capabilities.value?.let { capabilities ->
+            if (!capabilities.supports(command)) {
+                return CommandOutcome.Unsupported(command)
+            }
+        }
+
         val frames = try {
-            codecMutex.withLock { codec.encode(codecState, command) }
+            codecMutex.withLock { bound.codec.encode(bound.codecState, command) }
         } catch (e: CancellationException) {
             throw e
         } catch (e: IllegalArgumentException) {
@@ -461,7 +664,10 @@ class WheelConnectionImpl(
                 } catch (e: SecurityException) {
                     return CommandOutcome.InvalidArgument(command, e.message ?: "Safety interlock rejected command")
                 }
-                transport.write(frame)
+                // The session may have been closed while earlier frames were
+                // being written; stop instead of finishing the sequence on a
+                // retired transport.
+                if (!writeIfCurrent(bound, frame)) return CommandOutcome.Unsupported(command)
             }
             CommandOutcome.Success
         } catch (e: CancellationException) {
@@ -477,6 +683,10 @@ class WheelConnectionImpl(
         lifecycleMutex.withLock {
             if (closed) return
             closed = true
+            // Retire the session. A codec factory still running for this
+            // connection now fails its publish check instead of reviving the
+            // binding after close returns.
+            ++sessionEpoch
         }
         // cancelAndJoin, not cancel: an in-flight handleBytes must be
         // fully unwound before the state/telemetry reset below, or it
@@ -524,8 +734,112 @@ class WheelConnectionImpl(
         derivedResets.clear()
         _identity.value = null
         _capabilities.value = null
+        _support.value = null
+        _sessionSnapshot.value = null
+        // Drop the session binding: a stale handle must not be able to decode
+        // with the retired codec state, reuse the discovery resolution, or
+        // report the old family to a new caller. The epoch check in
+        // publishBinding already prevents an in-flight start from restoring
+        // it; this clears the already-published one.
+        binding = null
     }
 
     // ---- Helpers -------------------------------------------------------
 
+    /**
+     * Publish the final [codec] as this session's binding.
+     *
+     * Returns `null` when the epoch has been retired while the factory was
+     * running (close() completed) — in that case nothing is published, no job
+     * is started and no frame is written. This is the atomicity point that
+     * keeps codec, state, family and resolution consistent, and that prevents
+     * a retired session from coming back to life.
+     */
+    private suspend fun publishBinding(
+        epoch: Long,
+        codec: WheelCodec,
+        family: WheelFamily,
+        resolution: WheelResolution?,
+    ): SessionBinding? = lifecycleMutex.withLock {
+        if (closed || sessionEpoch != epoch) return null
+        val published = SessionBinding(epoch, codec, codec.newState(), family, resolution)
+        binding = published
+        published
+    }
+
+    /**
+     * Publish a terminal [failure] and retire the session.
+     *
+     * [ConnectionState.Failed] is terminal for this connection instance, so
+     * the state write and the retirement of the session epoch happen in the
+     * same [lifecycleMutex] critical section as every physical write's
+     * [isLive] check. That makes "Failed" and "no longer writable" one
+     * transition: after this returns, no `dispatch`, bootstrap frame or poll
+     * frame can be admitted — not merely once the transport's `disconnect()`
+     * eventually completes. A command that is already inside [writeIfCurrent]
+     * finishes (or is cancelled) under the existing bounded contract, and the
+     * next frame's check sees the retired epoch.
+     *
+     * Retiring the epoch also makes [publishBinding] reject a codec factory
+     * that finishes after the failure, so a failed session cannot be revived
+     * into a writable one.
+     *
+     * @param epoch when non-null, publish only while this is still the live
+     *   session epoch (used by `start()` and the handshake watchdog to ignore
+     *   a session that close() already retired).
+     * @param expected when non-null, publish only while the current state is
+     *   exactly this value (the silent-handshake watchdog must never overwrite
+     *   `Ready`).
+     * @return `true` when the failure was published and the session retired.
+     */
+    private suspend fun publishFailure(
+        failure: ConnectionState.Failed,
+        epoch: Long? = null,
+        expected: ConnectionState? = null,
+    ): Boolean = lifecycleMutex.withLock {
+        if (closed) return false
+        if (epoch != null && sessionEpoch != epoch) return false
+        if (_state.value is ConnectionState.Failed) return false
+        if (expected != null && _state.value != expected) return false
+        _state.value = failure
+        // Retire in the same critical section: isLive()/writeIfCurrent() and
+        // publishBinding() now reject this binding, and the failed session can
+        // never become writable again.
+        ++sessionEpoch
+        true
+    }
+
+    /**
+     * Lock-free liveness check for a binding read from [binding].
+     *
+     * [ConnectionState.Failed] is terminal even before its epoch retirement is
+     * observed, so it is checked explicitly here as well as in
+     * [publishFailure]; every physical write uses [writeIfCurrent], which
+     * re-validates this predicate under [lifecycleMutex] immediately before
+     * handing bytes to the transport.
+     *
+     * Used by read-only paths (decode, keep-alive decision).
+     */
+    private fun isLive(bound: SessionBinding): Boolean =
+        !closed &&
+            _state.value !is ConnectionState.Failed &&
+            sessionEpoch == bound.epoch &&
+            binding === bound
+
+    /**
+     * Write [frame] only while [bound] is still the live session.
+     *
+     * The check and the write share [lifecycleMutex] with the `closed = true`
+     * transition in [close] and with the epoch retirement in [publishFailure],
+     * so a frame is either written before the session is retired or not at
+     * all. In particular no physical write can happen after close() returns or
+     * after a terminal failure was published, and a multi-frame sequence
+     * re-checks the gate for every frame.
+     */
+    private suspend fun writeIfCurrent(bound: SessionBinding, frame: ByteArray): Boolean =
+        lifecycleMutex.withLock {
+            if (!isLive(bound)) return false
+            transport.write(frame)
+            true
+        }
 }
