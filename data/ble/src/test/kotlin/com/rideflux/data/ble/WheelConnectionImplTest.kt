@@ -45,7 +45,7 @@ class WheelConnectionImplTest {
                 listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(
                     timestampMillis = 1_000L,
                     speedKmh = bytes[0].toInt().toFloat(),
-                )))
+                ), freshSpeed = true))
             }
             onEncode = { listOf(byteArrayOf(0x33)) }
         }
@@ -611,7 +611,7 @@ class WheelConnectionImplTest {
         val transport = FakeBleTransport()
         val codec = FakeWheelCodec()
         codec.onDecode = {
-            listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(timestampMillis = 100L, speedKmh = 12f)))
+            listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(timestampMillis = 100L, speedKmh = 12f), freshSpeed = true))
         }
         val conn = connection(transport, codec, backgroundScope)
         conn.start()
@@ -644,7 +644,7 @@ class WheelConnectionImplTest {
         val transport = FakeBleTransport()
         val codec = FakeWheelCodec()
         codec.onDecode = {
-            listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(timestampMillis = 100L, speedKmh = 0f)))
+            listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(timestampMillis = 100L, speedKmh = 0f), freshSpeed = true))
         }
         codec.onEncode = { listOf(byteArrayOf(0x0A)) }
         val conn = connection(transport, codec, backgroundScope)

@@ -142,7 +142,7 @@ class InmotionI1WheelCodec(
             workMode = stateDecoded.displayString,
         )
         s.last = merged
-        events.add(DecodeEvent.TelemetryUpdate(merged))
+        events.add(DecodeEvent.TelemetryUpdate(merged, freshSpeed = true))
     }
 
     /**

@@ -305,10 +305,13 @@ class InmotionI2WheelCodec(
             voltageV = core.voltageV.toFloat(),
             currentA = core.currentA.toFloat(),
         )
+        // Speed is fresh only when this record was long enough to decode it.
+        var freshSpeed = false
         when {
             // V11 early layout: exact model + verified firmware < 1.4.
             isV11EarlyLayout(s) -> {
                 if (frame.data.size >= InmotionI2RealtimeV11Early.MIN_DATA_SIZE) {
+                    freshSpeed = true
                     val t = InmotionI2RealtimeV11Early.parse(frame.data)
                     merged = merged.copy(
                         speedKmh = t.speedKmh.toFloat(),
@@ -326,6 +329,9 @@ class InmotionI2WheelCodec(
             // whose scale is established are published; trip and temperatures
             // stay null rather than being copied from V11 or guessed.
             isV11YLayout(s) && frame.data.size >= InmotionI2RealtimeV11Y.MIN_DATA_SIZE -> {
+                // freshSpeed stays false: OFFSET_SPEED (0x06) is the charge-current
+                // word, not speed, so this value must not feed the motion interlock.
+                // Set it to true together with the V11Y offset correction (speed 0x08).
                 val t = InmotionI2RealtimeV11Y.parse(frame.data)
                 merged = merged.copy(
                     voltageV = t.voltageV.toFloat(),
@@ -346,7 +352,7 @@ class InmotionI2WheelCodec(
             }
         }
         s.last = merged
-        return DecodeEvent.TelemetryUpdate(merged)
+        return DecodeEvent.TelemetryUpdate(merged, freshSpeed = freshSpeed)
     }
 
     /**

@@ -181,7 +181,8 @@ class VescWheelCodec(
                     ),
                 )
             }
-            events.add(DecodeEvent.TelemetryUpdate(telemetry))
+            // Every published record is a decoded GET_VALUES_SETUP, which carries speed.
+            events.add(DecodeEvent.TelemetryUpdate(telemetry, freshSpeed = true))
         }
         return events
     }

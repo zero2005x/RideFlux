@@ -146,7 +146,7 @@ class KingSongWheelCodec(
                         },
                     )
                     s.last = merged
-                    events.add(DecodeEvent.TelemetryUpdate(merged))
+                    events.add(DecodeEvent.TelemetryUpdate(merged, freshSpeed = true))
                 }
                 is KingSongFrame.LivePageB -> {
                     s.lastPageSeen = KingSongDecoder.CMD_LIVE_PAGE_B
@@ -158,7 +158,8 @@ class KingSongWheelCodec(
                             else ChargingState.NOT_CONNECTED,
                     )
                     s.last = merged
-                    events.add(DecodeEvent.TelemetryUpdate(merged))
+                    // Page B has no speed field; page A's speed is only carried along.
+                    events.add(DecodeEvent.TelemetryUpdate(merged, freshSpeed = false))
                 }
                 is KingSongFrame.Unknown -> {
                     s.unsupportedPagesSeen++

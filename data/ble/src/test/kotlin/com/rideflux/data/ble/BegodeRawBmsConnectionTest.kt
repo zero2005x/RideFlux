@@ -42,7 +42,7 @@ class BegodeRawBmsConnectionTest {
         val codec = FakeWheelCodec(
             onDecode = { bytes ->
                 if (bytes[0] == 0.toByte()) {
-                    listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(100, speedKmh = 0f)))
+                    listOf(DecodeEvent.TelemetryUpdate(WheelTelemetry(100, speedKmh = 0f), freshSpeed = true))
                 } else listOf(DecodeEvent.RawBmsFrame(raw))
             },
             onEncode = { listOf(byteArrayOf(0x33)) },

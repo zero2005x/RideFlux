@@ -115,7 +115,7 @@ abstract class NinebotWheelCodecBase internal constructor(
                                 currentA = t.currentAmps.toFloat(),
                             )
                             s.last = merged
-                            events.add(DecodeEvent.TelemetryUpdate(merged))
+                            events.add(DecodeEvent.TelemetryUpdate(merged, freshSpeed = true))
                         }
                     }
                 }

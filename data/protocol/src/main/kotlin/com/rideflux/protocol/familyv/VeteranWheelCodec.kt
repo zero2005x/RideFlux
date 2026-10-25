@@ -166,7 +166,7 @@ class VeteranWheelCodec(
                         },
                     )
                     s.last = merged
-                    events.add(DecodeEvent.TelemetryUpdate(merged))
+                    events.add(DecodeEvent.TelemetryUpdate(merged, freshSpeed = true))
 
                     // Speed-alert transition → TiltBack.
                     val alertActive = frame.speedAlertTenthsKmh > 0 &&

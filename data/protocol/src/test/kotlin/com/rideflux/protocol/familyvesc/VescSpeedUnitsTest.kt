@@ -10,6 +10,7 @@ import com.rideflux.domain.telemetry.WheelTelemetry
 import com.rideflux.protocol.testutil.hex
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -74,6 +75,15 @@ class VescSpeedUnitsTest {
         assertEquals(36f, requireNotNull(telemetry.speedKmh), 0.001f)
         assertEquals(50.4f, requireNotNull(telemetry.voltageV), 0.01f)
         assertEquals(80f, requireNotNull(telemetry.batteryPercent), 0.01f)
+    }
+
+    @Test
+    fun `a decoded setup frame is a fresh speed sample for the interlock`() {
+        val codec = VescWheelCodec("AA:BB:CC:DD:EE:FF")
+        val update = codec.decode(codec.newState(), withSpeedRaw(0))
+            .filterIsInstance<DecodeEvent.TelemetryUpdate>().single()
+        assertEquals(0f, requireNotNull(update.snapshot.speedKmh), 0.001f)
+        assertTrue("every published VESC record decodes speed", update.freshSpeed)
     }
 
     @Test
