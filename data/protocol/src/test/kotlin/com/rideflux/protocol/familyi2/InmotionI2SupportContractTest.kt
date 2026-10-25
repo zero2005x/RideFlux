@@ -110,18 +110,20 @@ class InmotionI2SupportContractTest {
      * Fixed 74-byte V11Y body. Only the four established fields carry data;
      * every other byte is zero.
      *
-     * 0x00 = 0x0E88 = 3720 → 74.4 V   (÷50)
+     * 0x00 = 0x1D10 = 7440 → 74.4 V   (÷100)
      * 0x02 = 0x04E2 = 1250 → 12.5 A   (÷100, signed)
-     * 0x04 = 0x26AC = 9900            (charge current; must not become speed)
-     * 0x06 = 0x09E2 = 2530 → 25.3 km/h (÷100)
-     * 0x1c = 0x1388 = 5000 → 50 %     (÷10000 ratio)
+     * 0x06 = 0xFEAC = -340           (charge current; must not become speed)
+     * 0x08 = 0x09E2 = 2530 → 25.3 km/h (÷100)
+     * 0x1c = 0x04D2 = 1234           (mileage; must not become battery)
+     * 0x22 = 0x1388 = 5000 → 50 %     (÷10000 ratio)
      */
     private val v11yFixedBody: ByteArray = ByteArray(74).also {
-        it[0x00] = 0x88.toByte(); it[0x01] = 0x0E
+        it[0x00] = 0x10.toByte(); it[0x01] = 0x1D
         it[0x02] = 0xE2.toByte(); it[0x03] = 0x04
-        it[0x04] = 0xAC.toByte(); it[0x05] = 0x26
-        it[0x06] = 0xE2.toByte(); it[0x07] = 0x09
-        it[0x1c] = 0x88.toByte(); it[0x1d] = 0x13
+        it[0x06] = 0xAC.toByte(); it[0x07] = 0xFE.toByte()
+        it[0x08] = 0xE2.toByte(); it[0x09] = 0x09
+        it[0x1c] = 0xD2.toByte(); it[0x1d] = 0x04
+        it[0x22] = 0x88.toByte(); it[0x23] = 0x13
     }
 
     @Test
@@ -216,7 +218,7 @@ class InmotionI2SupportContractTest {
         // fabricated 25.3 km/h and 50 % battery.
         assertNull(telem.speedKmh)
         assertNull(telem.batteryPercent)
-        assertEquals(37.2f, telem.voltageV!!, 0.001f) // core parser: 3720 / 100
+        assertEquals(74.4f, telem.voltageV!!, 0.001f) // core parser: 7440 / 100
         assertEquals(12.5f, telem.currentA!!, 0.001f)
     }
 }
