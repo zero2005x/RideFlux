@@ -330,7 +330,9 @@ class DashboardViewModelBehaviourTest {
             listOf(WheelCommand.SetHeadlight(true), WheelCommand.SetRideMode(2), WheelCommand.Beep),
             connection.dispatched.toList(),
         )
-        assertTrue(viewModel.uiState.value.headlightOn)
+        // The flag is set in the command's completion callback, after the fake
+        // has recorded the dispatch, and then reaches uiState through a combine.
+        until("optimistic headlight") { viewModel.uiState.value.headlightOn }
         runBlocking {
             assertEquals(CommandOutcome.Success, viewModel.dispatch(WheelCommand.Horn))
         }
